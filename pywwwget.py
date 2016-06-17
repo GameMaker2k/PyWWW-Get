@@ -785,5 +785,3 @@ if(havemechanize==False):
  def download_from_url_to_file_with_mechanize(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[262144, 262144], sleep=-1):
   returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, outfile, outpath, sleep)
   return returnval;
-
-print(download_from_url("http://localhost/~cooldude2k/EHMAssistant.txt", geturls_headers_pywwwget_python_alt, geturls_cj)['Content']);
