@@ -13,7 +13,7 @@
     Copyright 2016 Game Maker 2k - http://intdb.sourceforge.net/
     Copyright 2016 Kazuki Przyborowski - https://github.com/KazukiPrzyborowski
 
-    $FileInfo: pywwwget.py - Last Update: 03/1/2016 Ver. 0.4.5 RC 1 - Author: cooldude2k $
+    $FileInfo: pywwwget.py - Last Update: 6/17/2016 Ver. 0.4.7 RC 1 - Author: cooldude2k $
 '''
 
 from __future__ import division, absolute_import, print_function;
@@ -56,8 +56,8 @@ if(sys.version[0]>="3"):
 __program_name__ = "PyWWW-Get";
 __project__ = __program_name__;
 __project_url__ = "https://github.com/GameMaker2k/PyWWW-Get";
-__version_info__ = (0, 4, 5, "RC 1", 1);
-__version_date_info__ = (2016, 3, 1, "RC 1", 1);
+__version_info__ = (0, 4, 7, "RC 1", 1);
+__version_date_info__ = (2016, 6, 17, "RC 1", 1);
 __version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2);
 if(__version_info__[4]!=None):
  __version_date_plusrc__ = __version_date__+"-"+str(__version_date_info__[4]);
@@ -95,6 +95,69 @@ geturls_headers_googlebot_google = {'Referer': "http://google.com/", 'User-Agent
 geturls_headers_googlebot_google_old = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_googlebot_google_old, 'Accept-Encoding': "none", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
 geturls_headers = geturls_headers_firefox_windows7;
 geturls_download_sleep = 0;
+
+def add_url_param(url, **params):
+ n=3;
+ parts = list(urlparse.urlsplit(url));
+ d = dict(cgi.parse_qsl(parts[n])); # use cgi.parse_qs for list values
+ d.update(params);
+ parts[n]=urlencode(d);
+ return urlparse.urlunsplit(parts);
+
+os.environ["PATH"] = os.environ["PATH"] + os.pathsep + os.path.dirname(os.path.realpath(__file__)) + os.pathsep + os.getcwd();
+def which_exec(execfile):
+ for path in os.environ["PATH"].split(":"):
+  if os.path.exists(path + "/" + execfile):
+   return path + "/" + execfile;
+
+def listize(varlist):
+ il = 0;
+ ix = len(varlist);
+ ilx = 1;
+ newlistreg = {};
+ newlistrev = {};
+ newlistfull = {};
+ while(il < ix):
+  newlistreg.update({ilx: varlist[il]});
+  newlistrev.update({varlist[il]: ilx});
+  ilx = ilx + 1;
+  il = il + 1;
+ newlistfull = {1: newlistreg, 2: newlistrev, 'reg': newlistreg, 'rev': newlistrev};
+ return newlistfull;
+
+def twolistize(varlist):
+ il = 0;
+ ix = len(varlist);
+ ilx = 1;
+ newlistnamereg = {};
+ newlistnamerev = {};
+ newlistdescreg = {};
+ newlistdescrev = {};
+ newlistfull = {};
+ while(il < ix):
+  newlistnamereg.update({ilx: varlist[il][0].strip()});
+  newlistnamerev.update({varlist[il][0].strip(): ilx});
+  newlistdescreg.update({ilx: varlist[il][1].strip()});
+  newlistdescrev.update({varlist[il][1].strip(): ilx});
+  ilx = ilx + 1;
+  il = il + 1;
+ newlistnametmp = {1: newlistnamereg, 2: newlistnamerev, 'reg': newlistnamereg, 'rev': newlistnamerev};
+ newlistdesctmp = {1: newlistdescreg, 2: newlistdescrev, 'reg': newlistdescreg, 'rev': newlistdescrev};
+ newlistfull = {1: newlistnametmp, 2: newlistdesctmp, 'name': newlistnametmp, 'desc': newlistdesctmp}
+ return newlistfull;
+
+def arglistize(proexec, *varlist):
+ il = 0;
+ ix = len(varlist);
+ ilx = 1;
+ newarglist = [proexec];
+ while(il < ix):
+  if varlist[il][0] is not None:
+   newarglist.append(varlist[il][0]);
+  if varlist[il][1] is not None:
+   newarglist.append(varlist[il][1]);
+  il = il + 1;
+ return newarglist;
 
 # get_readable_size by Lipis
 # http://stackoverflow.com/posts/14998888/revisions
@@ -174,8 +237,8 @@ def get_readable_size_from_string(instring, precision=1, unit="IEC", usehashes=F
    listnumcount += 1;
  return return_val;
 
-def make_http_headers_from_dict_to_list(headers={'Referer': "http://google.com/", 'User-Agent': geturls_ua, 'Accept-Encoding': "none", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"}):
- if(isinstance(headers, dict)):
+def make_http_headers_from_dict_to_list(headers={'Referer': "http://motherless.com/", 'User-Agent': geturls_ua, 'Accept-Encoding': "gzip, deflate", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"}):
+ if isinstance(headers, dict):
   returnval = [];
   if(sys.version[0]=="2"):
    for headkey, headvalue in headers.iteritems():
@@ -183,14 +246,14 @@ def make_http_headers_from_dict_to_list(headers={'Referer': "http://google.com/"
   if(sys.version[0]>="3"):
    for headkey, headvalue in headers.items():
     returnval.append((headkey, headvalue));
- elif(isinstance(headers, list)):
+ elif isinstance(headers, list):
   returnval = headers;
  else:
   returnval = False;
  return returnval;
 
-def make_http_headers_from_dict_to_pycurl(headers={'Referer': "http://google.com/", 'User-Agent': geturls_ua, 'Accept-Encoding': "none", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"}):
- if(isinstance(headers, dict)):
+def make_http_headers_from_dict_to_pycurl(headers={'Referer': "http://motherless.com/", 'User-Agent': geturls_ua, 'Accept-Encoding': "gzip, deflate", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"}):
+ if isinstance(headers, dict):
   returnval = [];
   if(sys.version[0]=="2"):
    for headkey, headvalue in headers.iteritems():
@@ -198,21 +261,21 @@ def make_http_headers_from_dict_to_pycurl(headers={'Referer': "http://google.com
   if(sys.version[0]>="3"):
    for headkey, headvalue in headers.items():
     returnval.append(headkey+": "+headvalue);
- elif(isinstance(headers, list)):
+ elif isinstance(headers, list):
   returnval = headers;
  else:
   returnval = False;
  return returnval;
 
-def make_http_headers_from_list_to_dict(headers=[("Referer", "http://google.com/"), ("User-Agent", geturls_ua), ("Accept-Encoding", "none"), ("Accept-Language", "en-US,en;q=0.8,en-CA,en-GB;q=0.6"), ("Accept-Charset", "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7"), ("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"), ("Connection", "close")]):
- if(isinstance(headers, list)):
+def make_http_headers_from_list_to_dict(headers=[("Referer", "http://motherless.com/"), ("User-Agent", geturls_ua), ("Accept-Encoding", "gzip, deflate"), ("Accept-Language", "en-US,en;q=0.8,en-CA,en-GB;q=0.6"), ("Accept-Charset", "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7"), ("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"), ("Connection", "close")]):
+ if isinstance(headers, list):
   returnval = {};
   mli = 0;
   mlil = len(headers);
   while(mli<mlil):
    returnval.update({headers[mli][0]: headers[mli][1]});
    mli = mli + 1;
- elif(isinstance(headers, dict)):
+ elif isinstance(headers, dict):
   returnval = headers;
  else:
   returnval = False;
@@ -317,10 +380,11 @@ def download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffers
   downloadsize = int(downloadsize);
  if downloadsize is None: downloadsize = 0;
  fulldatasize = 0;
+ prevdownsize = 0;
  log.info("Downloading URL "+httpurl);
  with tempfile.NamedTemporaryFile('wb+', prefix="pywwwget-", delete=False) as f:
   tmpfilename = f.name;
-  returnval = {'Type': "File", 'Filename': tmpfilename, 'Headers': dict(geturls_text.info()), 'URL': geturls_text.geturl(), 'Code': geturls_text.getcode()};
+  returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.info()), 'URL': geturls_text.geturl(), 'Code': geturls_text.getcode()};
   while True:
    databytes = geturls_text.read(buffersize);
    if not databytes: break;
@@ -329,7 +393,9 @@ def download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffers
    percentage = "";
    if(downloadsize>0):
     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-   log.info("Downloading "+str(fulldatasize)+" / "+str(downloadsize)+" bytes. "+str(percentage)+" done.");
+   downloaddiff = fulldatasize - prevdownsize;
+   log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "SI")['ReadableWithSuffix']);
+   prevdownsize = fulldatasize;
    f.write(databytes);
   f.close();
  geturls_text.close();
@@ -357,12 +423,13 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, outf
   shutil.move(tmpfilename, filepath);
   if(os.path.exists(tmpfilename)==True):
    os.remove(tmpfilename);
-  returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+  returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  if(outfile=="-" and sys.version[0]=="2"):
   pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
   tmpfilename = pretmpfilename['Filename'];
   downloadsize = os.path.getsize(tmpfilename);
   fulldatasize = 0;
+  prevdownsize = 0;
   with open(tmpfilename, 'rb') as ft:
    f = StringIO();
    while True:
@@ -373,19 +440,22 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, outf
     percentage = "";
     if(downloadsize>0):
      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-    log.info("Copying "+str(fulldatasize)+" / "+str(downloadsize)+" bytes. "+str(percentage)+" done.");
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "SI")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
     f.write(databytes);
    f.seek(0);
    fdata = f.getvalue();
    f.close();
    ft.close();
    os.remove(tmpfilename);
-  returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+  returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  if(outfile=="-" and sys.version[0]>="3"):
   pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
   tmpfilename = pretmpfilename['Filename'];
   downloadsize = os.path.getsize(tmpfilename);
   fulldatasize = 0;
+  prevdownsize = 0;
   with open(tmpfilename, 'rb') as ft:
    f = BytesIO();
    while True:
@@ -396,14 +466,16 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, outf
     percentage = "";
     if(downloadsize>0):
      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-    log.info("Copying "+str(fulldatasize)+" / "+str(downloadsize)+" bytes. "+str(percentage)+" done.");
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "SI")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
     f.write(databytes);
    f.seek(0);
    fdata = f.getvalue();
    f.close();
    ft.close();
    os.remove(tmpfilename);
-  returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+  returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  return returnval;
 
 if(haverequests==True):
@@ -448,17 +520,20 @@ if(haverequests==True):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
   fulldatasize = 0;
+  prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix="pywwwget-", delete=False) as f:
    tmpfilename = f.name;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Headers': dict(geturls_text.headers), 'URL': geturls_text.url, 'Code': geturls_text.status_code};
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'URL': geturls_text.url, 'Code': geturls_text.status_code};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
     percentage = "";
     if(downloadsize>0):
      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-    log.info("Downloading "+str(fulldatasize)+" / "+str(downloadsize)+" bytes. "+str(percentage)+" done.");
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "SI")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
     f.write(databytes);
    f.close();
   geturls_text.close();
@@ -492,12 +567,13 @@ if(haverequests==True):
    shutil.move(tmpfilename, filepath);
    if(os.path.exists(tmpfilename)==True):
     os.remove(tmpfilename);
-   returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+   returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
    pretmpfilename = download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
+   prevdownsize = 0;
    with open(tmpfilename, 'rb') as ft:
     f = StringIO();
     while True:
@@ -508,19 +584,22 @@ if(haverequests==True):
      percentage = "";
      if(downloadsize>0):
       percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-     log.info("Copying "+str(fulldatasize)+" / "+str(downloadsize)+" bytes. "+str(percentage)+" done.");
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "SI")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
      f.write(databytes);
     f.seek(0);
     fdata = f.getvalue();
     f.close();
     ft.close();
     os.remove(tmpfilename);
-   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]>="3"):
    pretmpfilename = download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
+   prevdownsize = 0;
    with open(tmpfilename, 'rb') as ft:
     f = BytesIO();
     while True:
@@ -531,14 +610,16 @@ if(haverequests==True):
      percentage = "";
      if(downloadsize>0):
       percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-     log.info("Copying "+str(fulldatasize)+" / "+str(downloadsize)+" bytes. "+str(percentage)+" done.");
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "SI")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
      f.write(databytes);
     f.seek(0);
     fdata = f.getvalue();
     f.close();
     ft.close();
     os.remove(tmpfilename);
-   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   return returnval;
 
 if(haverequests==False):
@@ -596,10 +677,11 @@ if(havemechanize==True):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
   fulldatasize = 0;
+  prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix="pywwwget-", delete=False) as f:
    tmpfilename = f.name;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Headers': dict(geturls_text.info()), 'URL': geturls_text.geturl(), 'Code': geturls_text.code};
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.info()), 'URL': geturls_text.geturl(), 'Code': geturls_text.code};
    while True:
     databytes = geturls_text.read(buffersize);
     if not databytes: break;
@@ -608,7 +690,9 @@ if(havemechanize==True):
     percentage = "";
     if(downloadsize>0):
      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-    log.info("Downloading "+str(fulldatasize)+" / "+str(downloadsize)+" bytes. "+str(percentage)+" done.");
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "SI")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
     f.write(databytes);
    f.close();
   geturls_text.close();
@@ -642,12 +726,13 @@ if(havemechanize==True):
    shutil.move(tmpfilename, filepath);
    if(os.path.exists(tmpfilename)==True):
     os.remove(tmpfilename);
-   returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+   returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
    pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
+   prevdownsize = 0;
    with open(tmpfilename, 'rb') as ft:
     f = StringIO();
     while True:
@@ -658,19 +743,22 @@ if(havemechanize==True):
      percentage = "";
      if(downloadsize>0):
       percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-     log.info("Copying "+str(fulldatasize)+" / "+str(downloadsize)+" bytes. "+str(percentage)+" done.");
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "SI")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
      f.write(databytes);
     f.seek(0);
     fdata = f.getvalue();
     f.close();
     ft.close();
     os.remove(tmpfilename);
-   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]>="3"):
    pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
+   prevdownsize = 0;
    with open(tmpfilename, 'rb') as ft:
     f = BytesIO();
     while True:
@@ -681,14 +769,16 @@ if(havemechanize==True):
      percentage = "";
      if(downloadsize>0):
       percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-     log.info("Copying "+str(fulldatasize)+" / "+str(downloadsize)+" bytes. "+str(percentage)+" done.");
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "SI")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
      f.write(databytes);
     f.seek(0);
     fdata = f.getvalue();
     f.close();
     ft.close();
     os.remove(tmpfilename);
-   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   return returnval;
 
 if(havemechanize==False):
