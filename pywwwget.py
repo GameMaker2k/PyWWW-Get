@@ -39,16 +39,16 @@ if(sys.version[0]=="2"):
  except ImportError:
   from StringIO import StringIO;
  # From http://python-future.org/compatible_idioms.html
- from urlparse import urlparse;
+ from urlparse import urlparse, urlunparse, urlsplit, urlunsplit, urljoin;
  from urllib import urlencode;
  from urllib2 import urlopen, Request, HTTPError;
  import urllib2, urlparse, cookielib;
 if(sys.version[0]>="3"):
  from io import StringIO, BytesIO;
  # From http://python-future.org/compatible_idioms.html
- from urllib.parse import urlparse, urlencode
- from urllib.request import urlopen, Request
- from urllib.error import HTTPError
+ from urllib.parse import urlparse, urlunparse, urlsplit, urlunsplit, urljoin, urlencode;
+ from urllib.request import urlopen, Request;
+ from urllib.error import HTTPError;
  import urllib.request as urllib2;
  import urllib.parse as urlparse;
  import http.cookiejar as cookielib;
