@@ -75,7 +75,10 @@ if(getargs.dump_user_agent==True):
  sys.exit();
 
 if(getargs.output_document=="-"):
- print(pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, outfile=getargs.output_document, outpath=os.getcwd())['Content']);
+ if(sys.version[0]=="2"):
+  print(pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, outfile=getargs.output_document, outpath=os.getcwd())['Content']);
+ if(sys.version[0]>="3"):
+  print(pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, outfile=getargs.output_document, outpath=os.getcwd())['Content'].decode('ascii', 'replace'));
 
 if(not getargs.output_document=="-"):
  pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, outfile=getargs.output_document, outpath=os.getcwd());
