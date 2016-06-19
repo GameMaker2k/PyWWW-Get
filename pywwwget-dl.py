@@ -60,12 +60,15 @@ parser.add_argument("-u", "--update", action="store_true", help="update this pro
 parser.add_argument("-d", "--dump-user-agent", action="store_true", help="display the current browser identification");
 parser.add_argument("-u", "--user-agent", default="Mozilla/5.0 (Windows NT 6.1; rv:44.0) Gecko/20100101 Firefox/44.0", help="specify a custom user agent");
 parser.add_argument("-r", "--referer", default="https://www.google.com/", help="specify a custom referer, use if the video access");
-parser.add_argument("-o", "--output-document", default="-", help="specify a custom referer, use if the video access");
+parser.add_argument("-o", "--output-document", default="-", help="specify a file name for output");
+parser.add_argument("-O", "--output-directory", default=os.path.realpath(os.getcwd()), help="specify a directory to output file to");
 parser.add_argument("-v", "--verbose", action="store_true", help="print various debugging information");
 getargs = parser.parse_args();
 
 getargs_cj = geturls_cj;
 getargs_headers = {'Referer': getargs.referer, 'User-Agent': getargs.user_agent, 'Accept-Encoding': "gzip, deflate", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
+
+getargs.output_directory = os.path.realpath(getargs.output_directory);
 
 if(getargs.verbose==True):
  log.basicConfig(format="%(levelname)s: %(message)s", level=log.DEBUG);
@@ -76,9 +79,11 @@ if(getargs.dump_user_agent==True):
 
 if(getargs.output_document=="-"):
  if(sys.version[0]=="2"):
-  print(pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, outfile=getargs.output_document, outpath=os.getcwd())['Content']);
+  precontstr = pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, outfile=getargs.output_document, outpath=os.getcwd());
+  print(precontstr['Content']);
  if(sys.version[0]>="3"):
-  print(pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, outfile=getargs.output_document, outpath=os.getcwd())['Content'].decode('ascii', 'replace'));
+  precontstr = pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, outfile=getargs.output_document, outpath=os.getcwd());
+  print(precontstr['Content'].decode('ascii', 'replace'));
 
 if(not getargs.output_document=="-"):
- pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, outfile=getargs.output_document, outpath=os.getcwd());
+ pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, outfile=getargs.output_document, outpath=getargs.output_directory);
