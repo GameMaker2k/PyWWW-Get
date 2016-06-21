@@ -60,10 +60,15 @@ parser.add_argument("-u", "--update", action="store_true", help="update this pro
 parser.add_argument("-d", "--dump-user-agent", action="store_true", help="display the current browser identification");
 parser.add_argument("-u", "--user-agent", default="Mozilla/5.0 (Windows NT 6.1; rv:44.0) Gecko/20100101 Firefox/44.0", help="specify a custom user agent");
 parser.add_argument("-r", "--referer", default="https://www.google.com/", help="specify a custom referer, use if the video access");
-parser.add_argument("-o", "--output-document", default="-", help="specify a file name for output");
-parser.add_argument("-O", "--output-directory", default=os.path.realpath(os.getcwd()), help="specify a directory to output file to");
+parser.add_argument("-O", "--output-document", default="-", help="specify a file name for output");
+parser.add_argument("-o", "--output-directory", default=os.path.realpath(os.getcwd()), help="specify a directory to output file to");
+parser.add_argument("-l", "--use-httplib", default="urllib", help="select library to download file can be urllib or requests or mechanize");
+parser.add_argument("-b", "--set-buffersize", default=524288, type=int, help="set how big buffersize is in bytes. how much it will download");
 parser.add_argument("-v", "--verbose", action="store_true", help="print various debugging information");
 getargs = parser.parse_args();
+
+if(not pywwwget.check_httplib_support(getargs.use_httplib)):
+ getargs.use_httplib = "urllib";
 
 getargs_cj = geturls_cj;
 getargs_headers = {'Referer': getargs.referer, 'User-Agent': getargs.user_agent, 'Accept-Encoding': "gzip, deflate", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
@@ -79,11 +84,11 @@ if(getargs.dump_user_agent==True):
 
 if(getargs.output_document=="-"):
  if(sys.version[0]=="2"):
-  precontstr = pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, outfile=getargs.output_document, outpath=os.getcwd());
+  precontstr = pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, getargs.use_httplib, buffersize=[getargs.set_buffersize, getargs.set_buffersize], outfile=getargs.output_document, outpath=os.getcwd());
   print(precontstr['Content']);
  if(sys.version[0]>="3"):
-  precontstr = pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, outfile=getargs.output_document, outpath=os.getcwd());
+  precontstr = pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, getargs.use_httplib, buffersize=[getargs.set_buffersize, getargs.set_buffersize], outfile=getargs.output_document, outpath=os.getcwd());
   print(precontstr['Content'].decode('ascii', 'replace'));
 
-if(not getargs.output_document=="-"):
- pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, outfile=getargs.output_document, outpath=getargs.output_directory);
+if(getargs.output_document!="-"):
+ pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, getargs.use_httplib, buffersize=[getargs.set_buffersize, getargs.set_buffersize], outfile=getargs.output_document, outpath=getargs.output_directory);

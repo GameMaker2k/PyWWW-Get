@@ -289,8 +289,31 @@ def make_http_headers_from_list_to_dict(headers=[("Referer", "http://motherless.
   returnval = False;
  return returnval;
 
+def get_httplib_support(checkvalue=None):
+ global haverequests, havemechanize;
+ returnval = ();
+ returnval.append("urllib");
+ if(haverequests==True):
+  returnval.append("requests");
+ if(havemechanize==True):
+  returnval.append("mechanize");
+ if(not checkvalue==None):
+  if(checkvalue=="urllib1" or checkvalue=="urllib2"):
+   checkvalue = "urllib";
+  if(checkvalue in returnval):
+   returnval = True;
+  else:
+   returnval = False;
+ return returnval;
+
+def check_httplib_support(checkvalue="urllib"):
+ if(checkvalue=="urllib1" or checkvalue=="urllib2"):
+  checkvalue = "urllib";
+ returnval = get_httplib_support(checkvalue);
+ return returnval;
+
 def download_from_url(httpurl, httpheaders, httpcookie, httplibuse="urllib", sleep=-1):
- global geturls_download_sleep, haverequests;
+ global geturls_download_sleep, haverequests, havemechanize;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
@@ -310,7 +333,7 @@ def download_from_url(httpurl, httpheaders, httpcookie, httplibuse="urllib", sle
  return returnval;
 
 def download_from_url_file(httpurl, httpheaders, httpcookie, httplibuse="urllib", buffersize=524288, sleep=-1):
- global geturls_download_sleep, haverequests;
+ global geturls_download_sleep, haverequests, havemechanize;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
@@ -330,7 +353,7 @@ def download_from_url_file(httpurl, httpheaders, httpcookie, httplibuse="urllib"
  return returnval;
 
 def download_from_url_to_file(httpurl, httpheaders, httpcookie, httplibuse="urllib", outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
- global geturls_download_sleep, haverequests;
+ global geturls_download_sleep, haverequests, havemechanize;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
