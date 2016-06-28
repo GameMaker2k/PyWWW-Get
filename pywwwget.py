@@ -322,6 +322,10 @@ def check_httplib_support(checkvalue="urllib"):
  returnval = get_httplib_support(checkvalue);
  return returnval;
 
+def get_httplib_support_list():
+ returnval = get_httplib_support(None);
+ return returnval;
+
 def download_from_url(httpurl, httpheaders, httpcookie, httplibuse="urllib", sleep=-1):
  global geturls_download_sleep, haverequests, havemechanize;
  if(sleep<0):
