@@ -417,7 +417,7 @@ def download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffers
  myhash.update(httpurl);
  myhash.update(str(buffersize));
  myhash.update(str(exec_time_start));
- tmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
+ newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
  if(sleep<0):
   sleep = geturls_download_sleep;
  geturls_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(httpcookie));
@@ -433,7 +433,7 @@ def download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffers
  fulldatasize = 0;
  prevdownsize = 0;
  log.info("Downloading URL "+httpurl);
- with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=tmpfilesuffix, delete=False) as f:
+ with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
   tmpfilename = f.name;
   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.info()), 'URL': geturls_text.geturl(), 'Code': geturls_text.getcode()};
   while True:
@@ -576,7 +576,7 @@ if(haverequests==True):
   myhash.update(httpurl);
   myhash.update(str(buffersize));
   myhash.update(str(exec_time_start));
-  tmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
+  newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(isinstance(httpheaders, list)):
@@ -590,7 +590,7 @@ if(haverequests==True):
   fulldatasize = 0;
   prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
-  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=tmpfilesuffix, delete=False) as f:
+  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'URL': geturls_text.url, 'Code': geturls_text.status_code};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
@@ -746,7 +746,7 @@ if(havemechanize==True):
   myhash.update(httpurl);
   myhash.update(str(buffersize));
   myhash.update(str(exec_time_start));
-  tmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
+  newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
   if(sleep<0):
    sleep = geturls_download_sleep;
   geturls_opener = mechanize.Browser();
@@ -764,7 +764,7 @@ if(havemechanize==True):
   fulldatasize = 0;
   prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
-  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=tmpfilesuffix, delete=False) as f:
+  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.info()), 'URL': geturls_text.geturl(), 'Code': geturls_text.code};
    while True:
