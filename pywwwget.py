@@ -414,9 +414,10 @@ def download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffers
  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
  exec_time_start = time.time();
  myhash = hashlib.new("sha1");
+ if(sys.version[0]=="2"):
+  myhash.update(httpurl);
  if(sys.version[0]>="3"):
-  myhash = myhash.encode('utf-8');
- myhash.update(httpurl);
+  myhash.update(httpurl.encode('utf-8'));
  myhash.update(str(buffersize));
  myhash.update(str(exec_time_start));
  newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
@@ -575,9 +576,10 @@ if(haverequests==True):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
+  if(sys.version[0]=="2"):
+   myhash.update(httpurl);
   if(sys.version[0]>="3"):
-   myhash = myhash.encode('utf-8');
-  myhash.update(httpurl);
+   myhash.update(httpurl.encode('utf-8'));
   myhash.update(str(buffersize));
   myhash.update(str(exec_time_start));
   newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
@@ -747,9 +749,10 @@ if(havemechanize==True):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
+  if(sys.version[0]=="2"):
+   myhash.update(httpurl);
   if(sys.version[0]>="3"):
-   myhash = myhash.encode('utf-8');
-  myhash.update(httpurl);
+   myhash.update(httpurl.encode('utf-8'));
   myhash.update(str(buffersize));
   myhash.update(str(exec_time_start));
   newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
