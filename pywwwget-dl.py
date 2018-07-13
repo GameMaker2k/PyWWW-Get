@@ -66,7 +66,7 @@ parser.add_argument("url", help="motherless url");
 parser.add_argument("-V", "--version", action="version", version=__program_name__+" "+__version__);
 parser.add_argument("-u", "--update", action="store_true", help="update this program to latest version. Make sure that you have sufficient permissions (run with sudo if needed)");
 parser.add_argument("-d", "--dump-user-agent", action="store_true", help="display the current browser identification");
-parser.add_argument("-u", "--user-agent", default="Mozilla/5.0 (Windows NT 6.1; rv:47.0) Gecko/20100101 Firefox/47.0", help="specify a custom user agent");
+parser.add_argument("-u", "--user-agent", default=geturls_ua_firefox_windows7, help="specify a custom user agent");
 parser.add_argument("-r", "--referer", default="https://www.google.com/", help="specify a custom referer, use if the video access");
 parser.add_argument("-O", "--output-document", default="-", help="specify a file name for output");
 parser.add_argument("-o", "--output-directory", default=os.path.realpath(os.getcwd()), help="specify a directory to output file to");
