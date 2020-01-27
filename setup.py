@@ -50,6 +50,7 @@ pymodule['longdescription'] = 'Python libary/module to download files.';
 pymodule['platforms'] = 'OS Independent';
 pymodule['zipsafe'] = True;
 pymodule['pymodules'] = ['pywwwget'];
+pymodule['scripts'] = ['pywwwget-dl.py'];
 pymodule['classifiers'] = [
  'Development Status :: 5 - Production/Stable',
  'Intended Audience :: Developers',
@@ -109,5 +110,6 @@ setup(
  platforms = pymodule['platforms'],
  zip_safe = pymodule['zipsafe'],
  py_modules = pymodule['pymodules'],
+ scripts = pymodule['scripts'],
  classifiers = pymodule['classifiers']
 )
