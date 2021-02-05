@@ -62,7 +62,7 @@ geturls_headers_googlebot_google_old = pywwwget.geturls_headers_googlebot_google
 geturls_download_sleep = pywwwget.geturls_download_sleep;
 
 parser = argparse.ArgumentParser(description="Python libary/module to download files.", conflict_handler="resolve", add_help=True);
-parser.add_argument("url", help="motherless url");
+parser.add_argument("url", help="enter a url");
 parser.add_argument("-V", "--version", action="version", version=__program_name__+" "+__version__);
 parser.add_argument("-u", "--update", action="store_true", help="update this program to latest version. Make sure that you have sufficient permissions (run with sudo if needed)");
 parser.add_argument("-d", "--dump-user-agent", action="store_true", help="display the current browser identification");
