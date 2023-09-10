@@ -12,7 +12,7 @@
     Copyright 2016-2023 Game Maker 2k - https://github.com/GameMaker2k
     Copyright 2016-2023 Kazuki Przyborowski - https://github.com/KazukiPrzyborowski
 
-    $FileInfo: pywwwget.py - Last Update: 9/10/2023 Ver. 0.5.2 RC 1 - Author: cooldude2k $
+    $FileInfo: pywwwget.py - Last Update: 9/10/2023 Ver. 0.5.4 RC 1 - Author: cooldude2k $
 '''
 
 from __future__ import division, absolute_import, print_function;
@@ -55,7 +55,7 @@ __program_alt_name__ = "PyWWWGet";
 __program_small_name__ = "wwwget";
 __project__ = __program_name__;
 __project_url__ = "https://github.com/GameMaker2k/PyWWW-Get";
-__version_info__ = (0, 5, 2, "RC 1", 1);
+__version_info__ = (0, 5, 4, "RC 1", 1);
 __version_date_info__ = (2023, 9, 10, "RC 1", 1);
 __version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2);
 __revision__ = __version_info__[3];
@@ -563,6 +563,7 @@ def download_from_url_with_request(httpurl, httpheaders, httpcookie, sleep=-1):
  geturls_opener.addheaders = httpheaders;
  urllib.request.install_opener(geturls_opener);
  time.sleep(sleep);
+ httpheaders = make_http_headers_from_list_to_dict(httpheaders);
  geturls_text = urlopen(Request(httpurl, headers=httpheaders));
  log.info("Downloading URL "+httpurl);
  if(geturls_text.headers.get("Content-Encoding")=="gzip" or geturls_text.headers.get("Content-Encoding")=="deflate"):
@@ -599,6 +600,7 @@ def download_from_url_file_with_request(httpurl, httpheaders, httpcookie, buffer
  geturls_opener.addheaders = httpheaders;
  urllib.request.install_opener(geturls_opener);
  time.sleep(sleep);
+ httpheaders = make_http_headers_from_list_to_dict(httpheaders);
  geturls_text = urlopen(Request(httpurl, headers=httpheaders));
  downloadsize = geturls_text.headers.get('Content-Length');
  if(downloadsize is not None):
