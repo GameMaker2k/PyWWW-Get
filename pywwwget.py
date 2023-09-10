@@ -9,11 +9,10 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     Revised BSD License for more details.
 
-    Copyright 2016 Cool Dude 2k - http://idb.berlios.de/
-    Copyright 2016 Game Maker 2k - http://intdb.sourceforge.net/
-    Copyright 2016 Kazuki Przyborowski - https://github.com/KazukiPrzyborowski
+    Copyright 2016-2023 Game Maker 2k - https://github.com/GameMaker2k
+    Copyright 2016-2023 Kazuki Przyborowski - https://github.com/KazukiPrzyborowski
 
-    $FileInfo: pywwwget.py - Last Update: 6/17/2016 Ver. 0.4.7 RC 1 - Author: cooldude2k $
+    $FileInfo: pywwwget.py - Last Update: 9/10/2023 Ver. 0.5.0 RC 1 - Author: cooldude2k $
 '''
 
 from __future__ import division, absolute_import, print_function;
@@ -52,13 +51,15 @@ if(sys.version[0]>="3"):
  import http.cookiejar as cookielib;
 
 __program_name__ = "PyWWW-Get";
+__program_alt_name__ = "PyWWWGet";
+__program_small_name__ = "wwwget";
 __project__ = __program_name__;
 __project_url__ = "https://github.com/GameMaker2k/PyWWW-Get";
-__version_info__ = (0, 4, 7, "RC 1", 1);
-__version_date_info__ = (2016, 6, 17, "RC 1", 1);
+__version_info__ = (0, 5, 0, "RC 1", 1);
+__version_date_info__ = (2023, 9, 10, "RC 1", 1);
 __version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2);
 __revision__ = __version_info__[3];
-__revision_id__ = "$Id: d4fd9a686a7b16bb601de47ba32b96d7f5147911 $";
+__revision_id__ = "$Id$";
 if(__version_info__[4] is not None):
  __version_date_plusrc__ = __version_date__+"-"+str(__version_date_info__[4]);
 if(__version_info__[4] is None):
@@ -68,7 +69,7 @@ if(__version_info__[3] is not None):
 if(__version_info__[3] is None):
  __version__ = str(__version_info__[0])+"."+str(__version_info__[1])+"."+str(__version_info__[2]);
 
-tmpfileprefix = "py"+str(sys.version_info[0])+"wwwget"+str(__version_info__[0])+"-";
+tmpfileprefix = "py"+str(sys.version_info[0])+__program_small_name__+str(__version_info__[0])+"-";
 tmpfilesuffix = "-";
 pytempdir = tempfile.gettempdir();
 
@@ -338,6 +339,8 @@ def download_from_url(httpurl, httpheaders, httpcookie, httplibuse="urllib", sle
   httplibuse = "urllib";
  if(httplibuse=="urllib"):
   returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, sleep);
+ elif(httplibuse=="request"):
+  returnval = download_from_url_with_request(httpurl, httpheaders, httpcookie, sleep);
  elif(httplibuse=="requests"):
   returnval = download_from_url_with_requests(httpurl, httpheaders, httpcookie, sleep);
  elif(httplibuse=="mechanize"):
@@ -358,6 +361,8 @@ def download_from_url_file(httpurl, httpheaders, httpcookie, httplibuse="urllib"
   httplibuse = "urllib";
  if(httplibuse=="urllib"):
   returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, sleep);
+ elif(httplibuse=="request"):
+  returnval = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, buffersize, sleep);
  elif(httplibuse=="requests"):
   returnval = download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, buffersize, sleep);
  elif(httplibuse=="mechanize"):
@@ -378,6 +383,8 @@ def download_from_url_to_file(httpurl, httpheaders, httpcookie, httplibuse="urll
   httplibuse = "urllib";
  if(httplibuse=="urllib"):
   returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
+ elif(httplibuse=="request"):
+  returnval = download_from_url_to_file_with_request(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="requests"):
   returnval = download_from_url_to_file_with_requests(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="mechanize"):
@@ -516,6 +523,165 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, outf
   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  if(outfile=="-" and sys.version[0]>="3"):
   pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
+  tmpfilename = pretmpfilename['Filename'];
+  downloadsize = os.path.getsize(tmpfilename);
+  fulldatasize = 0;
+  prevdownsize = 0;
+  exec_time_start = time.time();
+  with open(tmpfilename, 'rb') as ft:
+   f = BytesIO();
+   while True:
+    databytes = ft.read(buffersize[1]);
+    if not databytes: break;
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    f.write(databytes);
+   f.seek(0);
+   fdata = f.getvalue();
+   f.close();
+   ft.close();
+   os.remove(tmpfilename);
+   exec_time_end = time.time();
+   log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
+  returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+ return returnval;
+
+def download_from_url_with_request(httpurl, httpheaders, httpcookie, sleep=-1):
+ global geturls_download_sleep;
+ if(sleep<0):
+  sleep = geturls_download_sleep;
+ geturls_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(httpcookie));
+ if(isinstance(httpheaders, dict)):
+  httpheaders = make_http_headers_from_dict_to_list(httpheaders);
+ geturls_opener.addheaders = httpheaders;
+ time.sleep(sleep);
+ geturls_text = urlopen(Request(httpurl));
+ log.info("Downloading URL "+httpurl);
+ if(geturls_text.headers.get("Content-Encoding")=="gzip" or geturls_text.headers.get("Content-Encoding")=="deflate"):
+  if(sys.version[0]=="2"):
+   strbuf = StringIO(geturls_text.read());
+  if(sys.version[0]>="3"):
+   strbuf = BytesIO(geturls_text.read());
+  gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+  returnval_content = gzstrbuf.read()[:];
+ if(geturls_text.headers.get("Content-Encoding")!="gzip" and geturls_text.headers.get("Content-Encoding")!="deflate"):
+  returnval_content = geturls_text.read()[:];
+ returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'URL': geturls_text.geturl(), 'Code': geturls_text.getcode()};
+ geturls_text.close();
+ return returnval;
+
+def download_from_url_file_with_request(httpurl, httpheaders, httpcookie, buffersize=524288, sleep=-1):
+ global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+ exec_time_start = time.time();
+ myhash = hashlib.new("sha1");
+ if(sys.version[0]=="2"):
+  myhash.update(httpurl);
+  myhash.update(str(buffersize));
+  myhash.update(str(exec_time_start));
+ if(sys.version[0]>="3"):
+  myhash.update(httpurl.encode('utf-8'));
+  myhash.update(str(buffersize).encode('utf-8'));
+  myhash.update(str(exec_time_start).encode('utf-8'));
+ newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
+ if(sleep<0):
+  sleep = geturls_download_sleep;
+ geturls_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(httpcookie));
+ if(isinstance(httpheaders, dict)):
+  httpheaders = make_http_headers_from_dict_to_list(httpheaders);
+ geturls_opener.addheaders = httpheaders;
+ time.sleep(sleep);
+ geturls_text = urlopen(Request(httpurl));
+ downloadsize = geturls_text.headers.get('Content-Length');
+ if(downloadsize is not None):
+  downloadsize = int(downloadsize);
+ if downloadsize is None: downloadsize = 0;
+ fulldatasize = 0;
+ prevdownsize = 0;
+ log.info("Downloading URL "+httpurl);
+ with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
+  tmpfilename = f.name;
+  returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'URL': geturls_text.geturl(), 'Code': geturls_text.getcode()};
+  while True:
+   databytes = geturls_text.read(buffersize);
+   if not databytes: break;
+   datasize = len(databytes);
+   fulldatasize = datasize + fulldatasize;
+   percentage = "";
+   if(downloadsize>0):
+    percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+   downloaddiff = fulldatasize - prevdownsize;
+   log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+   prevdownsize = fulldatasize;
+   f.write(databytes);
+  f.close();
+ geturls_text.close();
+ exec_time_end = time.time();
+ log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to download file.");
+ returnval.update({'Filesize': os.path.getsize(tmpfilename), 'DownloadTime': float(exec_time_start - exec_time_end), 'DownloadTimeReadable': hms_string(exec_time_start - exec_time_end)});
+ return returnval;
+
+def download_from_url_to_file_with_request(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ global geturls_download_sleep;
+ if(sleep<0):
+  sleep = geturls_download_sleep;
+ if(not outfile=="-"):
+  outpath = outpath.rstrip(os.path.sep);
+  filepath = os.path.realpath(outpath+os.path.sep+outfile);
+  if(not os.path.exists(outpath)):
+   os.makedirs(outpath);
+  if(os.path.exists(outpath) and os.path.isfile(outpath)):
+   return False;
+  if(os.path.exists(filepath) and os.path.isdir(filepath)):
+   return False;
+  pretmpfilename = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
+  tmpfilename = pretmpfilename['Filename'];
+  downloadsize = os.path.getsize(tmpfilename);
+  fulldatasize = 0;
+  log.info("Moving file "+tmpfilename+" to "+filepath);
+  exec_time_start = time.time();
+  shutil.move(tmpfilename, filepath);
+  exec_time_end = time.time();
+  log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
+  if(os.path.exists(tmpfilename)):
+   os.remove(tmpfilename);
+  returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+ if(outfile=="-" and sys.version[0]=="2"):
+  pretmpfilename = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
+  tmpfilename = pretmpfilename['Filename'];
+  downloadsize = os.path.getsize(tmpfilename);
+  fulldatasize = 0;
+  prevdownsize = 0;
+  exec_time_start = time.time();
+  with open(tmpfilename, 'rb') as ft:
+   f = StringIO();
+   while True:
+    databytes = ft.read(buffersize[1]);
+    if not databytes: break;
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    f.write(databytes);
+   f.seek(0);
+   fdata = f.getvalue();
+   f.close();
+   ft.close();
+   os.remove(tmpfilename);
+   exec_time_end = time.time();
+   log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
+  returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+ if(outfile=="-" and sys.version[0]>="3"):
+  pretmpfilename = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
   tmpfilename = pretmpfilename['Filename'];
   downloadsize = os.path.getsize(tmpfilename);
   fulldatasize = 0;
