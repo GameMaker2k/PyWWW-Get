@@ -17,20 +17,18 @@
 '''
 
 from __future__ import division, absolute_import, print_function;
-import re, os, sys, hashlib, shutil, platform, tempfile, urllib, gzip, time, argparse, cgi, subprocess, imp;
+import re, os, sys, hashlib, shutil, platform, tempfile, urllib, gzip, time, argparse, cgi, subprocess;
 import logging as log;
 haverequests = False;
 try:
- imp.find_module('requests');
- haverequests = True;
  import requests;
+ haverequests = True;
 except ImportError:
  haverequests = False;
 havemechanize = False;
 try:
- imp.find_module('mechanize');
- havemechanize = True;
  import mechanize;
+ havemechanize = True;
 except ImportError:
  havemechanize = False;
 if(sys.version[0]=="2"):
@@ -60,7 +58,7 @@ __version_info__ = (0, 4, 7, "RC 1", 1);
 __version_date_info__ = (2016, 6, 17, "RC 1", 1);
 __version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2);
 __revision__ = __version_info__[3];
-__revision_id__ = "$Id$";
+__revision_id__ = "$Id: d4fd9a686a7b16bb601de47ba32b96d7f5147911 $";
 if(__version_info__[4] is not None):
  __version_date_plusrc__ = __version_date__+"-"+str(__version_date_info__[4]);
 if(__version_info__[4] is None):
