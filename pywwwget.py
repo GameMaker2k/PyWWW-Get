@@ -38,13 +38,13 @@ if(sys.version[0]=="2"):
  # From http://python-future.org/compatible_idioms.html
  from urlparse import urlparse, urlunparse, urlsplit, urlunsplit, urljoin;
  from urllib import urlencode;
- from urllib2 import urlopen, Request, HTTPError;
+ from urllib2 import urlopen, Request, install_opener, HTTPError;
  import urllib2, urlparse, cookielib;
 if(sys.version[0]>="3"):
  from io import StringIO, BytesIO;
  # From http://python-future.org/compatible_idioms.html
  from urllib.parse import urlparse, urlunparse, urlsplit, urlunsplit, urljoin, urlencode;
- from urllib.request import urlopen, Request;
+ from urllib.request import urlopen, Request, install_opener;
  from urllib.error import HTTPError;
  import urllib.request as urllib2;
  import urllib.parse as urlparse;
@@ -561,8 +561,9 @@ def download_from_url_with_request(httpurl, httpheaders, httpcookie, sleep=-1):
  if(isinstance(httpheaders, dict)):
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  geturls_opener.addheaders = httpheaders;
+ urllib.request.install_opener(geturls_opener);
  time.sleep(sleep);
- geturls_text = urlopen(Request(httpurl));
+ geturls_text = urlopen(Request(httpurl, headers=httpheaders));
  log.info("Downloading URL "+httpurl);
  if(geturls_text.headers.get("Content-Encoding")=="gzip" or geturls_text.headers.get("Content-Encoding")=="deflate"):
   if(sys.version[0]=="2"):
@@ -596,8 +597,9 @@ def download_from_url_file_with_request(httpurl, httpheaders, httpcookie, buffer
  if(isinstance(httpheaders, dict)):
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  geturls_opener.addheaders = httpheaders;
+ urllib.request.install_opener(geturls_opener);
  time.sleep(sleep);
- geturls_text = urlopen(Request(httpurl));
+ geturls_text = urlopen(Request(httpurl, headers=httpheaders));
  downloadsize = geturls_text.headers.get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
