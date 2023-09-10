@@ -304,6 +304,7 @@ def get_httplib_support(checkvalue=None):
  global haverequests, havemechanize;
  returnval = [];
  returnval.append("urllib");
+ returnval.append("request");
  if(haverequests):
   returnval.append("requests");
  if(havemechanize):
