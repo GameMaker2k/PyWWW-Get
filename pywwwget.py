@@ -18,6 +18,8 @@
 from __future__ import division, absolute_import, print_function;
 import re, os, sys, hashlib, shutil, platform, tempfile, urllib, gzip, time, argparse, cgi, subprocess;
 import logging as log;
+from ftplib import FTP, FTP_TLS;
+from base64 import b64encode;
 haverequests = False;
 try:
  import requests;
@@ -30,6 +32,12 @@ try:
  havemechanize = True;
 except ImportError:
  havemechanize = False;
+testparamiko = False;
+try:
+ import paramiko;
+ testparamiko = True;
+except ImportError:
+ testparamiko = False;
 if(sys.version[0]=="2"):
  try:
   from cStringIO import StringIO;
@@ -1102,3 +1110,68 @@ if(not havemechanize):
  def download_from_url_to_file_with_mechanize(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, outfile, outpath, sleep)
   return returnval;
+
+  sftp.close();
+  ssh.close();
+  sftpfile.seek(0, 0);
+  return sftpfile;
+else:
+ def download_file_from_sftp_file(url):
+  return False;
+
+if(testparamiko):
+ def download_file_from_sftp_string(url):
+  sftpfile = download_file_from_sftp_file(url);
+  return sftpfile.read();
+else:
+ def download_file_from_ftp_string(url):
+  return False;
+
+if(testparamiko):
+ def upload_file_to_sftp_file(sftpfile, url):
+  urlparts = urlparse.urlparse(url);
+  file_name = os.path.basename(urlparts.path);
+  file_dir = os.path.dirname(urlparts.path);
+  sftp_port = urlparts.port;
+  if(urlparts.port is None):
+   sftp_port = 22;
+  else:
+   sftp_port = urlparts.port;
+  if(urlparts.username is not None):
+   sftp_username = urlparts.username;
+  else:
+   sftp_username = "anonymous";
+  if(urlparts.password is not None):
+   sftp_password = urlparts.password;
+  elif(urlparts.password is None and urlparts.username=="anonymous"):
+   sftp_password = "anonymous";
+  else:
+   sftp_password = "";
+  if(urlparts.scheme!="sftp"):
+   return False;
+  ssh = paramiko.SSHClient();
+  ssh.load_system_host_keys();
+  ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy());
+  try:
+   ssh.connect(urlparts.hostname, port=sftp_port, username=urlparts.username, password=urlparts.password);
+  except paramiko.ssh_exception.SSHException:
+   return False;
+  sftp = ssh.open_sftp();
+  sftp.putfo(sftpfile, urlparts.path);
+  sftp.close();
+  ssh.close();
+  sftpfile.seek(0, 0);
+  return sftpfile;
+else:
+ def upload_file_to_sftp_file(sftpfile, url):
+  return False;
+
+if(testparamiko):
+ def upload_file_to_sftp_string(sftpstring, url):
+  sftpfileo = BytesIO(sftpstring);
+  sftpfile = upload_file_to_sftp_files(ftpfileo, url);
+  sftpfileo.close();
+  return sftpfile;
+else:
+ def upload_file_to_sftp_string(url):
+  return False;
