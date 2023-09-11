@@ -107,6 +107,41 @@ geturls_headers_googlebot_google_old = {'Referer': "http://google.com/", 'User-A
 geturls_headers = geturls_headers_firefox_windows7;
 geturls_download_sleep = 0;
 
+def verbose_printout(dbgtxt, outtype="log", dbgenable=True, dgblevel=20):
+ if(outtype=="print" and dbgenable):
+  print(dbgtxt);
+  return True;
+ elif(outtype=="log" and dbgenable):
+  logging.info(dbgtxt);
+  return True;
+ elif(outtype=="warning" and dbgenable):
+  logging.warning(dbgtxt);
+  return True;
+ elif(outtype=="error" and dbgenable):
+  logging.error(dbgtxt);
+  return True;
+ elif(outtype=="critical" and dbgenable):
+  logging.critical(dbgtxt);
+  return True;
+ elif(outtype=="exception" and dbgenable):
+  logging.exception(dbgtxt);
+  return True;
+ elif(outtype=="logalt" and dbgenable):
+  logging.log(dgblevel, dbgtxt);
+  return True;
+ elif(outtype=="debug" and dbgenable):
+  logging.debug(dbgtxt);
+  return True;
+ elif(not dbgenable):
+  return True;
+ else:
+  return False;
+ return False;
+
+def verbose_printout_return(dbgtxt, outtype="log", dbgenable=True, dgblevel=20):
+ verbose_printout(dbgtxt, outtype, dbgenable, dgblevel);
+ return dbgtxt;
+
 def add_url_param(url, **params):
  n=3;
  parts = list(urlparse.urlsplit(url));
