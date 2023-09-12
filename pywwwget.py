@@ -1111,6 +1111,108 @@ if(not havemechanize):
   returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, outfile, outpath, sleep)
   return returnval;
 
+def download_file_from_ftp_file(url):
+ urlparts = urlparse.urlparse(url);
+ file_name = os.path.basename(urlparts.path);
+ file_dir = os.path.dirname(urlparts.path);
+ if(urlparts.username is not None):
+  ftp_username = urlparts.username;
+ else:
+  ftp_username = "anonymous";
+ if(urlparts.password is not None):
+  ftp_password = urlparts.password;
+ elif(urlparts.password is None and urlparts.username=="anonymous"):
+  ftp_password = "anonymous";
+ else:
+  ftp_password = "";
+ if(urlparts.scheme=="ftp"):
+  ftp = FTP();
+ elif(urlparts.scheme=="ftps"):
+  ftp = FTP_TLS();
+ else:
+  return False;
+ ftp.connect(urlparts.hostname, urlparts.port);
+ ftp.login(urlparts.username, urlparts.password);
+ if(urlparts.scheme=="ftps"):
+  ftp.prot_p();
+ ftpfile = BytesIO();
+ ftp.retrbinary("RETR "+urlparts.path, ftpfile.write);
+ #ftp.storbinary("STOR "+urlparts.path, ftpfile.write);
+ ftp.close();
+ ftpfile.seek(0, 0);
+ return ftpfile;
+
+def download_file_from_ftp_string(url):
+ ftpfile = download_file_from_ftp_file(url);
+ return ftpfile.read();
+
+def upload_file_to_ftp_file(ftpfile, url):
+ urlparts = urlparse.urlparse(url);
+ file_name = os.path.basename(urlparts.path);
+ file_dir = os.path.dirname(urlparts.path);
+ if(urlparts.username is not None):
+  ftp_username = urlparts.username;
+ else:
+  ftp_username = "anonymous";
+ if(urlparts.password is not None):
+  ftp_password = urlparts.password;
+ elif(urlparts.password is None and urlparts.username=="anonymous"):
+  ftp_password = "anonymous";
+ else:
+  ftp_password = "";
+ if(urlparts.scheme=="ftp"):
+  ftp = FTP();
+ elif(urlparts.scheme=="ftps"):
+  ftp = FTP_TLS();
+ else:
+  return False;
+ ftp.connect(urlparts.hostname, urlparts.port);
+ ftp.login(urlparts.username, urlparts.password);
+ if(urlparts.scheme=="ftps"):
+  ftp.prot_p();
+ ftp.storbinary("STOR "+urlparts.path, ftpfile);
+ ftp.close();
+ ftpfile.seek(0, 0);
+ return ftpfile;
+
+def upload_file_to_ftp_string(ftpstring, url):
+ ftpfileo = BytesIO(ftpstring);
+ ftpfile = upload_file_to_ftp_file(ftpfileo, url);
+ ftpfileo.close();
+ return ftpfile;
+
+if(testparamiko):
+ def download_file_from_sftp_file(url):
+  urlparts = urlparse.urlparse(url);
+  file_name = os.path.basename(urlparts.path);
+  file_dir = os.path.dirname(urlparts.path);
+  sftp_port = urlparts.port;
+  if(urlparts.port is None):
+   sftp_port = 22;
+  else:
+   sftp_port = urlparts.port;
+  if(urlparts.username is not None):
+   sftp_username = urlparts.username;
+  else:
+   sftp_username = "anonymous";
+  if(urlparts.password is not None):
+   sftp_password = urlparts.password;
+  elif(urlparts.password is None and urlparts.username=="anonymous"):
+   sftp_password = "anonymous";
+  else:
+   sftp_password = "";
+  if(urlparts.scheme!="sftp"):
+   return False;
+  ssh = paramiko.SSHClient();
+  ssh.load_system_host_keys();
+  ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy());
+  try:
+   ssh.connect(urlparts.hostname, port=sftp_port, username=urlparts.username, password=urlparts.password);
+  except paramiko.ssh_exception.SSHException:
+   return False;
+  sftp = ssh.open_sftp();
+  sftpfile = BytesIO();
+  sftp.getfo(urlparts.path, sftpfile);
   sftp.close();
   ssh.close();
   sftpfile.seek(0, 0);
