@@ -441,6 +441,10 @@ def download_from_url_with_urllib(httpurl, httpheaders, httpcookie, sleep=-1):
  global geturls_download_sleep;
  if(sleep<0):
   sleep = geturls_download_sleep;
+ urlparts = urlparse.urlparse(httpurl);
+ if(urlparts.username is not None or urlparts.password is not None):
+  inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+  httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
  geturls_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(httpcookie));
  if(isinstance(httpheaders, dict)):
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
@@ -476,6 +480,10 @@ def download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffers
  newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
  if(sleep<0):
   sleep = geturls_download_sleep;
+ urlparts = urlparse.urlparse(httpurl);
+ if(urlparts.username is not None or urlparts.password is not None):
+  inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+  httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
  geturls_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(httpcookie));
  if(isinstance(httpheaders, dict)):
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
@@ -600,6 +608,10 @@ def download_from_url_with_request(httpurl, httpheaders, httpcookie, sleep=-1):
  global geturls_download_sleep;
  if(sleep<0):
   sleep = geturls_download_sleep;
+ urlparts = urlparse.urlparse(httpurl);
+ if(urlparts.username is not None or urlparts.password is not None):
+  inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+  httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
  geturls_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(httpcookie));
  if(isinstance(httpheaders, dict)):
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
@@ -637,6 +649,10 @@ def download_from_url_file_with_request(httpurl, httpheaders, httpcookie, buffer
  newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
  if(sleep<0):
   sleep = geturls_download_sleep;
+ urlparts = urlparse.urlparse(httpurl);
+ if(urlparts.username is not None or urlparts.password is not None):
+  inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+  httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
  geturls_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(httpcookie));
  if(isinstance(httpheaders, dict)):
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
@@ -764,6 +780,10 @@ if(haverequests):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  urlparts = urlparse.urlparse(httpurl);
+  if(urlparts.username is not None or urlparts.password is not None):
+   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   time.sleep(sleep);
@@ -803,6 +823,10 @@ if(haverequests):
   newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
   if(sleep<0):
    sleep = geturls_download_sleep;
+  urlparts = urlparse.urlparse(httpurl);
+  if(urlparts.username is not None or urlparts.password is not None):
+   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   time.sleep(sleep);
@@ -935,6 +959,10 @@ if(havemechanize):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  urlparts = urlparse.urlparse(httpurl);
+  if(urlparts.username is not None or urlparts.password is not None):
+   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
   geturls_opener = mechanize.Browser();
   if(isinstance(httpheaders, dict)):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
@@ -978,6 +1006,10 @@ if(havemechanize):
   newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
   if(sleep<0):
    sleep = geturls_download_sleep;
+  urlparts = urlparse.urlparse(httpurl);
+  if(urlparts.username is not None or urlparts.password is not None):
+   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
   geturls_opener = mechanize.Browser();
   if(isinstance(httpheaders, dict)):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
