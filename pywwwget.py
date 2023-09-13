@@ -38,6 +38,18 @@ try:
  testparamiko = True;
 except ImportError:
  testparamiko = False;
+testurllib3 = False;
+try:
+ import urllib3;
+ testurllib3 = True;
+except ImportError:
+ testurllib3 = False;
+testhttplib2 = False;
+try:
+ import httplib2;
+ testhttplib2 = True;
+except ImportError:
+ testhttplib2 = False;
 if(sys.version[0]=="2"):
  try:
   from cStringIO import StringIO;
