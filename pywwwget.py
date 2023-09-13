@@ -46,8 +46,10 @@ if(sys.version[0]=="2"):
  # From http://python-future.org/compatible_idioms.html
  from urlparse import urlparse, urlunparse, urlsplit, urlunsplit, urljoin;
  from urllib import urlencode;
+ from urllib import urlopen as urlopenalt;
  from urllib2 import urlopen, Request, install_opener, HTTPError;
  import urllib2, urlparse, cookielib;
+ from httplib import HTTPConnection, HTTPSConnection;
 if(sys.version[0]>="3"):
  from io import StringIO, BytesIO;
  # From http://python-future.org/compatible_idioms.html
@@ -57,6 +59,7 @@ if(sys.version[0]>="3"):
  import urllib.request as urllib2;
  import urllib.parse as urlparse;
  import http.cookiejar as cookielib;
+ from http.client import HTTPConnection, HTTPSConnection;
 
 __program_name__ = "PyWWW-Get";
 __program_alt_name__ = "PyWWWGet";
@@ -602,6 +605,39 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, outf
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+ return returnval;
+
+def download_from_url_with_httplib(httpurl, httpheaders, httpcookie, sleep=-1):
+ global geturls_download_sleep;
+ if(sleep<0):
+  sleep = geturls_download_sleep;
+ urlparts = urlparse.urlparse(httpurl);
+ if(urlparts.username is not None or urlparts.password is not None):
+  inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+  httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
+ geturls_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(httpcookie));
+ geturls_opener.addheaders = httpheaders;
+ time.sleep(sleep);
+ if(urlparts[0]=="http"):
+  httpconn = HTTPConnection(urlparts[1]);
+ elif(urlparts[0]=="https"):
+  httpconn = HTTPSConnection(urlparts[1]);
+ else:
+  return False;
+ httpresp = httpconn.request("GET", urlparts[2], headers=httpheaders)
+ geturls_text = httpresp.getresponse();
+ log.info("Downloading URL "+httpurl);
+ if(geturls_text.getheaders().get("Content-Encoding")=="gzip" or geturls_text.getheaders().get("Content-Encoding")=="deflate"):
+  if(sys.version[0]=="2"):
+   strbuf = StringIO(geturls_text.read());
+  if(sys.version[0]>="3"):
+   strbuf = BytesIO(geturls_text.read());
+  gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+  returnval_content = gzstrbuf.read()[:];
+ if(geturls_text.getheaders().get("Content-Encoding")!="gzip" and geturls_text.getheaders().get("Content-Encoding")!="deflate"):
+  returnval_content = geturls_text.read()[:];
+ returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.getheaders()), 'URL': geturls_text.geturl(), 'Code': geturls_text.status()};
+ geturls_text.close();
  return returnval;
 
 def download_from_url_with_request(httpurl, httpheaders, httpcookie, sleep=-1):
