@@ -396,7 +396,7 @@ def get_httplib_support_list():
  returnval = get_httplib_support(None);
  return returnval;
 
-def download_from_url(httpurl, httpheaders, httpcookie, httplibuse="urllib", sleep=-1):
+def download_from_url(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, httplibuse="urllib", sleep=-1):
  global geturls_download_sleep, haverequests, havemechanize;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -430,7 +430,7 @@ def download_from_url(httpurl, httpheaders, httpcookie, httplibuse="urllib", sle
   returnval = False;
  return returnval;
 
-def download_from_url_file(httpurl, httpheaders, httpcookie, httplibuse="urllib", buffersize=524288, sleep=-1):
+def download_from_url_file(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, httplibuse="urllib", buffersize=524288, sleep=-1):
  global geturls_download_sleep, haverequests, havemechanize;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -445,26 +445,26 @@ def download_from_url_file(httpurl, httpheaders, httpcookie, httplibuse="urllib"
  if(not havehttplib2 and httplibuse=="httplib2"):
   httplibuse = "httplib";
  if(httplibuse=="urllib"):
-  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, sleep);
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, postdata, buffersize, sleep);
  elif(httplibuse=="request"):
-  returnval = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, buffersize, sleep);
+  returnval = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, postdata, buffersize, sleep);
  elif(httplibuse=="request3"):
-  returnval = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, buffersize, sleep);
+  returnval = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, postdata, buffersize, sleep);
  elif(httplibuse=="httplib"):
-  returnval = download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, buffersize, sleep);
+  returnval = download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, postdata, buffersize, sleep);
  elif(httplibuse=="httplib2"):
-  returnval = download_from_url_file_with_httplib2(httpurl, httpheaders, httpcookie, buffersize, sleep);
+  returnval = download_from_url_file_with_httplib2(httpurl, httpheaders, httpcookie, postdata, buffersize, sleep);
  elif(httplibuse=="urllib3"):
-  returnval = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, buffersize, sleep);
+  returnval = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, postdata, buffersize, sleep);
  elif(httplibuse=="requests"):
-  returnval = download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, buffersize, sleep);
+  returnval = download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, postdata, buffersize, sleep);
  elif(httplibuse=="mechanize"):
-  returnval = download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, buffersize, sleep);
+  returnval = download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, postdata, buffersize, sleep);
  else:
   returnval = False;
  return returnval;
 
-def download_from_url_to_file(httpurl, httpheaders, httpcookie, httplibuse="urllib", outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, httplibuse="urllib", outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
  global geturls_download_sleep, haverequests, havemechanize;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -479,26 +479,26 @@ def download_from_url_to_file(httpurl, httpheaders, httpcookie, httplibuse="urll
  if(not havehttplib2 and httplibuse=="httplib2"):
   httplibuse = "httplib";
  if(httplibuse=="urllib"):
-  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="request"):
-  returnval = download_from_url_to_file_with_request(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_request(httpurl, httpheaders, httpcookie, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="request3"):
-  returnval = download_from_url_to_file_with_request(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_request(httpurl, httpheaders, httpcookie, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="httplib"):
-  returnval = download_from_url_to_file_with_httplib(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_httplib(httpurl, httpheaders, httpcookie, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="httplib2"):
-  returnval = download_from_url_to_file_with_httplib2(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_httplib2(httpurl, httpheaders, httpcookie, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="urllib3"):
-  returnval = download_from_url_to_file_with_urllib3(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_urllib3(httpurl, httpheaders, httpcookie, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="requests"):
-  returnval = download_from_url_to_file_with_requests(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_requests(httpurl, httpheaders, httpcookie, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="mechanize"):
-  returnval = download_from_url_to_file_with_mechanize(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_mechanize(httpurl, httpheaders, httpcookie, postdata, outfile, outpath, buffersize, sleep);
  else:
   returnval = False;
  return returnval;
 
-def download_from_url_with_urllib(httpurl, httpheaders, httpcookie, sleep=-1):
+def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, sleep=-1):
  global geturls_download_sleep;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -526,7 +526,7 @@ def download_from_url_with_urllib(httpurl, httpheaders, httpcookie, sleep=-1):
  geturls_text.close();
  return returnval;
 
-def download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize=524288, sleep=-1):
+def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, buffersize=524288, sleep=-1):
  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
  exec_time_start = time.time();
  myhash = hashlib.new("sha1");
@@ -580,7 +580,7 @@ def download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffers
  returnval.update({'Filesize': os.path.getsize(tmpfilename), 'DownloadTime': float(exec_time_start - exec_time_end), 'DownloadTimeReadable': hms_string(exec_time_start - exec_time_end)});
  return returnval;
 
-def download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
  global geturls_download_sleep;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -593,7 +593,7 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, outf
    return False;
   if(os.path.exists(filepath) and os.path.isdir(filepath)):
    return False;
-  pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
+  pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, postdata, buffersize[0], sleep);
   tmpfilename = pretmpfilename['Filename'];
   downloadsize = os.path.getsize(tmpfilename);
   fulldatasize = 0;
@@ -665,7 +665,7 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, outf
   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  return returnval;
 
-def download_from_url_with_httplib(httpurl, httpheaders, httpcookie, sleep=-1):
+def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, sleep=-1):
  global geturls_download_sleep;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -698,7 +698,7 @@ def download_from_url_with_httplib(httpurl, httpheaders, httpcookie, sleep=-1):
  geturls_text.close();
  return returnval;
 
-def download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, buffersize=524288, sleep=-1):
+def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, buffersize=524288, sleep=-1):
  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
  exec_time_start = time.time();
  myhash = hashlib.new("sha1");
@@ -757,7 +757,7 @@ def download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, buffer
  returnval.update({'Filesize': os.path.getsize(tmpfilename), 'DownloadTime': float(exec_time_start - exec_time_end), 'DownloadTimeReadable': hms_string(exec_time_start - exec_time_end)});
  return returnval;
 
-def download_from_url_to_file_with_httplib(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
  global geturls_download_sleep;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -770,7 +770,7 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders, httpcookie, out
    return False;
   if(os.path.exists(filepath) and os.path.isdir(filepath)):
    return False;
-  pretmpfilename = download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
+  pretmpfilename = download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, postdata, buffersize[0], sleep);
   tmpfilename = pretmpfilename['Filename'];
   downloadsize = os.path.getsize(tmpfilename);
   fulldatasize = 0;
@@ -843,7 +843,7 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders, httpcookie, out
  return returnval;
 
 if(havehttplib2):
- def download_from_url_with_httplib2(httpurl, httpheaders, httpcookie, sleep=-1):
+ def download_from_url_with_httplib2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -877,12 +877,12 @@ if(havehttplib2):
   return returnval;
 
 if(not havehttplib2):
- def download_from_url_with_httplib2(httpurl, httpheaders, httpcookie, sleep=-1):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, sleep)
+ def download_from_url_with_httplib2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, sleep=-1):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, postdata, sleep)
   return returnval;
 
 if(havehttplib2):
- def download_from_url_file_with_httplib2(httpurl, httpheaders, httpcookie, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=none, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
@@ -942,12 +942,12 @@ if(havehttplib2):
   return returnval;
 
 if(not havehttplib2):
- def download_from_url_file_with_httplib2(httpurl, httpheaders, httpcookie, buffersize=524288, sleep=-1):
-  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, sleep)
+ def download_from_url_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, postdata, buffersize, sleep)
   return returnval;
 
 if(havehttplib2):
- def download_from_url_to_file_with_httplib2(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -960,7 +960,7 @@ if(havehttplib2):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1033,11 +1033,11 @@ if(havehttplib2):
   return returnval;
 
 if(not havehttplib2):
- def download_from_url_to_file_with_httplib2(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
-  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, outfile, outpath, sleep)
+ def download_from_url_to_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
-def download_from_url_with_request(httpurl, httpheaders, httpcookie, sleep=-1):
+def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, sleep=-1):
  global geturls_download_sleep;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -1067,7 +1067,7 @@ def download_from_url_with_request(httpurl, httpheaders, httpcookie, sleep=-1):
  geturls_text.close();
  return returnval;
 
-def download_from_url_file_with_request(httpurl, httpheaders, httpcookie, buffersize=524288, sleep=-1):
+def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, buffersize=524288, sleep=-1):
  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
  exec_time_start = time.time();
  myhash = hashlib.new("sha1");
@@ -1123,7 +1123,7 @@ def download_from_url_file_with_request(httpurl, httpheaders, httpcookie, buffer
  returnval.update({'Filesize': os.path.getsize(tmpfilename), 'DownloadTime': float(exec_time_start - exec_time_end), 'DownloadTimeReadable': hms_string(exec_time_start - exec_time_end)});
  return returnval;
 
-def download_from_url_to_file_with_request(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+def download_from_url_to_file_with_request(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
  global geturls_download_sleep;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -1136,7 +1136,7 @@ def download_from_url_to_file_with_request(httpurl, httpheaders, httpcookie, out
    return False;
   if(os.path.exists(filepath) and os.path.isdir(filepath)):
    return False;
-  pretmpfilename = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
+  pretmpfilename = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, postdata, buffersize[0], sleep);
   tmpfilename = pretmpfilename['Filename'];
   downloadsize = os.path.getsize(tmpfilename);
   fulldatasize = 0;
@@ -1209,7 +1209,7 @@ def download_from_url_to_file_with_request(httpurl, httpheaders, httpcookie, out
  return returnval;
 
 if(haverequests):
- def download_from_url_with_requests(httpurl, httpheaders, httpcookie, sleep=-1):
+ def download_from_url_with_requests(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -1236,12 +1236,12 @@ if(haverequests):
   return returnval;
 
 if(not haverequests):
- def download_from_url_with_requests(httpurl, httpheaders, httpcookie, sleep=-1):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, sleep)
+ def download_from_url_with_requests(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, sleep=-1):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, postdata, sleep)
   return returnval;
 
 if(haverequests):
- def download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, postdata=None, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
@@ -1292,12 +1292,12 @@ if(haverequests):
   return returnval;
 
 if(not haverequests):
- def download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, buffersize=524288, sleep=-1):
-  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, sleep)
+ def download_from_url_file_with_requests(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, postdata, buffersize, sleep)
   return returnval;
 
 if(haverequests):
- def download_from_url_to_file_with_requests(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_requests(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=none, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -1310,7 +1310,7 @@ if(haverequests):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1383,12 +1383,12 @@ if(haverequests):
   return returnval;
 
 if(not haverequests):
- def download_from_url_to_file_with_requests(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
-  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, outfile, outpath, sleep)
+ def download_from_url_to_file_with_requests(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
 if(haveurllib3):
- def download_from_url_with_request3(httpurl, httpheaders, httpcookie, sleep=-1):
+ def download_from_url_with_request3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -1416,12 +1416,12 @@ if(haveurllib3):
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_with_urllib3(httpurl, httpheaders, httpcookie, sleep=-1):
+ def download_from_url_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, sleep=-1):
   returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, sleep)
   return returnval;
 
 if(haveurllib3):
- def download_from_url_file_with_request3(httpurl, httpheaders, httpcookie, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_request3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
@@ -1475,12 +1475,12 @@ if(haveurllib3):
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, buffersize=524288, sleep=-1):
-  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, sleep)
+ def download_from_url_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, postdata, buffersize, sleep)
   return returnval;
 
 if(haveurllib3):
- def download_from_url_to_file_with_request3(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_request3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -1493,7 +1493,7 @@ if(haveurllib3):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1566,12 +1566,12 @@ if(haveurllib3):
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_to_file_with_urllib3(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
-  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, outfile, outpath, sleep)
+ def download_from_url_to_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
 if(haveurllib3):
- def download_from_url_with_urllib3(httpurl, httpheaders, httpcookie, sleep=-1):
+ def download_from_url_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -1599,12 +1599,12 @@ if(haveurllib3):
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_with_urllib3(httpurl, httpheaders, httpcookie, sleep=-1):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, sleep)
+ def download_from_url_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, sleep=-1):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, postdata, sleep)
   return returnval;
 
 if(haveurllib3):
- def download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
@@ -1658,12 +1658,12 @@ if(haveurllib3):
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, buffersize=524288, sleep=-1):
-  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, sleep)
+ def download_from_url_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, postdata, buffersize, sleep)
   return returnval;
 
 if(haveurllib3):
- def download_from_url_to_file_with_urllib3(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -1676,7 +1676,7 @@ if(haveurllib3):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1718,7 +1718,7 @@ if(haveurllib3):
     log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
    returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]>="3"):
-   pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, postdata=None, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1749,12 +1749,12 @@ if(haveurllib3):
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_to_file_with_urllib3(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
-  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, outfile, outpath, sleep)
+ def download_from_url_to_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
 if(havemechanize):
- def download_from_url_with_mechanize(httpurl, httpheaders, httpcookie, sleep=-1):
+ def download_from_url_with_mechanize(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -1785,12 +1785,12 @@ if(havemechanize):
   return returnval;
 
 if(not havemechanize):
- def download_from_url_with_mechanize(httpurl, httpheaders, httpcookie, sleep=-1):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, sleep)
+ def download_from_url_with_mechanize(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, sleep=-1):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, postdata, sleep)
   return returnval;
 
 if(havemechanize):
- def download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
@@ -1847,12 +1847,12 @@ if(havemechanize):
   return returnval;
 
 if(not havemechanize):
- def download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, buffersize=524288, sleep=-1):
-  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, sleep)
+ def download_from_url_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, postdata, buffersize, sleep)
   return returnval;
 
 if(havemechanize):
- def download_from_url_to_file_with_mechanize(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -1865,7 +1865,7 @@ if(havemechanize):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1907,7 +1907,7 @@ if(havemechanize):
     log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
    returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]>="3"):
-   pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1938,8 +1938,8 @@ if(havemechanize):
   return returnval;
 
 if(not havemechanize):
- def download_from_url_to_file_with_mechanize(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
-  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, outfile, outpath, sleep)
+ def download_from_url_to_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
 def download_file_from_ftp_file(url):
