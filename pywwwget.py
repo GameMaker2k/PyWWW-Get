@@ -32,25 +32,24 @@ try:
  havemechanize = True;
 except ImportError:
  havemechanize = False;
-testparamiko = False;
+haveparamiko = False;
 try:
  import paramiko;
- testparamiko = True;
+ haveparamiko = True;
 except ImportError:
- testparamiko = False;
-testurllib3 = False;
+ haveparamiko = False;
+haveurllib3 = False;
 try:
  import urllib3;
- testurllib3 = True;
+ haveurllib3 = True;
 except ImportError:
- testurllib3 = False;
-testhttplib2 = False;
+ haveurllib3 = False;
+havehttplib2 = False;
 try:
- import httplib2;
  from httplib2 import HTTPConnectionWithTimeout, HTTPSConnectionWithTimeout;
- testhttplib2 = True;
+ havehttplib2 = True;
 except ImportError:
- testhttplib2 = False;
+ havehttplib2 = False;
 if(sys.version[0]=="2"):
  try:
   from cStringIO import StringIO;
@@ -804,7 +803,7 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders, httpcookie, out
   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  return returnval;
 
-if(testhttplib2):
+if(havehttplib2):
  def download_from_url_with_httplib2(httpurl, httpheaders, httpcookie, sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
@@ -843,7 +842,7 @@ if(not havehttplib2):
   returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, sleep)
   return returnval;
 
-if(testhttplib2):
+if(havehttplib2):
  def download_from_url_file_with_httplib2(httpurl, httpheaders, httpcookie, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
@@ -908,7 +907,7 @@ if(not havehttplib2):
   returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, sleep)
   return returnval;
 
-if(testhttplib2):
+if(havehttplib2):
  def download_from_url_to_file_with_httplib2(httpurl, httpheaders, httpcookie, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
@@ -1608,7 +1607,7 @@ def upload_file_to_ftp_string(ftpstring, url):
  ftpfileo.close();
  return ftpfile;
 
-if(testparamiko):
+if(haveparamiko):
  def download_file_from_sftp_file(url):
   urlparts = urlparse.urlparse(url);
   file_name = os.path.basename(urlparts.path);
@@ -1648,7 +1647,7 @@ else:
  def download_file_from_sftp_file(url):
   return False;
 
-if(testparamiko):
+if(haveparamiko):
  def download_file_from_sftp_string(url):
   sftpfile = download_file_from_sftp_file(url);
   return sftpfile.read();
@@ -1656,7 +1655,7 @@ else:
  def download_file_from_ftp_string(url):
   return False;
 
-if(testparamiko):
+if(haveparamiko):
  def upload_file_to_sftp_file(sftpfile, url):
   urlparts = urlparse.urlparse(url);
   file_name = os.path.basename(urlparts.path);
@@ -1695,7 +1694,7 @@ else:
  def upload_file_to_sftp_file(sftpfile, url):
   return False;
 
-if(testparamiko):
+if(haveparamiko):
  def upload_file_to_sftp_string(sftpstring, url):
   sftpfileo = BytesIO(sftpstring);
   sftpfile = upload_file_to_sftp_files(ftpfileo, url);
