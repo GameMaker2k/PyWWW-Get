@@ -91,11 +91,11 @@ if(getargs.dump_user_agent==True):
 
 if(getargs.output_document=="-"):
  if(sys.version[0]=="2"):
-  precontstr = pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, getargs.use_httplib, buffersize=[getargs.set_buffersize, getargs.set_buffersize], outfile=getargs.output_document, outpath=os.getcwd());
+  precontstr = pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, httplib=getargs.use_httplib, buffersize=[getargs.set_buffersize, getargs.set_buffersize], outfile=getargs.output_document, outpath=os.getcwd());
   print(precontstr['Content']);
  if(sys.version[0]>="3"):
-  precontstr = pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, getargs.use_httplib, buffersize=[getargs.set_buffersize, getargs.set_buffersize], outfile=getargs.output_document, outpath=os.getcwd());
+  precontstr = pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, httplib=getargs.use_httplib, buffersize=[getargs.set_buffersize, getargs.set_buffersize], outfile=getargs.output_document, outpath=os.getcwd());
   print(precontstr['Content'].decode('ascii', 'replace'));
 
 if(getargs.output_document!="-"):
- pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, getargs.use_httplib, buffersize=[getargs.set_buffersize, getargs.set_buffersize], outfile=getargs.output_document, outpath=getargs.output_directory);
+ pywwwget.download_from_url_to_file(getargs.url, getargs_headers, geturls_cj, httplib=getargs.use_httplib, buffersize=[getargs.set_buffersize, getargs.set_buffersize], outfile=getargs.output_document, outpath=getargs.output_directory);
