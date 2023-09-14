@@ -362,6 +362,7 @@ def get_httplib_support(checkvalue=None):
  global haverequests, havemechanize;
  returnval = [];
  returnval.append("httplib");
+ returnval.append("httplib2");
  returnval.append("urllib");
  returnval.append("urllib3");
  returnval.append("request");
