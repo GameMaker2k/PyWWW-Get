@@ -643,7 +643,7 @@ def download_from_url_with_httplib(httpurl, httpheaders, httpcookie, sleep=-1):
   httpconn = HTTPSConnection(urlparts[1]);
  else:
   return False;
- httpresp = httpconn.request("GET", urlparts[2], headers=httpheaders);
+ httpconn.request("GET", urlparts[2], headers=httpheaders);
  geturls_text = httpconn.getresponse();
  log.info("Downloading URL "+httpurl);
  if(dict(geturls_text.getheaders()).get("Content-Encoding")=="gzip" or dict(geturls_text.getheaders()).get("Content-Encoding")=="deflate"):
@@ -687,7 +687,7 @@ def download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, buffer
   httpconn = HTTPSConnection(urlparts[1]);
  else:
   return False;
- httpresp = httpconn.request("GET", urlparts[2], headers=httpheaders)
+ httpconn.request("GET", urlparts[2], headers=httpheaders)
  geturls_text = httpconn.getresponse();
  downloadsize = dict(geturls_text.getheaders()).get('Content-Length');
  if(downloadsize is not None):
