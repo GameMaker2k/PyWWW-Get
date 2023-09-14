@@ -12,7 +12,7 @@
     Copyright 2016-2023 Game Maker 2k - https://github.com/GameMaker2k
     Copyright 2016-2023 Kazuki Przyborowski - https://github.com/KazukiPrzyborowski
 
-    $FileInfo: pywwwget.py - Last Update: 9/13/2023 Ver. 0.8.2 RC 1 - Author: cooldude2k $
+    $FileInfo: pywwwget.py - Last Update: 9/13/2023 Ver. 0.8.4 RC 1 - Author: cooldude2k $
 '''
 
 from __future__ import division, absolute_import, print_function;
@@ -78,7 +78,7 @@ __program_alt_name__ = "PyWWWGet";
 __program_small_name__ = "wwwget";
 __project__ = __program_name__;
 __project_url__ = "https://github.com/GameMaker2k/PyWWW-Get";
-__version_info__ = (0, 8, 2, "RC 1", 1);
+__version_info__ = (0, 8, 4, "RC 1", 1);
 __version_date_info__ = (2023, 9, 13, "RC 1", 1);
 __version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2);
 __revision__ = __version_info__[3];
@@ -363,6 +363,7 @@ def get_httplib_support(checkvalue=None):
  returnval = [];
  returnval.append("httplib");
  returnval.append("urllib");
+ returnval.append("urllib3");
  returnval.append("request");
  if(haverequests):
   returnval.append("requests");
@@ -413,6 +414,8 @@ def download_from_url(httpurl, httpheaders, httpcookie, httplibuse="urllib", sle
   returnval = download_from_url_with_httplib(httpurl, httpheaders, httpcookie, sleep);
  elif(httplibuse=="httplib2"):
   returnval = download_from_url_with_httplib2(httpurl, httpheaders, httpcookie, sleep);
+ elif(httplibuse=="urllib3"):
+  returnval = download_from_url_with_urllib3(httpurl, httpheaders, httpcookie, sleep);
  elif(httplibuse=="requests"):
   returnval = download_from_url_with_requests(httpurl, httpheaders, httpcookie, sleep);
  elif(httplibuse=="mechanize"):
@@ -441,6 +444,10 @@ def download_from_url_file(httpurl, httpheaders, httpcookie, httplibuse="urllib"
   returnval = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, buffersize, sleep);
  elif(httplibuse=="httplib"):
   returnval = download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, buffersize, sleep);
+ elif(httplibuse=="httplib2"):
+  returnval = download_from_url_file_with_httplib2(httpurl, httpheaders, httpcookie, buffersize, sleep);
+ elif(httplibuse=="urllib3"):
+  returnval = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, buffersize, sleep);
  elif(httplibuse=="requests"):
   returnval = download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, buffersize, sleep);
  elif(httplibuse=="mechanize"):
@@ -469,6 +476,10 @@ def download_from_url_to_file(httpurl, httpheaders, httpcookie, httplibuse="urll
   returnval = download_from_url_to_file_with_request(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="httplib"):
   returnval = download_from_url_to_file_with_httplib(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
+ elif(httplibuse=="httplib2"):
+  returnval = download_from_url_to_file_with_httplib2(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
+ elif(httplibuse=="urllib3"):
+  returnval = download_from_url_to_file_with_urllib3(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="requests"):
   returnval = download_from_url_to_file_with_requests(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="mechanize"):
