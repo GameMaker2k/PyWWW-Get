@@ -371,6 +371,8 @@ def get_httplib_support(checkvalue=None):
  if(not checkvalue is None):
   if(checkvalue=="urllib1" or checkvalue=="urllib2"):
    checkvalue = "urllib";
+  if(checkvalue=="httplib1"):
+   checkvalue = "httplib";
   if(checkvalue in returnval):
    returnval = True;
   else:
@@ -380,6 +382,8 @@ def get_httplib_support(checkvalue=None):
 def check_httplib_support(checkvalue="urllib"):
  if(checkvalue=="urllib1" or checkvalue=="urllib2"):
   checkvalue = "urllib";
+ if(checkvalue=="httplib1"):
+  checkvalue = "httplib";
  returnval = get_httplib_support(checkvalue);
  return returnval;
 
@@ -393,16 +397,22 @@ def download_from_url(httpurl, httpheaders, httpcookie, httplibuse="urllib", sle
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
   httplibuse = "urllib";
+ if(httplibuse=="httplib1"):
+  httplibuse = "httplib";
  if(not haverequests and httplibuse=="requests"):
   httplibuse = "urllib";
  if(not havemechanize and httplibuse=="mechanize"):
   httplibuse = "urllib";
+ if(not havehttplib2 and httplibuse=="httplib2"):
+  httplibuse = "httplib";
  if(httplibuse=="urllib"):
   returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, sleep);
  elif(httplibuse=="request"):
   returnval = download_from_url_with_request(httpurl, httpheaders, httpcookie, sleep);
  elif(httplibuse=="httplib"):
   returnval = download_from_url_with_httplib(httpurl, httpheaders, httpcookie, sleep);
+ elif(httplibuse=="httplib2"):
+  returnval = download_from_url_with_httplib2(httpurl, httpheaders, httpcookie, sleep);
  elif(httplibuse=="requests"):
   returnval = download_from_url_with_requests(httpurl, httpheaders, httpcookie, sleep);
  elif(httplibuse=="mechanize"):
@@ -417,10 +427,14 @@ def download_from_url_file(httpurl, httpheaders, httpcookie, httplibuse="urllib"
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
   httplibuse = "urllib";
+ if(httplibuse=="httplib1"):
+  httplibuse = "httplib";
  if(not haverequests and httplibuse=="requests"):
   httplibuse = "urllib";
  if(not havemechanize and httplibuse=="mechanize"):
   httplibuse = "urllib";
+ if(not havehttplib2 and httplibuse=="httplib2"):
+  httplibuse = "httplib";
  if(httplibuse=="urllib"):
   returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, buffersize, sleep);
  elif(httplibuse=="request"):
@@ -441,10 +455,14 @@ def download_from_url_to_file(httpurl, httpheaders, httpcookie, httplibuse="urll
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
   httplibuse = "urllib";
+ if(httplibuse=="httplib1"):
+  httplibuse = "httplib";
  if(not haverequests and httplibuse=="requests"):
   httplibuse = "urllib";
  if(not havemechanize and httplibuse=="mechanize"):
   httplibuse = "urllib";
+ if(not havehttplib2 and httplibuse=="httplib2"):
+  httplibuse = "httplib";
  if(httplibuse=="urllib"):
   returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="request"):
