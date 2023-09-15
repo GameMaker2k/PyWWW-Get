@@ -96,9 +96,10 @@ tmpfilesuffix = "-";
 pytempdir = tempfile.gettempdir();
 
 geturls_cj = cookielib.CookieJar();
-windows2k_ua_string = "Windows NT 5.0; Win64; x64";
-windowsXP_ua_string = "Windows NT 5.1; Win64; x64";
-windowsXPAlt_ua_string = "Windows NT 5.2; Win64; x64";
+windowsNT4_ua_string = "Windows NT 4.0";
+windows2k_ua_string = "Windows NT 5.0";
+windowsXP_ua_string = "Windows NT 5.1";
+windowsXP64_ua_string = "Windows NT 5.2; Win64; x64";
 windows7_ua_string = "Windows NT 6.1; Win64; x64";
 windows8_ua_string = "Windows NT 6.2; Win64; x64";
 windows81_ua_string = "Windows NT 6.3; Win64; x64";
