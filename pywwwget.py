@@ -59,16 +59,15 @@ if(sys.version[0]=="2"):
  from urlparse import urlparse, urlunparse, urlsplit, urlunsplit, urljoin;
  from urllib import urlencode;
  from urllib import urlopen as urlopenalt;
- from urllib2 import urlopen, Request, install_opener, HTTPError;
- import urllib2, urlparse, cookielib;
+ from urllib2 import urlopen, Request, install_opener, HTTPError, build_opener, HTTPCookieProcessor;
+ import urlparse, cookielib;
  from httplib import HTTPConnection, HTTPSConnection;
 if(sys.version[0]>="3"):
  from io import StringIO, BytesIO;
  # From http://python-future.org/compatible_idioms.html
  from urllib.parse import urlparse, urlunparse, urlsplit, urlunsplit, urljoin, urlencode;
- from urllib.request import urlopen, Request, install_opener;
+ from urllib.request import urlopen, Request, install_opener, build_opener, HTTPCookieProcessor;
  from urllib.error import HTTPError;
- import urllib.request as urllib2;
  import urllib.parse as urlparse;
  import http.cookiejar as cookielib;
  from http.client import HTTPConnection, HTTPSConnection;
@@ -506,7 +505,7 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpcook
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
- geturls_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(httpcookie));
+ geturls_opener = build_opener(HTTPCookieProcessor(httpcookie));
  if(isinstance(httpheaders, dict)):
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  geturls_opener.addheaders = httpheaders;
@@ -545,7 +544,7 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
- geturls_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(httpcookie));
+ geturls_opener = build_opener(HTTPCookieProcessor(httpcookie));
  if(isinstance(httpheaders, dict)):
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  geturls_opener.addheaders = httpheaders;
@@ -673,7 +672,7 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpcoo
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
- geturls_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(httpcookie));
+ geturls_opener = build_opener(HTTPCookieProcessor(httpcookie));
  geturls_opener.addheaders = httpheaders;
  time.sleep(sleep);
  if(urlparts[0]=="http"):
@@ -717,7 +716,7 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
- geturls_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(httpcookie));
+ geturls_opener = build_opener(HTTPCookieProcessor(httpcookie));
  geturls_opener.addheaders = httpheaders;
  time.sleep(sleep);
  if(urlparts[0]=="http"):
@@ -851,7 +850,7 @@ if(havehttplib2):
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
-  geturls_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(httpcookie));
+  geturls_opener = build_opener(HTTPCookieProcessor(httpcookie));
   geturls_opener.addheaders = httpheaders;
   time.sleep(sleep);
   if(urlparts[0]=="http"):
@@ -901,7 +900,7 @@ if(havehttplib2):
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
-  geturls_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(httpcookie));
+  geturls_opener = build_opener(HTTPCookieProcessor(httpcookie));
   geturls_opener.addheaders = httpheaders;
   time.sleep(sleep);
   if(urlparts[0]=="http"):
@@ -1045,7 +1044,7 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcoo
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
- geturls_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(httpcookie));
+ geturls_opener = build_opener(HTTPCookieProcessor(httpcookie));
  if(isinstance(httpheaders, dict)):
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  geturls_opener.addheaders = httpheaders;
@@ -1086,7 +1085,7 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
- geturls_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(httpcookie));
+ geturls_opener = build_opener(HTTPCookieProcessor(httpcookie));
  if(isinstance(httpheaders, dict)):
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  geturls_opener.addheaders = httpheaders;
