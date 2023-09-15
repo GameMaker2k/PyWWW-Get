@@ -510,7 +510,14 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpcook
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  geturls_opener.addheaders = httpheaders;
  time.sleep(sleep);
- geturls_text = geturls_opener.open(httpurl);
+ if(postdata is not None and not isinstance(postdata, dict)):
+  postdata = urlencode(postdata);
+ if(httpmethod=="GET"):
+  geturls_text = geturls_opener.open(httpurl);
+ elif(httpmethod=="POST"):
+  geturls_text = geturls_opener.open(httpurl, data=postdata);
+ else:
+  geturls_text = geturls_opener.open(httpurl);
  log.info("Downloading URL "+httpurl);
  if(geturls_text.info().get("Content-Encoding")=="gzip" or geturls_text.info().get("Content-Encoding")=="deflate"):
   if(sys.version[0]=="2"):
@@ -549,7 +556,14 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  geturls_opener.addheaders = httpheaders;
  time.sleep(sleep);
- geturls_text = geturls_opener.open(httpurl);
+ if(postdata is not None and not isinstance(postdata, dict)):
+  postdata = urlencode(postdata);
+ if(httpmethod=="GET"):
+  geturls_text = geturls_opener.open(httpurl);
+ elif(httpmethod=="POST"):
+  geturls_text = geturls_opener.open(httpurl, data=postdata);
+ else:
+  geturls_text = geturls_opener.open(httpurl);
  downloadsize = geturls_text.info().get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
@@ -681,7 +695,14 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpcoo
   httpconn = HTTPSConnection(urlparts[1]);
  else:
   return False;
- httpconn.request("GET", urlparts[2], headers=httpheaders);
+ if(postdata is not None and not isinstance(postdata, dict)):
+  postdata = urlencode(postdata);
+ if(httpmethod=="GET"):
+  httpconn.request("GET", urlparts[2], headers=httpheaders);
+ elif(httpmethod=="POST"):
+  httpconn.request("GET", urlparts[2], body=postdata, headers=httpheaders);
+ else:
+  httpconn.request("GET", urlparts[2], headers=httpheaders);
  geturls_text = httpconn.getresponse();
  log.info("Downloading URL "+httpurl);
  if(dict(geturls_text.getheaders()).get("Content-Encoding")=="gzip" or dict(geturls_text.getheaders()).get("Content-Encoding")=="deflate"):
@@ -725,7 +746,14 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
   httpconn = HTTPSConnection(urlparts[1]);
  else:
   return False;
- httpconn.request("GET", urlparts[2], headers=httpheaders)
+ if(postdata is not None and not isinstance(postdata, dict)):
+  postdata = urlencode(postdata);
+ if(httpmethod=="GET"):
+  httpconn.request("GET", urlparts[2], headers=httpheaders);
+ elif(httpmethod=="POST"):
+  httpconn.request("GET", urlparts[2], body=postdata, headers=httpheaders);
+ else:
+  httpconn.request("GET", urlparts[2], headers=httpheaders);
  geturls_text = httpconn.getresponse();
  downloadsize = dict(geturls_text.getheaders()).get('Content-Length');
  if(downloadsize is not None):
@@ -859,7 +887,14 @@ if(havehttplib2):
    httpconn = HTTPSConnectionWithTimeout(urlparts[1]);
   else:
    return False;
-  httpconn.request("GET", urlparts[2], headers=httpheaders);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  if(httpmethod=="GET"):
+   httpconn.request("GET", urlparts[2], headers=httpheaders);
+  elif(httpmethod=="POST"):
+   httpconn.request("GET", urlparts[2], body=postdata, headers=httpheaders);
+  else:
+   httpconn.request("GET", urlparts[2], headers=httpheaders);
   geturls_text = httpconn.getresponse();
   log.info("Downloading URL "+httpurl);
   if(dict(geturls_text.getheaders()).get("Content-Encoding")=="gzip" or dict(geturls_text.getheaders()).get("Content-Encoding")=="deflate"):
@@ -909,7 +944,14 @@ if(havehttplib2):
    httpconn = HTTPSConnectionWithTimeout(urlparts[1]);
   else:
    return False;
-  httpconn.request("GET", urlparts[2], headers=httpheaders)
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  if(httpmethod=="GET"):
+   httpconn.request("GET", urlparts[2], headers=httpheaders);
+  elif(httpmethod=="POST"):
+   httpconn.request("GET", urlparts[2], body=postdata, headers=httpheaders);
+  else:
+   httpconn.request("GET", urlparts[2], headers=httpheaders);
   geturls_text = httpconn.getresponse();
   downloadsize = dict(geturls_text.getheaders()).get('Content-Length');
   if(downloadsize is not None):
@@ -1051,7 +1093,14 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcoo
  urllib.request.install_opener(geturls_opener);
  time.sleep(sleep);
  httpheaders = make_http_headers_from_list_to_dict(httpheaders);
- geturls_text = urlopen(Request(httpurl, headers=httpheaders));
+ if(postdata is not None and not isinstance(postdata, dict)):
+  postdata = urlencode(postdata);
+ if(httpmethod=="GET"):
+  geturls_text = urlopen(Request(httpurl, headers=httpheaders));
+ elif(httpmethod=="POST"):
+  geturls_text = urlopen(Request(httpurl, data=postdata, headers=httpheaders), data=postdata);
+ else:
+  geturls_text = urlopen(Request(httpurl, headers=httpheaders));
  log.info("Downloading URL "+httpurl);
  if(geturls_text.headers.get("Content-Encoding")=="gzip" or geturls_text.headers.get("Content-Encoding")=="deflate"):
   if(sys.version[0]=="2"):
@@ -1092,7 +1141,14 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
  urllib.request.install_opener(geturls_opener);
  time.sleep(sleep);
  httpheaders = make_http_headers_from_list_to_dict(httpheaders);
- geturls_text = urlopen(Request(httpurl, headers=httpheaders));
+ if(postdata is not None and not isinstance(postdata, dict)):
+  postdata = urlencode(postdata);
+ if(httpmethod=="GET"):
+  geturls_text = urlopen(Request(httpurl, headers=httpheaders));
+ elif(httpmethod=="POST"):
+  geturls_text = urlopen(Request(httpurl, data=postdata, headers=httpheaders), data=postdata);
+ else:
+  geturls_text = urlopen(Request(httpurl, headers=httpheaders));
  downloadsize = geturls_text.headers.get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
@@ -1219,7 +1275,14 @@ if(haverequests):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   time.sleep(sleep);
-  geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  if(httpmethod=="GET"):
+   geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
+  elif(httpmethod=="POST"):
+   geturls_text = requests.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie);
+  else:
+   geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
   log.info("Downloading URL "+httpurl);
   if(geturls_text.headers.get('Content-Type')=="gzip" or geturls_text.headers.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
@@ -1262,7 +1325,14 @@ if(haverequests):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   time.sleep(sleep);
-  geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie, stream=True);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  if(httpmethod=="GET"):
+   geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
+  elif(httpmethod=="POST"):
+   geturls_text = requests.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie);
+  else:
+   geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
   downloadsize = int(geturls_text.headers.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -1399,7 +1469,14 @@ if(haveurllib3):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   time.sleep(sleep);
   urllib_pool = urllib3.PoolManager(headers=httpheaders);
-  geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  if(httpmethod=="GET"):
+   geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
+  elif(httpmethod=="POST"):
+   geturls_text = geturls_text = urllib_pool.request("POST", httpurl, body=postdata, headers=httpheaders, preload_content=False);
+  else:
+   geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
   log.info("Downloading URL "+httpurl);
   if(geturls_text.info().get("Content-Encoding")=="gzip" or geturls_text.info().get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
@@ -1443,7 +1520,14 @@ if(haveurllib3):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   time.sleep(sleep);
   urllib_pool = urllib3.PoolManager(headers=httpheaders);
-  geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  if(httpmethod=="GET"):
+   geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
+  elif(httpmethod=="POST"):
+   geturls_text = geturls_text = urllib_pool.request("POST", httpurl, body=postdata, headers=httpheaders, preload_content=False);
+  else:
+   geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
   downloadsize = int(geturls_text.headers.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -1582,7 +1666,14 @@ if(haveurllib3):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   time.sleep(sleep);
   urllib_pool = urllib3.PoolManager(headers=httpheaders);
-  geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  if(httpmethod=="GET"):
+   geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+  elif(httpmethod=="POST"):
+   geturls_text = urllib_pool.urlopen("GET", httpurl, body=postdata, headers=httpheaders, preload_content=False);
+  else:
+   geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
   log.info("Downloading URL "+httpurl);
   if(geturls_text.info().get("Content-Encoding")=="gzip" or geturls_text.info().get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
@@ -1626,7 +1717,14 @@ if(haveurllib3):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   time.sleep(sleep);
   urllib_pool = urllib3.PoolManager(headers=httpheaders);
-  geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  if(httpmethod=="GET"):
+   geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+  elif(httpmethod=="POST"):
+   geturls_text = urllib_pool.urlopen("GET", httpurl, body=postdata, headers=httpheaders, preload_content=False);
+  else:
+   geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
   downloadsize = int(geturls_text.headers.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -1768,7 +1866,14 @@ if(havemechanize):
   geturls_opener.addheaders = httpheaders;
   geturls_opener.set_cookiejar(httpcookie);
   geturls_opener.set_handle_robots(False);
-  geturls_text = geturls_opener.open(httpurl);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  if(httpmethod=="GET"):
+   geturls_text = geturls_opener.open(httpurl);
+  elif(httpmethod=="POST"):
+   geturls_text = geturls_opener.open(httpurl, data=postdata);
+  else:
+   geturls_text = geturls_opener.open(httpurl);
   log.info("Downloading URL "+httpurl);
   if(geturls_text.info().get("Content-Encoding")=="gzip" or geturls_text.info().get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
@@ -1815,7 +1920,14 @@ if(havemechanize):
   geturls_opener.addheaders = httpheaders;
   geturls_opener.set_cookiejar(httpcookie);
   geturls_opener.set_handle_robots(False);
-  geturls_text = geturls_opener.open(httpurl);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  if(httpmethod=="GET"):
+   geturls_text = geturls_opener.open(httpurl);
+  elif(httpmethod=="POST"):
+   geturls_text = geturls_opener.open(httpurl, data=postdata);
+  else:
+   geturls_text = geturls_opener.open(httpurl);
   downloadsize = int(geturls_text.info().get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
