@@ -882,7 +882,7 @@ if(not havehttplib2):
   return returnval;
 
 if(havehttplib2):
- def download_from_url_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=none, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
@@ -1297,7 +1297,7 @@ if(not haverequests):
   return returnval;
 
 if(haverequests):
- def download_from_url_to_file_with_requests(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=none, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_requests(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -1718,7 +1718,7 @@ if(haveurllib3):
     log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
    returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]>="3"):
-   pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, postdata=None, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1907,7 +1907,7 @@ if(havemechanize):
     log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
    returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]>="3"):
-   pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
