@@ -211,7 +211,9 @@ def verbose_printout(dbgtxt, outtype="log", dbgenable=True, dgblevel=20):
  return False;
 
 def verbose_printout_return(dbgtxt, outtype="log", dbgenable=True, dgblevel=20):
- verbose_printout(dbgtxt, outtype, dbgenable, dgblevel);
+ dbgout = verbose_printout(dbgtxt, outtype, dbgenable, dgblevel);
+ if(not dbgout):
+  return False;
  return dbgtxt;
 
 def add_url_param(url, **params):
