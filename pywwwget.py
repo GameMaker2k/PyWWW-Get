@@ -1656,7 +1656,7 @@ if(havehttpx):
     geturls_text = httpx.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie);
    else:
     geturls_text = httpx.get(httpurl, headers=httpheaders, cookies=httpcookie);
-  except requests.exceptions.ConnectTimeout:
+  except httpx.ConnectTimeout:
    log.info("Error With URL "+httpurl);
    return False;
   except socket.timeout:
@@ -1715,7 +1715,7 @@ if(havehttpx):
     geturls_text = httpx.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie);
    else:
     geturls_text = httpx.get(httpurl, headers=httpheaders, cookies=httpcookie);
-  except requests.exceptions.ConnectTimeout:
+  except httpx.ConnectTimeout:
    log.info("Error With URL "+httpurl);
    return False;
   except socket.timeout:
