@@ -50,6 +50,12 @@ try:
  havehttplib2 = True;
 except ImportError:
  havehttplib2 = False;
+havebrotli = False;
+try:
+ import brotli;
+ havebrotli = True;
+except ImportError:
+ havebrotli = False;
 if(sys.version[0]=="2"):
  try:
   from cStringIO import StringIO;
@@ -95,16 +101,31 @@ tmpfileprefix = "py"+str(sys.version_info[0])+__program_small_name__+str(__versi
 tmpfilesuffix = "-";
 pytempdir = tempfile.gettempdir();
 
+compression_supported = "gzip, deflate";
+if(havebrotli):
+ compression_supported = "gzip, deflate, br";
+else:
+ compression_supported = "gzip, deflate";
+
 geturls_cj = cookielib.CookieJar();
 windowsNT4_ua_string = "Windows NT 4.0";
+windowsNT4_ua_addon = {'SEC-CH-UA-PLATFORM': "Windows", 'SEC-CH-UA-ARCH': "x86", 'SEC-CH-UA-PLATFORM': "4.0.0"};
 windows2k_ua_string = "Windows NT 5.0";
+windows2k_ua_addon = {'SEC-CH-UA-PLATFORM': "Windows", 'SEC-CH-UA-ARCH': "x86", 'SEC-CH-UA-PLATFORM': "5.0.0"};
 windowsXP_ua_string = "Windows NT 5.1";
+windowsXP_ua_addon = {'SEC-CH-UA-PLATFORM': "Windows", 'SEC-CH-UA-ARCH': "x86", 'SEC-CH-UA-PLATFORM': "5.1.0"};
 windowsXP64_ua_string = "Windows NT 5.2; Win64; x64";
+windowsXP64_ua_addon = {'SEC-CH-UA-PLATFORM': "Windows", 'SEC-CH-UA-ARCH': "x86", 'SEC-CH-UA-PLATFORM': "5.1.0"};
 windows7_ua_string = "Windows NT 6.1; Win64; x64";
+windows7_ua_addon = {'SEC-CH-UA-PLATFORM': "Windows", 'SEC-CH-UA-ARCH': "x86", 'SEC-CH-UA-PLATFORM': "6.1.0"};
 windows8_ua_string = "Windows NT 6.2; Win64; x64";
+windows8_ua_addon = {'SEC-CH-UA-PLATFORM': "Windows", 'SEC-CH-UA-ARCH': "x86", 'SEC-CH-UA-PLATFORM': "6.2.0"};
 windows81_ua_string = "Windows NT 6.3; Win64; x64";
+windows81_ua_addon = {'SEC-CH-UA-PLATFORM': "Windows", 'SEC-CH-UA-ARCH': "x86", 'SEC-CH-UA-PLATFORM': "6.3.0"};
 windows10_ua_string = "Windows NT 10.0; Win64; x64";
+windows10_ua_addon = {'SEC-CH-UA-PLATFORM': "Windows", 'SEC-CH-UA-ARCH': "x86", 'SEC-CH-UA-PLATFORM': "10.0.0"};
 windows11_ua_string = "Windows NT 11.0; Win64; x64";
+windows11_ua_addon = {'SEC-CH-UA-PLATFORM': "Windows", 'SEC-CH-UA-ARCH': "x86", 'SEC-CH-UA-PLATFORM': "11.0.0"};
 geturls_ua_firefox_windows7 = "Mozilla/5.0 ("+windows7_ua_string+"; rv:109.0) Gecko/20100101 Firefox/117.0";
 geturls_ua_seamonkey_windows7 = "Mozilla/5.0 ("+windows7_ua_string+"; rv:91.0) Gecko/20100101 Firefox/91.0 SeaMonkey/2.53.17";
 geturls_ua_chrome_windows7 = "Mozilla/5.0 ("+windows7_ua_string+") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36";
@@ -116,23 +137,24 @@ geturls_ua_internet_explorer_windows7 = "Mozilla/5.0 ("+windows7_ua_string+"; Tr
 geturls_ua_microsoft_edge_windows7 = "Mozilla/5.0 ("+windows7_ua_string+") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.31";
 geturls_ua_pywwwget_python = "Mozilla/5.0 (compatible; {proname}/{prover}; +{prourl})".format(proname=__project__, prover=__version__, prourl=__project_url__);
 if(platform.python_implementation()!=""):
- geturls_ua_pywwwget_python_alt = "Mozilla/5.0 ({osver}; {archtype}; +{prourl}) {pyimp}/{pyver} (KHTML, like Gecko) {proname}/{prover}".format(osver=platform.system()+" "+platform.release(), archtype=platform.machine(), prourl=__project_url__, pyimp=platform.python_implementation(), pyver=platform.python_version(), proname=__project__, prover=__version__);
+ py_implementation = platform.python_implementation();
 if(platform.python_implementation()==""):
- geturls_ua_pywwwget_python_alt = "Mozilla/5.0 ({osver}; {archtype}; +{prourl}) {pyimp}/{pyver} (KHTML, like Gecko) {proname}/{prover}".format(osver=platform.system()+" "+platform.release(), archtype=platform.machine(), prourl=__project_url__, pyimp="Python", pyver=platform.python_version(), proname=__project__, prover=__version__);
+ py_implementation = "Python";
+geturls_ua_pywwwget_python_alt = "Mozilla/5.0 ({osver}; {archtype}; +{prourl}) {pyimp}/{pyver} (KHTML, like Gecko) {proname}/{prover}".format(osver=platform.system()+" "+platform.release(), archtype=platform.machine(), prourl=__project_url__, pyimp=py_implementation, pyver=platform.python_version(), proname=__project__, prover=__version__);
 geturls_ua_googlebot_google = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
 geturls_ua_googlebot_google_old = "Googlebot/2.1 (+http://www.google.com/bot.html)";
 geturls_ua = geturls_ua_firefox_windows7;
-geturls_headers_firefox_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_firefox_windows7, 'Accept-Encoding': "gzip, deflate", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
-geturls_headers_seamonkey_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_seamonkey_windows7, 'Accept-Encoding': "gzip, deflate", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
-geturls_headers_chrome_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_chrome_windows7, 'Accept-Encoding': "gzip, deflate", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
-geturls_headers_chromium_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_chromium_windows7, 'Accept-Encoding': "gzip, deflate", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
-geturls_headers_palemoon_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_palemoon_windows7, 'Accept-Encoding': "gzip, deflate", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
-geturls_headers_opera_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_opera_windows7, 'Accept-Encoding': "gzip, deflate", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
-geturls_headers_vivaldi_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_vivaldi_windows7, 'Accept-Encoding': "gzip, deflate", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
-geturls_headers_internet_explorer_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_internet_explorer_windows7, 'Accept-Encoding': "gzip, deflate", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
-geturls_headers_microsoft_edge_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_microsoft_edge_windows7, 'Accept-Encoding': "gzip, deflate", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
-geturls_headers_pywwwget_python = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_pywwwget_python, 'Accept-Encoding': "none", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
-geturls_headers_pywwwget_python_alt = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_pywwwget_python_alt, 'Accept-Encoding': "none", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
+geturls_headers_firefox_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_firefox_windows7, 'Accept-Encoding': compression_supported, 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
+geturls_headers_seamonkey_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_seamonkey_windows7, 'Accept-Encoding': compression_supported, 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
+geturls_headers_chrome_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_chrome_windows7, 'Accept-Encoding': compression_supported, 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close", 'SEC-CH-UA': "\"Google Chrome\";v=\"117\", \"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"117\"", 'SEC-CH-UA-FULL-VERSION': "117.0.5938.63"}.update(windows7_ua_addon);
+geturls_headers_chromium_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_chromium_windows7, 'Accept-Encoding': compression_supported, 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close", 'SEC-CH-UA': "\"Chromium\";v=\"117\", \"Not;A=Brand\";v=\"24\"", 'SEC-CH-UA-FULL-VERSION': "117.0.5938.63"}.update(windows7_ua_addon).update(windows7_ua_addon);
+geturls_headers_palemoon_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_palemoon_windows7, 'Accept-Encoding': compression_supported, 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
+geturls_headers_opera_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_opera_windows7, 'Accept-Encoding': compression_supported, 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close", 'SEC-CH-UA': "\"Chromium\";v=\"116\", \"Not;A=Brand\";v=\"8\", \"Opera\";v=\"102\"", 'SEC-CH-UA-FULL-VERSION': "102.0.4880.56"}.update(windows7_ua_addon);;
+geturls_headers_vivaldi_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_vivaldi_windows7, 'Accept-Encoding': compression_supported, 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close", 'SEC-CH-UA': "\"Google Chrome\";v=\"117\", \"Not;A=Brand\";v=\"8\", \"Vivaldi\";v=\"6.2\"", 'SEC-CH-UA-FULL-VERSION': "6.2.3105.48"}.update(windows7_ua_addon);;
+geturls_headers_internet_explorer_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_internet_explorer_windows7, 'Accept-Encoding': compression_supported, 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
+geturls_headers_microsoft_edge_windows7 = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_microsoft_edge_windows7, 'Accept-Encoding': compression_supported, 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close", 'SEC-CH-UA': "\"Microsoft Edge\";v=\"117\", \"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"117\"", 'SEC-CH-UA-FULL-VERSION': "117.0.2045.31"}.update(windows7_ua_addon);;
+geturls_headers_pywwwget_python = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_pywwwget_python, 'Accept-Encoding': "none", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close", 'SEC-CH-UA': "\""+__project__+"\";v=\""+str(__version__)+"\", \"Not;A=Brand\";v=\"8\", \""+py_implementation+"\";v=\""+str(platform.release())+"\"", 'SEC-CH-UA-FULL-VERSION': str(__version__)};
+geturls_headers_pywwwget_python_alt = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_pywwwget_python_alt, 'Accept-Encoding': "none", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close", 'SEC-CH-UA': "\""+__project__+"\";v=\""+str(__version__)+"\", \"Not;A=Brand\";v=\"8\", \""+py_implementation+"\";v=\""+str(platform.release())+"\"", 'SEC-CH-UA-FULL-VERSION': str(__version__)};
 geturls_headers_googlebot_google = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_googlebot_google, 'Accept-Encoding': "none", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
 geturls_headers_googlebot_google_old = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_googlebot_google_old, 'Accept-Encoding': "none", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"};
 geturls_headers = geturls_headers_firefox_windows7;
@@ -322,7 +344,7 @@ def get_readable_size_from_string(instring, precision=1, unit="IEC", usehashes=F
    listnumcount += 1;
  return return_val;
 
-def make_http_headers_from_dict_to_list(headers={'Referer': "http://google.com/", 'User-Agent': geturls_ua, 'Accept-Encoding': "gzip, deflate", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"}):
+def make_http_headers_from_dict_to_list(headers={'Referer': "http://google.com/", 'User-Agent': geturls_ua, 'Accept-Encoding': compression_supported, 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"}):
  if isinstance(headers, dict):
   returnval = [];
   if(sys.version[0]=="2"):
@@ -337,7 +359,7 @@ def make_http_headers_from_dict_to_list(headers={'Referer': "http://google.com/"
   returnval = False;
  return returnval;
 
-def make_http_headers_from_dict_to_pycurl(headers={'Referer': "http://google.com/", 'User-Agent': geturls_ua, 'Accept-Encoding': "gzip, deflate", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"}):
+def make_http_headers_from_dict_to_pycurl(headers={'Referer': "http://google.com/", 'User-Agent': geturls_ua, 'Accept-Encoding': compression_supported, 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"}):
  if isinstance(headers, dict):
   returnval = [];
   if(sys.version[0]=="2"):
@@ -352,7 +374,7 @@ def make_http_headers_from_dict_to_pycurl(headers={'Referer': "http://google.com
   returnval = False;
  return returnval;
 
-def make_http_headers_from_list_to_dict(headers=[("Referer", "http://google.com/"), ("User-Agent", geturls_ua), ("Accept-Encoding", "gzip, deflate"), ("Accept-Language", "en-US,en;q=0.8,en-CA,en-GB;q=0.6"), ("Accept-Charset", "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7"), ("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"), ("Connection", "close")]):
+def make_http_headers_from_list_to_dict(headers=[("Referer", "http://google.com/"), ("User-Agent", geturls_ua), ("Accept-Encoding", compression_supported), ("Accept-Language", "en-US,en;q=0.8,en-CA,en-GB;q=0.6"), ("Accept-Charset", "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7"), ("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"), ("Connection", "close")]):
  if isinstance(headers, list):
   returnval = {};
   mli = 0;
@@ -507,7 +529,7 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpcookie=g
  return returnval;
 
 def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
- global geturls_download_sleep;
+ global geturls_download_sleep, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
  urlparts = urlparse.urlparse(httpurl);
@@ -547,6 +569,8 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpcook
   returnval_content = gzstrbuf.read()[:];
  if(geturls_text.info().get("Content-Encoding")!="gzip" and geturls_text.info().get("Content-Encoding")!="deflate"):
   returnval_content = geturls_text.read()[:];
+ if(geturls_text.info().get("Content-Encoding")=="br" and havebrotli):
+  returnval_content = brotli.decompress(returnval_content);
  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.info()), 'URL': geturls_text.geturl(), 'Code': geturls_text.getcode()};
  geturls_text.close();
  return returnval;
@@ -713,7 +737,7 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, 
  return returnval;
 
 def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
- global geturls_download_sleep;
+ global geturls_download_sleep, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
  urlparts = urlparse.urlparse(httpurl);
@@ -752,6 +776,8 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpcoo
   returnval_content = gzstrbuf.read()[:];
  if(dict(geturls_text.getheaders()).get("Content-Encoding")!="gzip" and dict(geturls_text.getheaders()).get("Content-Encoding")!="deflate"):
   returnval_content = geturls_text.read()[:];
+ if(geturls_text.getheaders().get("Content-Encoding")=="br" and havebrotli):
+  returnval_content = brotli.decompress(returnval_content);
  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.getheaders()), 'URL': httpurl, 'Code': geturls_text.status};
  geturls_text.close();
  return returnval;
@@ -917,7 +943,7 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers,
 
 if(havehttplib2):
  def download_from_url_with_httplib2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   urlparts = urlparse.urlparse(httpurl);
@@ -956,6 +982,8 @@ if(havehttplib2):
    returnval_content = gzstrbuf.read()[:];
   if(dict(geturls_text.getheaders()).get("Content-Encoding")!="gzip" and dict(geturls_text.getheaders()).get("Content-Encoding")!="deflate"):
    returnval_content = geturls_text.read()[:];
+  if(geturls_text.getheaders().get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.getheaders()), 'URL': httpurl, 'Code': geturls_text.status};
   geturls_text.close();
   return returnval;
@@ -1137,7 +1165,7 @@ if(not havehttplib2):
   return returnval;
 
 def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
- global geturls_download_sleep;
+ global geturls_download_sleep, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
  urlparts = urlparse.urlparse(httpurl);
@@ -1182,6 +1210,8 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcoo
   returnval_content = gzstrbuf.read()[:];
  if(geturls_text.headers.get("Content-Encoding")!="gzip" and geturls_text.headers.get("Content-Encoding")!="deflate"):
   returnval_content = geturls_text.read()[:];
+ if(geturls_text.headers.get("Content-Encoding")=="br" and havebrotli):
+  returnval_content = brotli.decompress(returnval_content);
  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'URL': geturls_text.geturl(), 'Code': geturls_text.getcode()};
  geturls_text.close();
  return returnval;
@@ -1353,7 +1383,7 @@ def download_from_url_to_file_with_request(httpurl, httpheaders=geturls_headers,
 
 if(haverequests):
  def download_from_url_with_requests(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   urlparts = urlparse.urlparse(httpurl);
@@ -1388,6 +1418,8 @@ if(haverequests):
    returnval_content = gzstrbuf.content[:];
   if(geturls_text.headers.get('Content-Type')!="gzip" and geturls_text.headers.get('Content-Type')!="deflate"):
    returnval_content = geturls_text.content[:];
+  if(geturls_text.headers.get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'URL': geturls_text.url, 'Code': geturls_text.status_code};
   geturls_text.close();
   return returnval;
@@ -1564,7 +1596,7 @@ if(not haverequests):
 
 if(haveurllib3):
  def download_from_url_with_request3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   urlparts = urlparse.urlparse(httpurl);
@@ -1603,6 +1635,8 @@ if(haveurllib3):
    returnval_content = gzstrbuf.read()[:];
   if(geturls_text.info().get("Content-Encoding")!="gzip" and geturls_text.info().get("Content-Encoding")!="deflate"):
    returnval_content = geturls_text.read()[:];
+  if(geturls_text.info().get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.info()), 'URL': geturls_text.geturl(), 'Code': geturls_text.status};
   geturls_text.close();
   return returnval;
@@ -1785,7 +1819,7 @@ if(not haveurllib3):
 
 if(haveurllib3):
  def download_from_url_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   urlparts = urlparse.urlparse(httpurl);
@@ -1824,6 +1858,8 @@ if(haveurllib3):
    returnval_content = gzstrbuf.read()[:];
   if(geturls_text.info().get("Content-Encoding")!="gzip" and geturls_text.info().get("Content-Encoding")!="deflate"):
    returnval_content = geturls_text.read()[:];
+  if(geturls_text.info().get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.info()), 'URL': geturls_text.geturl(), 'Code': geturls_text.status};
   geturls_text.close();
   return returnval;
@@ -2006,7 +2042,7 @@ if(not haveurllib3):
 
 if(havemechanize):
  def download_from_url_with_mechanize(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   urlparts = urlparse.urlparse(httpurl);
@@ -2048,6 +2084,8 @@ if(havemechanize):
    returnval_content = gzstrbuf.read()[:];
   if(geturls_text.info().get("Content-Encoding")!="gzip" and geturls_text.info().get("Content-Encoding")!="deflate"):
    returnval_content = geturls_text.read()[:];
+  if(geturls_text.info().get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.info()), 'URL': geturls_text.geturl(), 'Code': geturls_text.code};
   geturls_text.close();
   return returnval;
