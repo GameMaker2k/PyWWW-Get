@@ -2816,10 +2816,12 @@ def download_file_from_ftp_file(url):
   ftp = FTP_TLS();
  else:
   return False;
- get_port = urlparts.port;
+ if(urlparts.scheme=="http" or urlparts.scheme=="https"):
+  return False;
+ ftp_port = urlparts.port;
  if(urlparts.port is None):
-  get_port = 21;
- ftp.connect(urlparts.hostname, get_port);
+  ftp_port = 21;
+ ftp.connect(urlparts.hostname, ftp_port);
  ftp.login(urlparts.username, urlparts.password);
  if(urlparts.scheme=="ftps"):
   ftp.prot_p();
@@ -3013,10 +3015,12 @@ def upload_file_to_ftp_file(ftpfile, url):
   ftp = FTP_TLS();
  else:
   return False;
- get_port = urlparts.port;
+ if(urlparts.scheme=="http" or urlparts.scheme=="https"):
+  return False;
+ ftp_port = urlparts.port;
  if(urlparts.port is None):
-  get_port = 21;
- ftp.connect(urlparts.hostname, urlparts.port);
+  ftp_port = 21;
+ ftp.connect(urlparts.hostname, ftp_port);
  ftp.login(urlparts.username, urlparts.password);
  if(urlparts.scheme=="ftps"):
   ftp.prot_p();
@@ -3036,6 +3040,8 @@ if(haveparamiko):
   urlparts = urlparse.urlparse(url);
   file_name = os.path.basename(urlparts.path);
   file_dir = os.path.dirname(urlparts.path);
+  if(urlparts.scheme=="http" or urlparts.scheme=="https"):
+   return False;
   sftp_port = urlparts.port;
   if(urlparts.port is None):
    sftp_port = 22;
@@ -3259,6 +3265,8 @@ if(haveparamiko):
   file_name = os.path.basename(urlparts.path);
   file_dir = os.path.dirname(urlparts.path);
   sftp_port = urlparts.port;
+  if(urlparts.scheme=="http" or urlparts.scheme=="https"):
+   return False;
   if(urlparts.port is None):
    sftp_port = 22;
   else:
