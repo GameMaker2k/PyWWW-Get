@@ -12,7 +12,7 @@
     Copyright 2016-2023 Game Maker 2k - https://github.com/GameMaker2k
     Copyright 2016-2023 Kazuki Przyborowski - https://github.com/KazukiPrzyborowski
 
-    $FileInfo: pywwwget.py - Last Update: 9/15/2023 Ver. 0.9.4 RC 1 - Author: cooldude2k $
+    $FileInfo: pywwwget.py - Last Update: 9/16/2023 Ver. 1.0.0 RC 1 - Author: cooldude2k $
 '''
 
 from __future__ import division, absolute_import, print_function;
@@ -89,8 +89,8 @@ __program_alt_name__ = "PyWWWGet";
 __program_small_name__ = "wwwget";
 __project__ = __program_name__;
 __project_url__ = "https://github.com/GameMaker2k/PyWWW-Get";
-__version_info__ = (0, 9, 4, "RC 1", 1);
-__version_date_info__ = (2023, 9, 15, "RC 1", 1);
+__version_info__ = (1, 0, 0, "RC 1", 1);
+__version_date_info__ = (2023, 9, 16, "RC 1", 1);
 __version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2);
 __revision__ = __version_info__[3];
 __revision_id__ = "$Id$";
@@ -410,7 +410,7 @@ def make_http_headers_from_list_to_dict(headers=[("Referer", "http://google.com/
  return returnval;
 
 def get_httplib_support(checkvalue=None):
- global haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx;
+ global haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, haveparamiko;
  returnval = [];
  returnval.append("ftp");
  returnval.append("httplib");
@@ -454,7 +454,7 @@ def get_httplib_support_list():
  return returnval;
 
 def download_from_url(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", sleep=-1):
- global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx;
+ global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, haveparamiko;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
@@ -478,7 +478,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpcookie=geturls_c
  elif(httplibuse=="request"):
   returnval = download_from_url_with_request(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="request3"):
-  returnval = download_from_url_with_request(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+  returnval = download_from_url_with_request3(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="httplib"):
   returnval = download_from_url_with_httplib(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="httplib2"):
@@ -495,14 +495,14 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpcookie=geturls_c
   returnval = download_from_url_with_mechanize(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="ftp"):
   returnval = download_from_url_with_ftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
- elif(httplibuse=="mechanize"):
+ elif(httplibuse=="sftp"):
   returnval = download_from_url_with_sftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
  else:
   returnval = False;
  return returnval;
 
 def download_from_url_file(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", buffersize=524288, sleep=-1):
- global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx;
+ global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, haveparamiko;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
@@ -526,7 +526,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpcookie=getu
  elif(httplibuse=="request"):
   returnval = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="request3"):
-  returnval = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_request3(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="httplib"):
   returnval = download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="httplib2"):
@@ -550,7 +550,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpcookie=getu
  return returnval;
 
 def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
- global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx;
+ global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, haveparamiko;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
@@ -574,7 +574,7 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpcookie=g
  elif(httplibuse=="request"):
   returnval = download_from_url_to_file_with_request(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="request3"):
-  returnval = download_from_url_to_file_with_request(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_request3(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="httplib"):
   returnval = download_from_url_to_file_with_httplib(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="httplib2"):
@@ -840,6 +840,9 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpcoo
  except socket.timeout:
   log.info("Error With URL "+httpurl);
   return False;
+ except socket.gaierror:
+  log.info("Error With URL "+httpurl);
+  return False;
  geturls_text = httpconn.getresponse();
  log.info("Downloading URL "+httpurl);
  if(dict(geturls_text.getheaders()).get("Content-Encoding")=="gzip" or dict(geturls_text.getheaders()).get("Content-Encoding")=="deflate"):
@@ -897,6 +900,9 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
   else:
    httpconn.request("GET", urlparts[2], headers=httpheaders);
  except socket.timeout:
+  log.info("Error With URL "+httpurl);
+  return False;
+ except socket.gaierror:
   log.info("Error With URL "+httpurl);
   return False;
  geturls_text = httpconn.getresponse();
@@ -1050,6 +1056,9 @@ if(havehttplib2):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
+  except socket.gaierror:
+   log.info("Error With URL "+httpurl);
+   return False;
   geturls_text = httpconn.getresponse();
   log.info("Downloading URL "+httpurl);
   if(dict(geturls_text.getheaders()).get("Content-Encoding")=="gzip" or dict(geturls_text.getheaders()).get("Content-Encoding")=="deflate"):
@@ -1113,6 +1122,9 @@ if(havehttplib2):
    else:
     httpconn.request("GET", urlparts[2], headers=httpheaders);
   except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.gaierror:
    log.info("Error With URL "+httpurl);
    return False;
   geturls_text = httpconn.getresponse();
@@ -1490,6 +1502,9 @@ if(haverequests):
   except requests.exceptions.ConnectTimeout:
    log.info("Error With URL "+httpurl);
    return False;
+  except requests.exceptions.ConnectError:
+   log.info("Error With URL "+httpurl);
+   return False;
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
@@ -1547,6 +1562,9 @@ if(haverequests):
    else:
     geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
   except requests.exceptions.ConnectTimeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except requests.exceptions.ConnectError:
    log.info("Error With URL "+httpurl);
    return False;
   except socket.timeout:
@@ -1706,6 +1724,9 @@ if(havehttpx):
   except httpx.ConnectTimeout:
    log.info("Error With URL "+httpurl);
    return False;
+  except httpx.ConnectError:
+   log.info("Error With URL "+httpurl);
+   return False;
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
@@ -1766,6 +1787,9 @@ if(havehttpx):
     httpx_pool = httpx.Client(http1=True, http2=False, trust_env=True);
     geturls_text = httpx_pool.get(httpurl, headers=httpheaders, cookies=httpcookie);
   except httpx.ConnectTimeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except httpx.ConnectError:
    log.info("Error With URL "+httpurl);
    return False;
   except socket.timeout:
@@ -1925,6 +1949,9 @@ if(havehttpx):
   except httpx.ConnectTimeout:
    log.info("Error With URL "+httpurl);
    return False;
+  except httpx.ConnectError:
+   log.info("Error With URL "+httpurl);
+   return False;
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
@@ -1985,6 +2012,9 @@ if(havehttpx):
     httpx_pool = httpx.Client(http1=True, http2=True, trust_env=True);
     geturls_text = httpx_pool.get(httpurl, headers=httpheaders, cookies=httpcookie);
   except httpx.ConnectTimeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except httpx.ConnectError:
    log.info("Error With URL "+httpurl);
    return False;
   except socket.timeout:
@@ -2142,6 +2172,9 @@ if(haveurllib3):
   except urllib3.exceptions.ConnectTimeoutError:
    log.info("Error With URL "+httpurl);
    return False;
+  except urllib3.exceptions.ConnectError:
+   log.info("Error With URL "+httpurl);
+   return False;
   except urllib3.exceptions.MaxRetryError:
    log.info("Error With URL "+httpurl);
    return False;
@@ -2203,6 +2236,9 @@ if(haveurllib3):
    else:
     geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
   except urllib3.exceptions.ConnectTimeoutError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except urllib3.exceptions.ConnectError:
    log.info("Error With URL "+httpurl);
    return False;
   except urllib3.exceptions.MaxRetryError:
@@ -2365,6 +2401,9 @@ if(haveurllib3):
   except urllib3.exceptions.ConnectTimeoutError:
    log.info("Error With URL "+httpurl);
    return False;
+  except urllib3.exceptions.ConnectError:
+   log.info("Error With URL "+httpurl);
+   return False;
   except urllib3.exceptions.MaxRetryError:
    log.info("Error With URL "+httpurl);
    return False;
@@ -2426,6 +2465,9 @@ if(haveurllib3):
    else:
     geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
   except urllib3.exceptions.ConnectTimeoutError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except urllib3.exceptions.ConnectError:
    log.info("Error With URL "+httpurl);
    return False;
   except urllib3.exceptions.MaxRetryError:
