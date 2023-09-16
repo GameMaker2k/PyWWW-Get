@@ -1674,7 +1674,7 @@ if(havehttpx):
    returnval_content = geturls_text.content[:];
   if(geturls_text.headers.get("Content-Encoding")=="br" and havebrotli):
    returnval_content = brotli.decompress(returnval_content);
-  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': geturls_text.url, 'Code': geturls_text.status_code};
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(geturls_text.url), 'Code': geturls_text.status_code};
   geturls_text.close();
   return returnval;
 
@@ -1730,7 +1730,7 @@ if(havehttpx):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': geturls_text.url, 'Code': geturls_text.status_code};
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(geturls_text.url), 'Code': geturls_text.status_code};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
