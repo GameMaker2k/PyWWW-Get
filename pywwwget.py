@@ -110,7 +110,7 @@ pytempdir = tempfile.gettempdir();
 PyBitness = platform.architecture();
 if(PyBitness=="32bit" or PyBitness=="32"):
  PyBitness = "32";
-elif(PyBitness=="64bit" or PyBitness=="64")):
+elif(PyBitness=="64bit" or PyBitness=="64"):
  PyBitness = "64";
 else:
  PyBitness = "32";
