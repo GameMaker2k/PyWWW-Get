@@ -781,7 +781,7 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpcoo
   returnval_content = gzstrbuf.read()[:];
  if(dict(geturls_text.getheaders()).get("Content-Encoding")!="gzip" and dict(geturls_text.getheaders()).get("Content-Encoding")!="deflate"):
   returnval_content = geturls_text.read()[:];
- if(geturls_text.getheaders().get("Content-Encoding")=="br" and havebrotli):
+ if(dict(geturls_text.getheaders()).get("Content-Encoding")=="br" and havebrotli):
   returnval_content = brotli.decompress(returnval_content);
  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.getheaders()), 'URL': httpurl, 'Code': geturls_text.status};
  geturls_text.close();
@@ -987,7 +987,7 @@ if(havehttplib2):
    returnval_content = gzstrbuf.read()[:];
   if(dict(geturls_text.getheaders()).get("Content-Encoding")!="gzip" and dict(geturls_text.getheaders()).get("Content-Encoding")!="deflate"):
    returnval_content = geturls_text.read()[:];
-  if(geturls_text.getheaders().get("Content-Encoding")=="br" and havebrotli):
+  if(dict(geturls_text.getheaders()).get("Content-Encoding")=="br" and havebrotli):
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.getheaders()), 'URL': httpurl, 'Code': geturls_text.status};
   geturls_text.close();
