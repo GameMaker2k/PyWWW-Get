@@ -16,7 +16,7 @@
 '''
 
 from __future__ import division, absolute_import, print_function;
-import re, os, sys, hashlib, shutil, platform, tempfile, urllib, gzip, time, argparse, cgi, subprocess;
+import re, os, sys, hashlib, shutil, platform, tempfile, urllib, gzip, time, argparse, cgi, subprocess, socket;
 import logging as log;
 from ftplib import FTP, FTP_TLS;
 from base64 import b64encode;
@@ -59,7 +59,7 @@ if(sys.version[0]=="2"):
  from urlparse import urlparse, urlunparse, urlsplit, urlunsplit, urljoin;
  from urllib import urlencode;
  from urllib import urlopen as urlopenalt;
- from urllib2 import urlopen, Request, install_opener, HTTPError, build_opener, HTTPCookieProcessor;
+ from urllib2 import urlopen, Request, install_opener, HTTPError, URLError, build_opener, HTTPCookieProcessor;
  import urlparse, cookielib;
  from httplib import HTTPConnection, HTTPSConnection;
 if(sys.version[0]>="3"):
@@ -67,7 +67,7 @@ if(sys.version[0]>="3"):
  # From http://python-future.org/compatible_idioms.html
  from urllib.parse import urlparse, urlunparse, urlsplit, urlunsplit, urljoin, urlencode;
  from urllib.request import urlopen, Request, install_opener, build_opener, HTTPCookieProcessor;
- from urllib.error import HTTPError;
+ from urllib.error import HTTPError, URLError;
  import urllib.parse as urlparse;
  import http.cookiejar as cookielib;
  from http.client import HTTPConnection, HTTPSConnection;
@@ -531,6 +531,12 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpcook
  except HTTPError as geturls_text_error:
   geturls_text = geturls_text_error;
   log.info("Error With URL "+httpurl);
+ except URLError:
+  log.info("Error With URL "+httpurl);
+  return False;
+ except socket.timeout:
+  log.info("Error With URL "+httpurl);
+  return False;
  log.info("Downloading URL "+httpurl);
  if(geturls_text.info().get("Content-Encoding")=="gzip" or geturls_text.info().get("Content-Encoding")=="deflate"):
   if(sys.version[0]=="2"):
@@ -579,17 +585,15 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  except HTTPError as geturls_text_error:
   geturls_text = geturls_text_error;
   log.info("Error With URL "+httpurl);
-  if(geturls_text.info().get("Content-Encoding")=="gzip" or geturls_text.info().get("Content-Encoding")=="deflate"):
-   if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.read());
-   if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.read());
-   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.read()[:];
-  if(geturls_text.info().get("Content-Encoding")!="gzip" and geturls_text.info().get("Content-Encoding")!="deflate"):
-   returnval_content = geturls_text.read()[:];
-  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.info()), 'URL': geturls_text.geturl(), 'Code': geturls_text.getcode()};
-  return returnval;
+ except URLError:
+  log.info("Error With URL "+httpurl);
+  return False;
+ except socket.timeout:
+  log.info("Error With URL "+httpurl);
+  return False;
+ except socket.timeout:
+  log.info("Error With URL "+httpurl);
+  return False;
  downloadsize = geturls_text.info().get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
@@ -633,6 +637,8 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, 
   if(os.path.exists(filepath) and os.path.isdir(filepath)):
    return False;
   pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  if(not pretmpfilename):
+   return False;
   tmpfilename = pretmpfilename['Filename'];
   downloadsize = os.path.getsize(tmpfilename);
   fulldatasize = 0;
@@ -646,6 +652,8 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, 
   returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  if(outfile=="-" and sys.version[0]=="2"):
   pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  if(not pretmpfilename):
+   return False;
   tmpfilename = pretmpfilename['Filename'];
   downloadsize = os.path.getsize(tmpfilename);
   fulldatasize = 0;
@@ -723,12 +731,16 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpcoo
   return False;
  if(postdata is not None and not isinstance(postdata, dict)):
   postdata = urlencode(postdata);
- if(httpmethod=="GET"):
-  httpconn.request("GET", urlparts[2], headers=httpheaders);
- elif(httpmethod=="POST"):
-  httpconn.request("GET", urlparts[2], body=postdata, headers=httpheaders);
- else:
-  httpconn.request("GET", urlparts[2], headers=httpheaders);
+ try:
+  if(httpmethod=="GET"):
+   httpconn.request("GET", urlparts[2], headers=httpheaders);
+  elif(httpmethod=="POST"):
+   httpconn.request("GET", urlparts[2], body=postdata, headers=httpheaders);
+  else:
+   httpconn.request("GET", urlparts[2], headers=httpheaders);
+ except socket.timeout:
+  log.info("Error With URL "+httpurl);
+  return False;
  geturls_text = httpconn.getresponse();
  log.info("Downloading URL "+httpurl);
  if(dict(geturls_text.getheaders()).get("Content-Encoding")=="gzip" or dict(geturls_text.getheaders()).get("Content-Encoding")=="deflate"):
@@ -774,12 +786,16 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
   return False;
  if(postdata is not None and not isinstance(postdata, dict)):
   postdata = urlencode(postdata);
- if(httpmethod=="GET"):
-  httpconn.request("GET", urlparts[2], headers=httpheaders);
- elif(httpmethod=="POST"):
-  httpconn.request("GET", urlparts[2], body=postdata, headers=httpheaders);
- else:
-  httpconn.request("GET", urlparts[2], headers=httpheaders);
+ try:
+  if(httpmethod=="GET"):
+   httpconn.request("GET", urlparts[2], headers=httpheaders);
+  elif(httpmethod=="POST"):
+   httpconn.request("GET", urlparts[2], body=postdata, headers=httpheaders);
+  else:
+   httpconn.request("GET", urlparts[2], headers=httpheaders);
+ except socket.timeout:
+  log.info("Error With URL "+httpurl);
+  return False;
  geturls_text = httpconn.getresponse();
  downloadsize = dict(geturls_text.getheaders()).get('Content-Length');
  if(downloadsize is not None):
@@ -824,6 +840,8 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers,
   if(os.path.exists(filepath) and os.path.isdir(filepath)):
    return False;
   pretmpfilename = download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  if(not pretmpfilename):
+   return False;
   tmpfilename = pretmpfilename['Filename'];
   downloadsize = os.path.getsize(tmpfilename);
   fulldatasize = 0;
@@ -836,7 +854,9 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers,
    os.remove(tmpfilename);
   returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  if(outfile=="-" and sys.version[0]=="2"):
-  pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  pretmpfilename = download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  if(not pretmpfilename):
+   return False;
   tmpfilename = pretmpfilename['Filename'];
   downloadsize = os.path.getsize(tmpfilename);
   fulldatasize = 0;
@@ -915,12 +935,16 @@ if(havehttplib2):
    return False;
   if(postdata is not None and not isinstance(postdata, dict)):
    postdata = urlencode(postdata);
-  if(httpmethod=="GET"):
-   httpconn.request("GET", urlparts[2], headers=httpheaders);
-  elif(httpmethod=="POST"):
-   httpconn.request("GET", urlparts[2], body=postdata, headers=httpheaders);
-  else:
-   httpconn.request("GET", urlparts[2], headers=httpheaders);
+  try:
+   if(httpmethod=="GET"):
+    httpconn.request("GET", urlparts[2], headers=httpheaders);
+   elif(httpmethod=="POST"):
+    httpconn.request("GET", urlparts[2], body=postdata, headers=httpheaders);
+   else:
+    httpconn.request("GET", urlparts[2], headers=httpheaders);
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
   geturls_text = httpconn.getresponse();
   log.info("Downloading URL "+httpurl);
   if(dict(geturls_text.getheaders()).get("Content-Encoding")=="gzip" or dict(geturls_text.getheaders()).get("Content-Encoding")=="deflate"):
@@ -972,12 +996,16 @@ if(havehttplib2):
    return False;
   if(postdata is not None and not isinstance(postdata, dict)):
    postdata = urlencode(postdata);
-  if(httpmethod=="GET"):
-   httpconn.request("GET", urlparts[2], headers=httpheaders);
-  elif(httpmethod=="POST"):
-   httpconn.request("GET", urlparts[2], body=postdata, headers=httpheaders);
-  else:
-   httpconn.request("GET", urlparts[2], headers=httpheaders);
+  try:
+   if(httpmethod=="GET"):
+    httpconn.request("GET", urlparts[2], headers=httpheaders);
+   elif(httpmethod=="POST"):
+    httpconn.request("GET", urlparts[2], body=postdata, headers=httpheaders);
+   else:
+    httpconn.request("GET", urlparts[2], headers=httpheaders);
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
   geturls_text = httpconn.getresponse();
   downloadsize = dict(geturls_text.getheaders()).get('Content-Length');
   if(downloadsize is not None):
@@ -1027,7 +1055,9 @@ if(havehttplib2):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httplib2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1040,7 +1070,9 @@ if(havehttplib2):
     os.remove(tmpfilename);
    returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
-   pretmpfilename = download_from_url_file_with_urllib2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httplib2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1134,6 +1166,12 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcoo
  except HTTPError as geturls_text_error:
   geturls_text = geturls_text_error;
   log.info("Error With URL "+httpurl);
+ except URLError:
+  log.info("Error With URL "+httpurl);
+  return False;
+ except socket.timeout:
+  log.info("Error With URL "+httpurl);
+  return False;
  log.info("Downloading URL "+httpurl);
  if(geturls_text.headers.get("Content-Encoding")=="gzip" or geturls_text.headers.get("Content-Encoding")=="deflate"):
   if(sys.version[0]=="2"):
@@ -1189,6 +1227,12 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
  except HTTPError as geturls_text_error:
   geturls_text = geturls_text_error;
   log.info("Error With URL "+httpurl);
+ except URLError:
+  log.info("Error With URL "+httpurl);
+  return False;
+ except socket.timeout:
+  log.info("Error With URL "+httpurl);
+  return False;
  downloadsize = geturls_text.headers.get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
@@ -1232,6 +1276,8 @@ def download_from_url_to_file_with_request(httpurl, httpheaders=geturls_headers,
   if(os.path.exists(filepath) and os.path.isdir(filepath)):
    return False;
   pretmpfilename = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  if(not pretmpfilename):
+   return False;
   tmpfilename = pretmpfilename['Filename'];
   downloadsize = os.path.getsize(tmpfilename);
   fulldatasize = 0;
@@ -1245,6 +1291,8 @@ def download_from_url_to_file_with_request(httpurl, httpheaders=geturls_headers,
   returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  if(outfile=="-" and sys.version[0]=="2"):
   pretmpfilename = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  if(not pretmpfilename):
+   return False;
   tmpfilename = pretmpfilename['Filename'];
   downloadsize = os.path.getsize(tmpfilename);
   fulldatasize = 0;
@@ -1317,12 +1365,19 @@ if(haverequests):
   time.sleep(sleep);
   if(postdata is not None and not isinstance(postdata, dict)):
    postdata = urlencode(postdata);
-  if(httpmethod=="GET"):
-   geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
-  elif(httpmethod=="POST"):
-   geturls_text = requests.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie);
-  else:
-   geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
+  try:
+   if(httpmethod=="GET"):
+    geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
+   elif(httpmethod=="POST"):
+    geturls_text = requests.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie);
+   else:
+    geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
+  except requests.exceptions.ConnectTimeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
   log.info("Downloading URL "+httpurl);
   if(geturls_text.headers.get('Content-Type')=="gzip" or geturls_text.headers.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
@@ -1367,12 +1422,19 @@ if(haverequests):
   time.sleep(sleep);
   if(postdata is not None and not isinstance(postdata, dict)):
    postdata = urlencode(postdata);
-  if(httpmethod=="GET"):
-   geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
-  elif(httpmethod=="POST"):
-   geturls_text = requests.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie);
-  else:
-   geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
+  try:
+   if(httpmethod=="GET"):
+    geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
+   elif(httpmethod=="POST"):
+    geturls_text = requests.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie);
+   else:
+    geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
+  except requests.exceptions.ConnectTimeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
   downloadsize = int(geturls_text.headers.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -1420,6 +1482,8 @@ if(haverequests):
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
    pretmpfilename = download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1433,6 +1497,8 @@ if(haverequests):
    returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
    pretmpfilename = download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1511,12 +1577,22 @@ if(haveurllib3):
   urllib_pool = urllib3.PoolManager(headers=httpheaders);
   if(postdata is not None and not isinstance(postdata, dict)):
    postdata = urlencode(postdata);
-  if(httpmethod=="GET"):
-   geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
-  elif(httpmethod=="POST"):
-   geturls_text = geturls_text = urllib_pool.request("POST", httpurl, body=postdata, headers=httpheaders, preload_content=False);
-  else:
-   geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
+  try:
+   if(httpmethod=="GET"):
+    geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
+   elif(httpmethod=="POST"):
+    geturls_text = geturls_text = urllib_pool.request("POST", httpurl, body=postdata, headers=httpheaders, preload_content=False);
+   else:
+    geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
+  except urllib3.exceptions.ConnectTimeoutError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except urllib3.exceptions.MaxRetryError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
   log.info("Downloading URL "+httpurl);
   if(geturls_text.info().get("Content-Encoding")=="gzip" or geturls_text.info().get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
@@ -1532,7 +1608,7 @@ if(haveurllib3):
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+ def download_from_url_with_request3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
   returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep)
   return returnval;
 
@@ -1562,12 +1638,22 @@ if(haveurllib3):
   urllib_pool = urllib3.PoolManager(headers=httpheaders);
   if(postdata is not None and not isinstance(postdata, dict)):
    postdata = urlencode(postdata);
-  if(httpmethod=="GET"):
-   geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
-  elif(httpmethod=="POST"):
-   geturls_text = geturls_text = urllib_pool.request("POST", httpurl, body=postdata, headers=httpheaders, preload_content=False);
-  else:
-   geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
+  try:
+   if(httpmethod=="GET"):
+    geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
+   elif(httpmethod=="POST"):
+    geturls_text = geturls_text = urllib_pool.request("POST", httpurl, body=postdata, headers=httpheaders, preload_content=False);
+   else:
+    geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
+  except urllib3.exceptions.ConnectTimeoutError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except urllib3.exceptions.MaxRetryError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
   downloadsize = int(geturls_text.headers.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -1598,7 +1684,7 @@ if(haveurllib3):
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_request3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
   returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep)
   return returnval;
 
@@ -1616,7 +1702,9 @@ if(haveurllib3):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_request3(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1629,7 +1717,9 @@ if(haveurllib3):
     os.remove(tmpfilename);
    returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
-   pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_request3(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1689,7 +1779,7 @@ if(haveurllib3):
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_to_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_request3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
@@ -1708,12 +1798,22 @@ if(haveurllib3):
   urllib_pool = urllib3.PoolManager(headers=httpheaders);
   if(postdata is not None and not isinstance(postdata, dict)):
    postdata = urlencode(postdata);
-  if(httpmethod=="GET"):
-   geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
-  elif(httpmethod=="POST"):
-   geturls_text = urllib_pool.urlopen("GET", httpurl, body=postdata, headers=httpheaders, preload_content=False);
-  else:
-   geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+  try:
+   if(httpmethod=="GET"):
+    geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+   elif(httpmethod=="POST"):
+    geturls_text = urllib_pool.urlopen("GET", httpurl, body=postdata, headers=httpheaders, preload_content=False);
+   else:
+    geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+  except urllib3.exceptions.ConnectTimeoutError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except urllib3.exceptions.MaxRetryError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
   log.info("Downloading URL "+httpurl);
   if(geturls_text.info().get("Content-Encoding")=="gzip" or geturls_text.info().get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
@@ -1759,12 +1859,22 @@ if(haveurllib3):
   urllib_pool = urllib3.PoolManager(headers=httpheaders);
   if(postdata is not None and not isinstance(postdata, dict)):
    postdata = urlencode(postdata);
-  if(httpmethod=="GET"):
-   geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
-  elif(httpmethod=="POST"):
-   geturls_text = urllib_pool.urlopen("GET", httpurl, body=postdata, headers=httpheaders, preload_content=False);
-  else:
-   geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+  try:
+   if(httpmethod=="GET"):
+    geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+   elif(httpmethod=="POST"):
+    geturls_text = urllib_pool.urlopen("GET", httpurl, body=postdata, headers=httpheaders, preload_content=False);
+   else:
+    geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+  except urllib3.exceptions.ConnectTimeoutError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except urllib3.exceptions.MaxRetryError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
   downloadsize = int(geturls_text.headers.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -1814,6 +1924,8 @@ if(haveurllib3):
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
    pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1827,6 +1939,8 @@ if(haveurllib3):
    returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
    pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1918,6 +2032,12 @@ if(havemechanize):
   except mechanize.HTTPError as geturls_text_error:
    geturls_text = geturls_text_error;
    log.info("Error With URL "+httpurl);
+  except URLError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
   log.info("Downloading URL "+httpurl);
   if(geturls_text.info().get("Content-Encoding")=="gzip" or geturls_text.info().get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
@@ -1976,6 +2096,12 @@ if(havemechanize):
   except mechanize.HTTPError as geturls_text_error:
    geturls_text = geturls_text_error;
    log.info("Error With URL "+httpurl);
+  except URLError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
   downloadsize = int(geturls_text.info().get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -2025,6 +2151,8 @@ if(havemechanize):
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
    pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -2038,6 +2166,8 @@ if(havemechanize):
    returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
    pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
