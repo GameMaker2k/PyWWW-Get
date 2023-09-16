@@ -2821,7 +2821,14 @@ def download_file_from_ftp_file(url):
  ftp_port = urlparts.port;
  if(urlparts.port is None):
   ftp_port = 21;
- ftp.connect(urlparts.hostname, ftp_port);
+ try:
+  ftp.connect(urlparts.hostname, ftp_port);
+ except socket.gaierror:
+  log.info("Error With URL "+httpurl);
+  return False;
+ except socket.timeout:
+  log.info("Error With URL "+httpurl);
+  return False;
  ftp.login(urlparts.username, urlparts.password);
  if(urlparts.scheme=="ftps"):
   ftp.prot_p();
@@ -3020,7 +3027,14 @@ def upload_file_to_ftp_file(ftpfile, url):
  ftp_port = urlparts.port;
  if(urlparts.port is None):
   ftp_port = 21;
- ftp.connect(urlparts.hostname, ftp_port);
+ try:
+  ftp.connect(urlparts.hostname, ftp_port);
+ except socket.gaierror:
+  log.info("Error With URL "+httpurl);
+  return False;
+ except socket.timeout:
+  log.info("Error With URL "+httpurl);
+  return False;
  ftp.login(urlparts.username, urlparts.password);
  if(urlparts.scheme=="ftps"):
   ftp.prot_p();
@@ -3065,6 +3079,12 @@ if(haveparamiko):
   try:
    ssh.connect(urlparts.hostname, port=sftp_port, username=urlparts.username, password=urlparts.password);
   except paramiko.ssh_exception.SSHException:
+   return False;
+  except socket.gaierror:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
    return False;
   sftp = ssh.open_sftp();
   sftpfile = BytesIO();
@@ -3289,6 +3309,12 @@ if(haveparamiko):
   try:
    ssh.connect(urlparts.hostname, port=sftp_port, username=urlparts.username, password=urlparts.password);
   except paramiko.ssh_exception.SSHException:
+   return False;
+  except socket.gaierror:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
    return False;
   sftp = ssh.open_sftp();
   sftp.putfo(sftpfile, urlparts.path);
