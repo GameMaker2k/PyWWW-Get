@@ -2816,7 +2816,10 @@ def download_file_from_ftp_file(url):
   ftp = FTP_TLS();
  else:
   return False;
- ftp.connect(urlparts.hostname, urlparts.port);
+ get_port = urlparts.port;
+ if(urlparts.port is None):
+  get_port = 21;
+ ftp.connect(urlparts.hostname, get_port);
  ftp.login(urlparts.username, urlparts.password);
  if(urlparts.scheme=="ftps"):
   ftp.prot_p();
@@ -3010,6 +3013,9 @@ def upload_file_to_ftp_file(ftpfile, url):
   ftp = FTP_TLS();
  else:
   return False;
+ get_port = urlparts.port;
+ if(urlparts.port is None):
+  get_port = 21;
  ftp.connect(urlparts.hostname, urlparts.port);
  ftp.login(urlparts.username, urlparts.password);
  if(urlparts.scheme=="ftps"):
