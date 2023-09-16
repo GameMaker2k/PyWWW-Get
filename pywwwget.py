@@ -2896,6 +2896,8 @@ def download_from_url_with_ftp(httpurl, httpheaders=geturls_headers, httpcookie=
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  time.sleep(sleep);
  geturls_text = download_file_from_ftp_file(httpurl);
+ if(not geturls_text):
+  return False;
  log.info("Downloading URL "+httpurl);
  returnval_content = geturls_text.read()[:];
  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': None, 'Version': None, 'Method': None, 'HeadersSent': None, 'URL': httpurl, 'Code': None};
@@ -2924,6 +2926,8 @@ def download_from_url_file_with_ftp(httpurl, httpheaders=geturls_headers, httpco
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  time.sleep(sleep);
  geturls_text = download_file_from_ftp_file(httpurl);
+ if(not geturls_text):
+  return False;
  geturls_text.seek(0, 2);
  downloadsize = geturls_text.tell();
  geturls_text.seek(0, 0);
@@ -3159,6 +3163,8 @@ if(haveparamiko):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
   time.sleep(sleep);
   geturls_text = download_file_from_sftp_file(httpurl);
+  if(not geturls_text):
+   return False;
   log.info("Downloading URL "+httpurl);
   returnval_content = geturls_text.read()[:];
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': None, 'Version': None, 'Method': None, 'HeadersSent': None, 'URL': httpurl, 'Code': None};
@@ -3192,6 +3198,8 @@ if(haveparamiko):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
   time.sleep(sleep);
   geturls_text = download_file_from_sftp_file(httpurl);
+  if(not geturls_text):
+   return False;
   geturls_text.seek(0, 2);
   downloadsize = geturls_text.tell();
   geturls_text.seek(0, 0);
