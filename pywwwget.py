@@ -44,13 +44,13 @@ try:
  haveurllib3 = True;
 except ImportError:
  haveurllib3 = False;
-havehttpx = False;
 havehttplib2 = False;
 try:
  from httplib2 import HTTPConnectionWithTimeout, HTTPSConnectionWithTimeout;
  havehttplib2 = True;
 except ImportError:
  havehttplib2 = False;
+havehttpx = False;
 try:
  import httpx;
  havehttpx = True;
