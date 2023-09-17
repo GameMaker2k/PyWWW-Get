@@ -673,14 +673,13 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpcook
  httpheaderout = geturls_text.info();
  httpheadersentout = httpheaders;
  try:
-  httpheaderout = geturls_text.info().headers;
+  prehttpheaderout = geturls_text.info();
   httpheaderkeys = geturls_text.info().keys();
-  print(len(httpheaderkeys));
   imax = len(httpheaderkeys);
-  ic = 0;  
+  ic = 0;
+  httpheaderout = {};
   while(ic < imax):
-   print(geturls_text.getheaders(httpheaderkeys[ic]));
-   print(str(ic));
+   httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
    ic += 1;
  except AttributeError:
   httpheaderout = geturls_text.info();
@@ -1384,7 +1383,7 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcoo
  if(isinstance(httpheaders, dict)):
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  geturls_opener.addheaders = httpheaders;
- urllib.request.install_opener(geturls_opener);
+ install_opener(geturls_opener);
  time.sleep(sleep);
  httpheaders = make_http_headers_from_list_to_dict(httpheaders);
  if(postdata is not None and not isinstance(postdata, dict)):
@@ -1414,6 +1413,17 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcoo
  httpurlout = geturls_text.geturl();
  httpheaderout = geturls_text.headers;
  httpheadersentout = httpheaders;
+ try:
+  prehttpheaderout = geturls_text.info();
+  httpheaderkeys = geturls_text.info().keys();
+  imax = len(httpheaderkeys);
+  ic = 0;
+  httpheaderout = {};
+  while(ic < imax):
+   httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+   ic += 1;
+ except AttributeError:
+  httpheaderout = geturls_text.info();
  if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
  if(isinstance(httpheadersentout, list)):
@@ -1459,7 +1469,7 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
  if(isinstance(httpheaders, dict)):
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  geturls_opener.addheaders = httpheaders;
- urllib.request.install_opener(geturls_opener);
+ install_opener(geturls_opener);
  time.sleep(sleep);
  httpheaders = make_http_headers_from_list_to_dict(httpheaders);
  if(postdata is not None and not isinstance(postdata, dict)):
@@ -1489,6 +1499,17 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
  httpurlout = geturls_text.geturl();
  httpheaderout = geturls_text.headers;
  httpheadersentout = httpheaders;
+ try:
+  prehttpheaderout = geturls_text.info();
+  httpheaderkeys = geturls_text.info().keys();
+  imax = len(httpheaderkeys);
+  ic = 0;
+  httpheaderout = {};
+  while(ic < imax):
+   httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+   ic += 1;
+ except AttributeError:
+  httpheaderout = geturls_text.info();
  if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
  if(isinstance(httpheadersentout, list)):
