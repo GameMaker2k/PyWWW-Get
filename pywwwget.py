@@ -12,7 +12,7 @@
     Copyright 2016-2023 Game Maker 2k - https://github.com/GameMaker2k
     Copyright 2016-2023 Kazuki Przyborowski - https://github.com/KazukiPrzyborowski
 
-    $FileInfo: pywwwget.py - Last Update: 9/16/2023 Ver. 1.0.0 RC 1 - Author: cooldude2k $
+    $FileInfo: pywwwget.py - Last Update: 9/17/2023 Ver. 1.2.0 RC 1 - Author: cooldude2k $
 '''
 
 from __future__ import division, absolute_import, print_function;
@@ -68,6 +68,12 @@ try:
  havebrotli = True;
 except ImportError:
  havebrotli = False;
+havezstd = False;
+try:
+ import zstandard;
+ havezstd = True;
+except ImportError:
+ havezstd = False;
 if(sys.version[0]=="2"):
  try:
   from cStringIO import StringIO;
@@ -95,11 +101,11 @@ __program_alt_name__ = "PyWWWGet";
 __program_small_name__ = "wwwget";
 __project__ = __program_name__;
 __project_url__ = "https://github.com/GameMaker2k/PyWWW-Get";
-__version_info__ = (1, 0, 0, "RC 1", 1);
-__version_date_info__ = (2023, 9, 16, "RC 1", 1);
+__version_info__ = (1, 2, 0, "RC 1", 1);
+__version_date_info__ = (2023, 9, 17, "RC 1", 1);
 __version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2);
 __revision__ = __version_info__[3];
-__revision_id__ = "$Id$";
+__revision_id__ = "$Id: d67a398d89a3b0df0bc80c2f6d3caa47f202405e $";
 if(__version_info__[4] is not None):
  __version_date_plusrc__ = __version_date__+"-"+str(__version_date_info__[4]);
 if(__version_info__[4] is None):
@@ -660,19 +666,29 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpcook
  except socket.timeout:
   log.info("Error With URL "+httpurl);
   return False;
+ httpcodeout = geturls_text.getcode();
+ httpversionout = "1.1";
+ httpmethodout = httpmethod;
+ httpurlout = geturls_text.geturl();
+ httpheaderout = geturls_text.info();
+ httpheadersentout = httpheaders;
+ if(isinstance(httpheaderout, list)):
+   httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+ if(isinstance(httpheadersentout, list)):
+   httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
  log.info("Downloading URL "+httpurl);
- if(geturls_text.info().get("Content-Encoding")=="gzip" or geturls_text.info().get("Content-Encoding")=="deflate"):
+ if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
   if(sys.version[0]=="2"):
    strbuf = StringIO(geturls_text.read());
   if(sys.version[0]>="3"):
    strbuf = BytesIO(geturls_text.read());
   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
   returnval_content = gzstrbuf.read()[:];
- if(geturls_text.info().get("Content-Encoding")!="gzip" and geturls_text.info().get("Content-Encoding")!="deflate"):
+ if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
   returnval_content = geturls_text.read()[:];
- if(geturls_text.info().get("Content-Encoding")=="br" and havebrotli):
+ if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
   returnval_content = brotli.decompress(returnval_content);
- returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.info()), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': geturls_text.geturl(), 'Code': geturls_text.getcode()};
+ returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
  geturls_text.close();
  return returnval;
 
@@ -721,7 +737,17 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  except socket.timeout:
   log.info("Error With URL "+httpurl);
   return False;
- downloadsize = geturls_text.info().get('Content-Length');
+ httpcodeout = geturls_text.getcode();
+ httpversionout = "1.1";
+ httpmethodout = httpmethod;
+ httpurlout = geturls_text.geturl();
+ httpheaderout = geturls_text.info();
+ httpheadersentout = httpheaders;
+ if(isinstance(httpheaderout, list)):
+   httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+ if(isinstance(httpheadersentout, list)):
+   httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+ downloadsize = httpheaderout.get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
  if downloadsize is None: downloadsize = 0;
@@ -730,7 +756,7 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  log.info("Downloading URL "+httpurl);
  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
   tmpfilename = f.name;
-  returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.info()), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': geturls_text.geturl(), 'Code': geturls_text.getcode()};
+  returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   while True:
    databytes = geturls_text.read(buffersize);
    if not databytes: break;
@@ -874,19 +900,29 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpcoo
   log.info("Error With URL "+httpurl);
   return False;
  geturls_text = httpconn.getresponse();
+ httpcodeout = geturls_text.status;
+ httpversionout = "1.1";
+ httpmethodout = httpmethod;
+ httpurlout = httpurl;
+ httpheaderout = httpheaderout;
+ httpheadersentout = httpheaders;
+ if(isinstance(httpheaderout, list)):
+   httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+ if(isinstance(httpheadersentout, list)):
+   httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
  log.info("Downloading URL "+httpurl);
- if(dict(geturls_text.getheaders()).get("Content-Encoding")=="gzip" or dict(geturls_text.getheaders()).get("Content-Encoding")=="deflate"):
+ if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
   if(sys.version[0]=="2"):
    strbuf = StringIO(geturls_text.read());
   if(sys.version[0]>="3"):
    strbuf = BytesIO(geturls_text.read());
   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
   returnval_content = gzstrbuf.read()[:];
- if(dict(geturls_text.getheaders()).get("Content-Encoding")!="gzip" and dict(geturls_text.getheaders()).get("Content-Encoding")!="deflate"):
+ if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
   returnval_content = geturls_text.read()[:];
- if(dict(geturls_text.getheaders()).get("Content-Encoding")=="br" and havebrotli):
+ if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
   returnval_content = brotli.decompress(returnval_content);
- returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.getheaders()), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': httpheaders, 'URL': httpurl, 'Code': geturls_text.status};
+ returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
  geturls_text.close();
  return returnval;
 
@@ -936,7 +972,17 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
   log.info("Error With URL "+httpurl);
   return False;
  geturls_text = httpconn.getresponse();
- downloadsize = dict(geturls_text.getheaders()).get('Content-Length');
+ httpcodeout = geturls_text.status;
+ httpversionout = "1.1";
+ httpmethodout = httpmethod;
+ httpurlout = httpurl;
+ httpheaderout = geturls_text.getheaders();
+ httpheadersentout = httpheaders;
+ if(isinstance(httpheaderout, list)):
+   httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+ if(isinstance(httpheadersentout, list)):
+   httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+ downloadsize = httpheaderout.get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
  if downloadsize is None: downloadsize = 0;
@@ -945,7 +991,7 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  log.info("Downloading URL "+httpurl);
  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
   tmpfilename = f.name;
-  returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(dict(geturls_text.getheaders())), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': httpheaders, 'URL': httpurl, 'Code': geturls_text.status};
+  returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   while True:
    databytes = geturls_text.read(buffersize);
    if not databytes: break;
@@ -1090,19 +1136,29 @@ if(havehttplib2):
    log.info("Error With URL "+httpurl);
    return False;
   geturls_text = httpconn.getresponse();
+  httpcodeout = geturls_text.status;
+  httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = httpurl;
+  httpheaderout = geturls_text.getheaders();
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
   log.info("Downloading URL "+httpurl);
-  if(dict(geturls_text.getheaders()).get("Content-Encoding")=="gzip" or dict(geturls_text.getheaders()).get("Content-Encoding")=="deflate"):
+  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
     strbuf = StringIO(geturls_text.read());
    if(sys.version[0]>="3"):
     strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
-  if(dict(geturls_text.getheaders()).get("Content-Encoding")!="gzip" and dict(geturls_text.getheaders()).get("Content-Encoding")!="deflate"):
+  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    returnval_content = geturls_text.read()[:];
-  if(dict(geturls_text.getheaders()).get("Content-Encoding")=="br" and havebrotli):
+  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    returnval_content = brotli.decompress(returnval_content);
-  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.getheaders()), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': httpheaders, 'URL': httpurl, 'Code': geturls_text.status};
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
   return returnval;
 
@@ -1158,7 +1214,17 @@ if(havehttplib2):
    log.info("Error With URL "+httpurl);
    return False;
   geturls_text = httpconn.getresponse();
-  downloadsize = dict(geturls_text.getheaders()).get('Content-Length');
+  httpcodeout = geturls_text.status;
+  httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = httpurl;
+  httpheaderout = geturls_text.getheaders();
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+  downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -1167,7 +1233,7 @@ if(havehttplib2):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(dict(geturls_text.getheaders())), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': httpheaders, 'URL': httpurl, 'Code': geturls_text.status};
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    while True:
     databytes = geturls_text.read(buffersize);
     if not databytes: break;
@@ -1325,19 +1391,29 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcoo
  except socket.timeout:
   log.info("Error With URL "+httpurl);
   return False;
+ httpcodeout = geturls_text.getcode();
+ httpversionout = "1.1";
+ httpmethodout = httpmethod;
+ httpurlout = geturls_text.geturl();
+ httpheaderout = geturls_text.headers;
+ httpheadersentout = httpheaders;
+ if(isinstance(httpheaderout, list)):
+   httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+ if(isinstance(httpheadersentout, list)):
+   httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
  log.info("Downloading URL "+httpurl);
- if(geturls_text.headers.get("Content-Encoding")=="gzip" or geturls_text.headers.get("Content-Encoding")=="deflate"):
+ if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
   if(sys.version[0]=="2"):
    strbuf = StringIO(geturls_text.read());
   if(sys.version[0]>="3"):
    strbuf = BytesIO(geturls_text.read());
   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
   returnval_content = gzstrbuf.read()[:];
- if(geturls_text.headers.get("Content-Encoding")!="gzip" and geturls_text.headers.get("Content-Encoding")!="deflate"):
+ if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
   returnval_content = geturls_text.read()[:];
- if(geturls_text.headers.get("Content-Encoding")=="br" and havebrotli):
+ if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
   returnval_content = brotli.decompress(returnval_content);
- returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': geturls_text.geturl(), 'Code': geturls_text.getcode()};
+ returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
  geturls_text.close();
  return returnval;
 
@@ -1390,7 +1466,17 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
  except socket.timeout:
   log.info("Error With URL "+httpurl);
   return False;
- downloadsize = geturls_text.headers.get('Content-Length');
+ httpcodeout = geturls_text.getcode();
+ httpversionout = "1.1";
+ httpmethodout = httpmethod;
+ httpurlout = geturls_text.geturl();
+ httpheaderout = geturls_text.headers;
+ httpheadersentout = httpheaders;
+ if(isinstance(httpheaderout, list)):
+   httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+ if(isinstance(httpheadersentout, list)):
+   httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+ downloadsize = httpheaderout.get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
  if downloadsize is None: downloadsize = 0;
@@ -1399,7 +1485,7 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
  log.info("Downloading URL "+httpurl);
  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
   tmpfilename = f.name;
-  returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': geturls_text.geturl(), 'Code': geturls_text.getcode()};
+  returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   while True:
    databytes = geturls_text.read(buffersize);
    if not databytes: break;
@@ -1538,19 +1624,29 @@ if(haverequests):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
+  httpcodeout = geturls_text.status_code;
+  httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = geturls_text.url;
+  httpheaderout = geturls_text.headers;
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
   log.info("Downloading URL "+httpurl);
-  if(geturls_text.headers.get('Content-Type')=="gzip" or geturls_text.headers.get('Content-Type')=="deflate"):
+  if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
     strbuf = StringIO(geturls_text.content);
    if(sys.version[0]>="3"):
     strbuf = BytesIO(geturls_text.content);
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.content[:];
-  if(geturls_text.headers.get('Content-Type')!="gzip" and geturls_text.headers.get('Content-Type')!="deflate"):
+  if(httpheaderout.get('Content-Type')!="gzip" and httpheaderout.get('Content-Type')!="deflate" and httpheaderout.get('Content-Type')!="br"):
    returnval_content = geturls_text.content[:];
-  if(geturls_text.headers.get("Content-Encoding")=="br" and havebrotli):
+  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    returnval_content = brotli.decompress(returnval_content);
-  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': geturls_text.url, 'Code': geturls_text.status_code};
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
   return returnval;
 
@@ -1600,7 +1696,17 @@ if(haverequests):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
-  downloadsize = int(geturls_text.headers.get('Content-Length'));
+  httpcodeout = geturls_text.status_code;
+  httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = geturls_text.url;
+  httpheaderout = geturls_text.headers;
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+  downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -1609,7 +1715,7 @@ if(haverequests):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': geturls_text.url, 'Code': geturls_text.status_code};
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
@@ -1760,19 +1866,29 @@ if(havehttpx):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
+  httpcodeout = geturls_text.status_code;
+  httpversionout = geturls_text.http_version;
+  httpmethodout = httpmethod;
+  httpurlout = str(geturls_text.url);
+  httpheaderout = httpheaderout;
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
   log.info("Downloading URL "+httpurl);
-  if(geturls_text.headers.get('Content-Type')=="gzip" or geturls_text.headers.get('Content-Type')=="deflate"):
+  if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
     strbuf = StringIO(geturls_text.content);
    if(sys.version[0]>="3"):
     strbuf = BytesIO(geturls_text.content);
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.content[:];
-  if(geturls_text.headers.get('Content-Type')!="gzip" and geturls_text.headers.get('Content-Type')!="deflate"):
+  if(httpheaderout.get('Content-Type')!="gzip" and httpheaderout.get('Content-Type')!="deflate" and httpheaderout.get('Content-Type')!="br"):
    returnval_content = geturls_text.content[:];
-  if(geturls_text.headers.get("Content-Encoding")=="br" and havebrotli):
+  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    returnval_content = brotli.decompress(returnval_content);
-  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'Version': geturls_text.http_version, 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(geturls_text.url), 'Code': geturls_text.status_code};
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
   return returnval;
 
@@ -1825,7 +1941,17 @@ if(havehttpx):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
-  downloadsize = int(geturls_text.headers.get('Content-Length'));
+  httpcodeout = geturls_text.status_code;
+  httpversionout = geturls_text.http_version;
+  httpmethodout = httpmethod;
+  httpurlout = str(geturls_text.url);
+  httpheaderout = httpheaderout;
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+  downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -1834,7 +1960,7 @@ if(havehttpx):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'Version': geturls_text.http_version, 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(geturls_text.url), 'Code': geturls_text.status_code};
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
@@ -1985,19 +2111,29 @@ if(havehttpx):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
+  httpcodeout = geturls_text.status_code;
+  httpversionout = geturls_text.http_version;
+  httpmethodout = httpmethod;
+  httpurlout = str(geturls_text.url);
+  httpheaderout = geturls_text.headers;
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
   log.info("Downloading URL "+httpurl);
-  if(geturls_text.headers.get('Content-Type')=="gzip" or geturls_text.headers.get('Content-Type')=="deflate"):
+  if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
     strbuf = StringIO(geturls_text.content);
    if(sys.version[0]>="3"):
     strbuf = BytesIO(geturls_text.content);
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.content[:];
-  if(geturls_text.headers.get('Content-Type')!="gzip" and geturls_text.headers.get('Content-Type')!="deflate"):
+  if(httpheaderout.get('Content-Type')!="gzip" and httpheaderout.get('Content-Type')!="deflate" and httpheaderout.get('Content-Type')!="br"):
    returnval_content = geturls_text.content[:];
-  if(geturls_text.headers.get("Content-Encoding")=="br" and havebrotli):
+  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    returnval_content = brotli.decompress(returnval_content);
-  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'Version': geturls_text.http_version, 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(geturls_text.url), 'Code': geturls_text.status_code};
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
   return returnval;
 
@@ -2050,7 +2186,17 @@ if(havehttpx):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
-  downloadsize = int(geturls_text.headers.get('Content-Length'));
+  httpcodeout = geturls_text.status_code;
+  httpversionout = geturls_text.http_version;
+  httpmethodout = httpmethod;
+  httpurlout = str(geturls_text.url);
+  httpheaderout = geturls_text.headers;
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+  downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -2059,7 +2205,7 @@ if(havehttpx):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'Version': geturls_text.http_version, 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(geturls_text.url), 'Code': geturls_text.status_code};
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
@@ -2210,19 +2356,29 @@ if(havehttpcore):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
+  httpcodeout = geturls_text.status;
+  httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = str(httpurl);
+  httpheaderout = geturls_text.headers;
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
   log.info("Downloading URL "+httpurl);
-  if(dict(geturls_text.headers).get('Content-Type')=="gzip" or dict(geturls_text.headers).get('Content-Type')=="deflate"):
+  if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
     strbuf = StringIO(geturls_text.content);
    if(sys.version[0]>="3"):
     strbuf = BytesIO(geturls_text.content);
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.content[:];
-  if(dict(geturls_text.headers).get('Content-Type')!="gzip" and dict(geturls_text.headers).get('Content-Type')!="deflate"):
+  if(httpheaderout.get('Content-Type')!="gzip" and httpheaderout.get('Content-Type')!="deflate" and httpheaderout.get('Content-Type')!="br"):
    returnval_content = geturls_text.content[:];
-  if(dict(geturls_text.headers).get("Content-Encoding")=="br" and havebrotli):
+  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    returnval_content = brotli.decompress(returnval_content);
-  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(httpurl), 'Code': geturls_text.status};
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
   return returnval;
 
@@ -2275,7 +2431,17 @@ if(havehttpcore):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
-  downloadsize = int(dict(geturls_text.headers).get('Content-Length'));
+  httpcodeout = geturls_text.status;
+  httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = str(httpurl);
+  httpheaderout = geturls_text.headers;
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+  downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -2284,7 +2450,7 @@ if(havehttpcore):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(httpurl), 'Code': geturls_text.status};
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
@@ -2435,19 +2601,29 @@ if(havehttpcore):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
+  httpcodeout = geturls_text.status;
+  httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = str(httpurl);
+  httpheaderout = geturls_text.headers;
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
   log.info("Downloading URL "+httpurl);
-  if(dict(geturls_text.headers).get('Content-Type')=="gzip" or dict(geturls_text.headers).get('Content-Type')=="deflate"):
+  if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
     strbuf = StringIO(geturls_text.content);
    if(sys.version[0]>="3"):
     strbuf = BytesIO(geturls_text.content);
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.content[:];
-  if(dict(geturls_text.headers).get('Content-Type')!="gzip" and dict(geturls_text.headers).get('Content-Type')!="deflate"):
+  if(httpheaderout.get('Content-Type')!="gzip" and httpheaderout.get('Content-Type')!="deflate" and httpheaderout.get('Content-Type')!="br"):
    returnval_content = geturls_text.content[:];
-  if(dict(geturls_text.headers).get("Content-Encoding")=="br" and havebrotli):
+  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    returnval_content = brotli.decompress(returnval_content);
-  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(httpurl), 'Code': geturls_text.status};
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
   return returnval;
 
@@ -2500,7 +2676,17 @@ if(havehttpcore):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
-  downloadsize = int(dict(geturls_text.headers).get('Content-Length'));
+  httpcodeout = geturls_text.status;
+  httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = str(httpurl);
+  httpheaderout = geturls_text.headers;
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+  downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -2509,7 +2695,7 @@ if(havehttpcore):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(httpurl), 'Code': geturls_text.status};
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
@@ -2661,19 +2847,29 @@ if(haveurllib3):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
+  httpcodeout = geturls_text.status;
+  httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = geturls_text.geturl();
+  httpheaderout = geturls_text.info();
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
   log.info("Downloading URL "+httpurl);
-  if(geturls_text.info().get("Content-Encoding")=="gzip" or geturls_text.info().get("Content-Encoding")=="deflate"):
+  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
     strbuf = StringIO(geturls_text.read());
    if(sys.version[0]>="3"):
     strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
-  if(geturls_text.info().get("Content-Encoding")!="gzip" and geturls_text.info().get("Content-Encoding")!="deflate"):
+  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    returnval_content = geturls_text.read()[:];
-  if(geturls_text.info().get("Content-Encoding")=="br" and havebrotli):
+  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    returnval_content = brotli.decompress(returnval_content);
-  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.info()), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': httpheaders, 'URL': geturls_text.geturl(), 'Code': geturls_text.status};
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
   return returnval;
 
@@ -2727,6 +2923,16 @@ if(haveurllib3):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
+  httpcodeout = geturls_text.status;
+  httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = geturls_text.geturl();
+  httpheaderout = geturls_text.info();
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
   downloadsize = int(geturls_text.headers.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -2736,7 +2942,7 @@ if(haveurllib3):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.info()), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': httpheaders, 'URL': geturls_text.geturl(), 'Code': geturls_text.status};
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    while True:
     databytes = geturls_text.read(buffersize);
     if not databytes: break;
@@ -2890,19 +3096,29 @@ if(haveurllib3):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
+  httpcodeout = geturls_text.status;
+  httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = geturls_text.geturl();
+  httpheaderout = geturls_text.info();
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
   log.info("Downloading URL "+httpurl);
-  if(geturls_text.info().get("Content-Encoding")=="gzip" or geturls_text.info().get("Content-Encoding")=="deflate"):
+  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
     strbuf = StringIO(geturls_text.read());
    if(sys.version[0]>="3"):
     strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
-  if(geturls_text.info().get("Content-Encoding")!="gzip" and geturls_text.info().get("Content-Encoding")!="deflate"):
+  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    returnval_content = geturls_text.read()[:];
-  if(geturls_text.info().get("Content-Encoding")=="br" and havebrotli):
+  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    returnval_content = brotli.decompress(returnval_content);
-  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.info()), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': httpheaders, 'URL': geturls_text.geturl(), 'Code': geturls_text.status};
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
   return returnval;
 
@@ -2956,6 +3172,16 @@ if(haveurllib3):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
+  httpcodeout = geturls_text.status;
+  httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = geturls_text.geturl();
+  httpheaderout = geturls_text.info();
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
   downloadsize = int(geturls_text.headers.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -2965,7 +3191,7 @@ if(haveurllib3):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.info()), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': httpheaders, 'URL': geturls_text.geturl(), 'Code': geturls_text.status};
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    while True:
     databytes = geturls_text.read(buffersize);
     if not databytes: break;
@@ -3121,19 +3347,29 @@ if(havemechanize):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
+  httpcodeout = geturls_text.code;
+  httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = geturls_text.geturl();
+  httpheaderout = geturls_text.info();
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
   log.info("Downloading URL "+httpurl);
-  if(geturls_text.info().get("Content-Encoding")=="gzip" or geturls_text.info().get("Content-Encoding")=="deflate"):
+  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
     strbuf = StringIO(geturls_text.read());
    if(sys.version[0]>="3"):
     strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
-  if(geturls_text.info().get("Content-Encoding")!="gzip" and geturls_text.info().get("Content-Encoding")!="deflate"):
+  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    returnval_content = geturls_text.read()[:];
-  if(geturls_text.info().get("Content-Encoding")=="br" and havebrotli):
+  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    returnval_content = brotli.decompress(returnval_content);
-  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.info()), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': geturls_text.geturl(), 'Code': geturls_text.code};
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
   return returnval;
 
@@ -3189,7 +3425,17 @@ if(havemechanize):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
-  downloadsize = int(geturls_text.info().get('Content-Length'));
+  httpcodeout = geturls_text.code;
+  httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = geturls_text.geturl();
+  httpheaderout = geturls_text.info();
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+  downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -3198,7 +3444,7 @@ if(havemechanize):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.info()), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': geturls_text.geturl(), 'Code': geturls_text.code};
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    while True:
     databytes = geturls_text.read(buffersize);
     if not databytes: break;
