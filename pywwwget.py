@@ -904,7 +904,7 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpcoo
  httpversionout = "1.1";
  httpmethodout = httpmethod;
  httpurlout = httpurl;
- httpheaderout = httpheaderout;
+ httpheaderout = geturls_text.getheaders();
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
@@ -1870,7 +1870,7 @@ if(havehttpx):
   httpversionout = geturls_text.http_version;
   httpmethodout = httpmethod;
   httpurlout = str(geturls_text.url);
-  httpheaderout = httpheaderout;
+  httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
     httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
@@ -1945,7 +1945,7 @@ if(havehttpx):
   httpversionout = geturls_text.http_version;
   httpmethodout = httpmethod;
   httpurlout = str(geturls_text.url);
-  httpheaderout = httpheaderout;
+  httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
     httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
