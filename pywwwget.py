@@ -2211,18 +2211,18 @@ if(havehttpcore):
    log.info("Error With URL "+httpurl);
    return False;
   log.info("Downloading URL "+httpurl);
-  if(geturls_text.headers.get('Content-Type')=="gzip" or geturls_text.headers.get('Content-Type')=="deflate"):
+  if(dict(geturls_text.headers).get('Content-Type')=="gzip" or dict(geturls_text.headers).get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
     strbuf = StringIO(geturls_text.content);
    if(sys.version[0]>="3"):
     strbuf = BytesIO(geturls_text.content);
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.content[:];
-  if(geturls_text.headers.get('Content-Type')!="gzip" and geturls_text.headers.get('Content-Type')!="deflate"):
+  if(dict(geturls_text.headers).get('Content-Type')!="gzip" and dict(geturls_text.headers).get('Content-Type')!="deflate"):
    returnval_content = geturls_text.content[:];
-  if(geturls_text.headers.get("Content-Encoding")=="br" and havebrotli):
+  if(dict(geturls_text.headers).get("Content-Encoding")=="br" and havebrotli):
    returnval_content = brotli.decompress(returnval_content);
-  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'Version': geturls_text.http_version, 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(geturls_text.url), 'Code': geturls_text.status_code};
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(httpurl), 'Code': geturls_text.status};
   geturls_text.close();
   return returnval;
 
@@ -2275,7 +2275,7 @@ if(havehttpcore):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
-  downloadsize = int(geturls_text.headers.get('Content-Length'));
+  downloadsize = int(dict(geturls_text.headers).get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -2284,7 +2284,7 @@ if(havehttpcore):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'Version': geturls_text.http_version, 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(geturls_text.url), 'Code': geturls_text.status_code};
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(httpurl), 'Code': geturls_text.status};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
@@ -2436,18 +2436,18 @@ if(havehttpcore):
    log.info("Error With URL "+httpurl);
    return False;
   log.info("Downloading URL "+httpurl);
-  if(geturls_text.headers.get('Content-Type')=="gzip" or geturls_text.headers.get('Content-Type')=="deflate"):
+  if(dict(geturls_text.headers).get('Content-Type')=="gzip" or dict(geturls_text.headers).get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
     strbuf = StringIO(geturls_text.content);
    if(sys.version[0]>="3"):
     strbuf = BytesIO(geturls_text.content);
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.content[:];
-  if(geturls_text.headers.get('Content-Type')!="gzip" and geturls_text.headers.get('Content-Type')!="deflate"):
+  if(dict(geturls_text.headers).get('Content-Type')!="gzip" and dict(geturls_text.headers).get('Content-Type')!="deflate"):
    returnval_content = geturls_text.content[:];
-  if(geturls_text.headers.get("Content-Encoding")=="br" and havebrotli):
+  if(dict(geturls_text.headers).get("Content-Encoding")=="br" and havebrotli):
    returnval_content = brotli.decompress(returnval_content);
-  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'Version': geturls_text.http_version, 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(geturls_text.url), 'Code': geturls_text.status_code};
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(httpurl), 'Code': geturls_text.status};
   geturls_text.close();
   return returnval;
 
@@ -2500,7 +2500,7 @@ if(havehttpcore):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
-  downloadsize = int(geturls_text.headers.get('Content-Length'));
+  downloadsize = int(dict(geturls_text.headers).get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -2509,7 +2509,7 @@ if(havehttpcore):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'Version': geturls_text.http_version, 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(geturls_text.url), 'Code': geturls_text.status_code};
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'Version': "1.1", 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(httpurl), 'Code': geturls_text.status};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
