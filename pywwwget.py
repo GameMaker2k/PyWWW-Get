@@ -105,7 +105,7 @@ __version_info__ = (1, 2, 0, "RC 1", 1);
 __version_date_info__ = (2023, 9, 17, "RC 1", 1);
 __version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2);
 __revision__ = __version_info__[3];
-__revision_id__ = "$Id: d67a398d89a3b0df0bc80c2f6d3caa47f202405e $";
+__revision_id__ = "$Id$";
 if(__version_info__[4] is not None):
  __version_date_plusrc__ = __version_date__+"-"+str(__version_date_info__[4]);
 if(__version_info__[4] is None):
@@ -672,10 +672,22 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpcook
  httpurlout = geturls_text.geturl();
  httpheaderout = geturls_text.info();
  httpheadersentout = httpheaders;
+ try:
+  httpheaderout = geturls_text.info().headers;
+  httpheaderkeys = geturls_text.info().keys();
+  print(len(httpheaderkeys));
+  imax = len(httpheaderkeys);
+  ic = 0;  
+  while(ic < imax):
+   print(geturls_text.getheaders(httpheaderkeys[ic]));
+   print(str(ic));
+   ic += 1;
+ except AttributeError:
+  httpheaderout = geturls_text.info();
  if(isinstance(httpheaderout, list)):
-   httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
  if(isinstance(httpheadersentout, list)):
-   httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
  log.info("Downloading URL "+httpurl);
  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
   if(sys.version[0]=="2"):
@@ -743,10 +755,15 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  httpurlout = geturls_text.geturl();
  httpheaderout = geturls_text.info();
  httpheadersentout = httpheaders;
+ try:
+  httpheaderout = geturls_text.info().headers;
+  print(str(len(httpheaderout)));
+ except AttributeError:
+  httpheaderout = geturls_text.info();
  if(isinstance(httpheaderout, list)):
-   httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
  if(isinstance(httpheadersentout, list)):
-   httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
  downloadsize = httpheaderout.get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
@@ -907,9 +924,9 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpcoo
  httpheaderout = geturls_text.getheaders();
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
-   httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
  if(isinstance(httpheadersentout, list)):
-   httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
  log.info("Downloading URL "+httpurl);
  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
   if(sys.version[0]=="2"):
@@ -979,9 +996,9 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  httpheaderout = geturls_text.getheaders();
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
-   httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
  if(isinstance(httpheadersentout, list)):
-   httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
  downloadsize = httpheaderout.get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
@@ -1143,9 +1160,9 @@ if(havehttplib2):
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
@@ -1221,9 +1238,9 @@ if(havehttplib2):
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -1398,9 +1415,9 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcoo
  httpheaderout = geturls_text.headers;
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
-   httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
  if(isinstance(httpheadersentout, list)):
-   httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
  log.info("Downloading URL "+httpurl);
  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
   if(sys.version[0]=="2"):
@@ -1473,9 +1490,9 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
  httpheaderout = geturls_text.headers;
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
-   httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
  if(isinstance(httpheadersentout, list)):
-   httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
  downloadsize = httpheaderout.get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
@@ -1631,9 +1648,9 @@ if(haverequests):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
@@ -1703,9 +1720,9 @@ if(haverequests):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -1873,9 +1890,9 @@ if(havehttpx):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
@@ -1948,9 +1965,9 @@ if(havehttpx):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -2118,9 +2135,9 @@ if(havehttpx):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
@@ -2193,9 +2210,9 @@ if(havehttpx):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -2363,9 +2380,9 @@ if(havehttpcore):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
@@ -2438,9 +2455,9 @@ if(havehttpcore):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -2608,9 +2625,9 @@ if(havehttpcore):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
@@ -2683,9 +2700,9 @@ if(havehttpcore):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -2854,9 +2871,9 @@ if(haveurllib3):
   httpheaderout = geturls_text.info();
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
@@ -2930,9 +2947,9 @@ if(haveurllib3):
   httpheaderout = geturls_text.info();
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   downloadsize = int(geturls_text.headers.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -3103,9 +3120,9 @@ if(haveurllib3):
   httpheaderout = geturls_text.info();
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
@@ -3179,9 +3196,9 @@ if(haveurllib3):
   httpheaderout = geturls_text.info();
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   downloadsize = int(geturls_text.headers.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -3354,9 +3371,9 @@ if(havemechanize):
   httpheaderout = geturls_text.info();
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
@@ -3432,9 +3449,9 @@ if(havemechanize):
   httpheaderout = geturls_text.info();
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = make_http_headers_from_list_to_dict(httpheaderout);
+    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = make_http_headers_from_list_to_dict(httpheadersentout);
+    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
