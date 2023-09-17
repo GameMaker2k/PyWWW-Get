@@ -16,7 +16,7 @@
 '''
 
 from __future__ import division, absolute_import, print_function;
-import re, os, sys, hashlib, shutil, platform, tempfile, urllib, gzip, time, argparse, cgi, subprocess, socket;
+import re, os, sys, hashlib, shutil, platform, tempfile, urllib, gzip, time, argparse, cgi, subprocess, socket, email.utils, datetime, time;
 import logging as log;
 from ftplib import FTP, FTP_TLS;
 from base64 import b64encode;
@@ -772,6 +772,7 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  log.info("Downloading URL "+httpurl);
  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
   tmpfilename = f.name;
+  os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple())));
   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   while True:
    databytes = geturls_text.read(buffersize);
@@ -814,6 +815,7 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, 
   log.info("Moving file "+tmpfilename+" to "+filepath);
   exec_time_start = time.time();
   shutil.move(tmpfilename, filepath);
+  os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple())));
   exec_time_end = time.time();
   log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
   if(os.path.exists(tmpfilename)):
@@ -1007,6 +1009,7 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  log.info("Downloading URL "+httpurl);
  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
   tmpfilename = f.name;
+  os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple())));
   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   while True:
    databytes = geturls_text.read(buffersize);
@@ -1049,6 +1052,7 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers,
   log.info("Moving file "+tmpfilename+" to "+filepath);
   exec_time_start = time.time();
   shutil.move(tmpfilename, filepath);
+  os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple())));
   exec_time_end = time.time();
   log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
   if(os.path.exists(tmpfilename)):
@@ -1249,6 +1253,7 @@ if(havehttplib2):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
+   os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    while True:
     databytes = geturls_text.read(buffersize);
@@ -1297,6 +1302,7 @@ if(havehttplib2):
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
+   os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
@@ -1523,6 +1529,7 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
  log.info("Downloading URL "+httpurl);
  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
   tmpfilename = f.name;
+  os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple())));
   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   while True:
    databytes = geturls_text.read(buffersize);
@@ -1565,6 +1572,7 @@ def download_from_url_to_file_with_request(httpurl, httpheaders=geturls_headers,
   log.info("Moving file "+tmpfilename+" to "+filepath);
   exec_time_start = time.time();
   shutil.move(tmpfilename, filepath);
+  os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple())));
   exec_time_end = time.time();
   log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
   if(os.path.exists(tmpfilename)):
@@ -1753,6 +1761,7 @@ if(haverequests):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
+   os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
@@ -1799,6 +1808,7 @@ if(haverequests):
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
+   os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
@@ -1998,6 +2008,7 @@ if(havehttpx):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
+   os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
@@ -2044,6 +2055,7 @@ if(havehttpx):
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
+   os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
@@ -2243,6 +2255,7 @@ if(havehttpx):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
+   os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
@@ -2289,6 +2302,7 @@ if(havehttpx):
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
+   os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
@@ -2488,6 +2502,7 @@ if(havehttpcore):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
+   os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
@@ -2534,6 +2549,7 @@ if(havehttpcore):
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
+   os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
@@ -2733,6 +2749,7 @@ if(havehttpcore):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
+   os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
@@ -2779,6 +2796,7 @@ if(havehttpcore):
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
+   os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
@@ -2980,6 +2998,7 @@ if(haveurllib3):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
+   os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    while True:
     databytes = geturls_text.read(buffersize);
@@ -3028,6 +3047,7 @@ if(haveurllib3):
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
+   os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
@@ -3229,6 +3249,7 @@ if(haveurllib3):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
+   os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    while True:
     databytes = geturls_text.read(buffersize);
@@ -3277,6 +3298,7 @@ if(haveurllib3):
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
+   os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
@@ -3482,6 +3504,7 @@ if(havemechanize):
   log.info("Downloading URL "+httpurl);
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
+   os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout['Headers']['Last-Modified']).timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    while True:
     databytes = geturls_text.read(buffersize);
@@ -3530,6 +3553,7 @@ if(havemechanize):
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
+   os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename['Headers']['Last-Modified']).timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
