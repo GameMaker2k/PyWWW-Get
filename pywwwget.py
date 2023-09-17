@@ -56,6 +56,12 @@ try:
  havehttpx = True;
 except ImportError:
  havehttpx = False;
+havehttpcore = False;
+try:
+ import httpcore;
+ havehttpcore = True;
+except ImportError:
+ havehttpcore = False;
 havebrotli = False;
 try:
  import brotli;
@@ -410,7 +416,7 @@ def make_http_headers_from_list_to_dict(headers=[("Referer", "http://google.com/
  return returnval;
 
 def get_httplib_support(checkvalue=None):
- global haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, haveparamiko;
+ global haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko;
  returnval = [];
  returnval.append("ftp");
  returnval.append("httplib");
@@ -454,7 +460,7 @@ def get_httplib_support_list():
  return returnval;
 
 def download_from_url(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", sleep=-1):
- global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, haveparamiko;
+ global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
@@ -502,7 +508,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpcookie=geturls_c
  return returnval;
 
 def download_from_url_file(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", buffersize=524288, sleep=-1):
- global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, haveparamiko;
+ global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
@@ -550,7 +556,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpcookie=getu
  return returnval;
 
 def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
- global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, haveparamiko;
+ global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcorei, haveparamiko;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
@@ -2144,6 +2150,456 @@ if(havehttpx):
 
 if(not havehttpx):
  def download_from_url_to_file_with_httpx2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
+  return returnval;
+
+if(havehttpcore):
+ def download_from_url_with_httpcore(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  global geturls_download_sleep, havebrotli;
+  if(sleep<0):
+   sleep = geturls_download_sleep;
+  urlparts = urlparse.urlparse(httpurl);
+  if(isinstance(httpheaders, list)):
+   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  if(urlparts.username is not None or urlparts.password is not None):
+   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
+  time.sleep(sleep);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  try:
+   if(httpmethod=="GET"):
+    httpx_pool = httpcore.ConnectionPool(http1=True, http2=False);
+    geturls_text = httpx_pool.request("GET", httpurl, headers=httpheaders);
+   elif(httpmethod=="POST"):
+    httpx_pool = httpcore.ConnectionPool(http1=True, http2=False);
+    geturls_text = httpx_pool.request("GET", httpurl, data=postdata, headers=httpheaders);
+   else:
+    httpx_pool = httpcore.ConnectionPool(http1=True, http2=False);
+    geturls_text = httpx_pool.request("GET", httpurl, headers=httpheaders);
+  except httpcore.ConnectTimeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except httpcore.ConnectError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  log.info("Downloading URL "+httpurl);
+  if(geturls_text.headers.get('Content-Type')=="gzip" or geturls_text.headers.get('Content-Type')=="deflate"):
+   if(sys.version[0]=="2"):
+    strbuf = StringIO(geturls_text.content);
+   if(sys.version[0]>="3"):
+    strbuf = BytesIO(geturls_text.content);
+   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+   returnval_content = gzstrbuf.content[:];
+  if(geturls_text.headers.get('Content-Type')!="gzip" and geturls_text.headers.get('Content-Type')!="deflate"):
+   returnval_content = geturls_text.content[:];
+  if(geturls_text.headers.get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = brotli.decompress(returnval_content);
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'Version': geturls_text.http_version, 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(geturls_text.url), 'Code': geturls_text.status_code};
+  geturls_text.close();
+  return returnval;
+
+if(not havehttpcore):
+ def download_from_url_with_httpcore(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep)
+  return returnval;
+
+if(havehttpcore):
+ def download_from_url_file_with_httpcore(httpurl, httpheaders, httpcookie, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  exec_time_start = time.time();
+  myhash = hashlib.new("sha1");
+  if(sys.version[0]=="2"):
+   myhash.update(httpurl);
+   myhash.update(str(buffersize));
+   myhash.update(str(exec_time_start));
+  if(sys.version[0]>="3"):
+   myhash.update(httpurl.encode('utf-8'));
+   myhash.update(str(buffersize).encode('utf-8'));
+   myhash.update(str(exec_time_start).encode('utf-8'));
+  newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
+  if(sleep<0):
+   sleep = geturls_download_sleep;
+  urlparts = urlparse.urlparse(httpurl);
+  if(isinstance(httpheaders, list)):
+   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  if(urlparts.username is not None or urlparts.password is not None):
+   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
+  time.sleep(sleep);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  try:
+   if(httpmethod=="GET"):
+    httpx_pool = httpcore.ConnectionPool(http1=True, http2=False);
+    geturls_text = httpx_pool.request("GET", httpurl, headers=httpheaders);
+   elif(httpmethod=="POST"):
+    httpx_pool = httpcore.ConnectionPool(http1=True, http2=False);
+    geturls_text = httpx_pool.request("GET", httpurl, data=postdata, headers=httpheaders);
+   else:
+    httpx_pool = httpcore.ConnectionPool(http1=True, http2=False);
+    geturls_text = httpx_pool.request("GET", httpurl, headers=httpheaders);
+  except httpcore.ConnectTimeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except httpcore.ConnectError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  downloadsize = int(geturls_text.headers.get('Content-Length'));
+  if(downloadsize is not None):
+   downloadsize = int(downloadsize);
+  if downloadsize is None: downloadsize = 0;
+  fulldatasize = 0;
+  prevdownsize = 0;
+  log.info("Downloading URL "+httpurl);
+  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
+   tmpfilename = f.name;
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'Version': geturls_text.http_version, 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(geturls_text.url), 'Code': geturls_text.status_code};
+   for databytes in geturls_text.iter_content(chunk_size=buffersize):
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    f.write(databytes);
+   f.close();
+  geturls_text.close();
+  exec_time_end = time.time();
+  log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to download file.");
+  returnval.update({'Filesize': os.path.getsize(tmpfilename), 'DownloadTime': float(exec_time_start - exec_time_end), 'DownloadTimeReadable': hms_string(exec_time_start - exec_time_end)});
+  return returnval;
+
+if(not havehttpcore):
+ def download_from_url_file_with_httpcore(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep)
+  return returnval;
+
+if(havehttpcore):
+ def download_from_url_to_file_with_httpcore(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  global geturls_download_sleep;
+  if(sleep<0):
+   sleep = geturls_download_sleep;
+  if(not outfile=="-"):
+   outpath = outpath.rstrip(os.path.sep);
+   filepath = os.path.realpath(outpath+os.path.sep+outfile);
+   if(not os.path.exists(outpath)):
+    os.makedirs(outpath);
+   if(os.path.exists(outpath) and os.path.isfile(outpath)):
+    return False;
+   if(os.path.exists(filepath) and os.path.isdir(filepath)):
+    return False;
+   pretmpfilename = download_from_url_file_with_httpcore(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
+   tmpfilename = pretmpfilename['Filename'];
+   downloadsize = os.path.getsize(tmpfilename);
+   fulldatasize = 0;
+   log.info("Moving file "+tmpfilename+" to "+filepath);
+   exec_time_start = time.time();
+   shutil.move(tmpfilename, filepath);
+   exec_time_end = time.time();
+   log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
+   if(os.path.exists(tmpfilename)):
+    os.remove(tmpfilename);
+   returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+  if(outfile=="-" and sys.version[0]=="2"):
+   pretmpfilename = download_from_url_file_with_httpcore(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
+   tmpfilename = pretmpfilename['Filename'];
+   downloadsize = os.path.getsize(tmpfilename);
+   fulldatasize = 0;
+   prevdownsize = 0;
+   exec_time_start = time.time();
+   with open(tmpfilename, 'rb') as ft:
+    f = StringIO();
+    while True:
+     databytes = ft.read(buffersize[1]);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     f.write(databytes);
+    f.seek(0);
+    fdata = f.getvalue();
+    f.close();
+    ft.close();
+    os.remove(tmpfilename);
+    exec_time_end = time.time();
+    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
+   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': ['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+  if(outfile=="-" and sys.version[0]>="3"):
+   pretmpfilename = download_from_url_file_with_httpcore(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   tmpfilename = pretmpfilename['Filename'];
+   downloadsize = os.path.getsize(tmpfilename);
+   fulldatasize = 0;
+   prevdownsize = 0;
+   exec_time_start = time.time();
+   with open(tmpfilename, 'rb') as ft:
+    f = BytesIO();
+    while True:
+     databytes = ft.read(buffersize[1]);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     f.write(databytes);
+    f.seek(0);
+    fdata = f.getvalue();
+    f.close();
+    ft.close();
+    os.remove(tmpfilename);
+    exec_time_end = time.time();
+    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
+   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+  return returnval;
+
+if(not havehttpcore):
+ def download_from_url_to_file_with_httpcore(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
+  return returnval;
+
+if(havehttpcore):
+ def download_from_url_with_httpcore2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  global geturls_download_sleep, havebrotli;
+  if(sleep<0):
+   sleep = geturls_download_sleep;
+  urlparts = urlparse.urlparse(httpurl);
+  if(isinstance(httpheaders, list)):
+   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  if(urlparts.username is not None or urlparts.password is not None):
+   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
+  time.sleep(sleep);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  try:
+   if(httpmethod=="GET"):
+    httpx_pool = httpcore.ConnectionPool(http1=True, http2=True);
+    geturls_text = httpx_pool.request("GET", httpurl, headers=httpheaders);
+   elif(httpmethod=="POST"):
+    httpx_pool = httpcore.ConnectionPool(http1=True, http2=True);
+    geturls_text = httpx_pool.request("GET", httpurl, data=postdata, headers=httpheaders);
+   else:
+    httpx_pool = httpcore.ConnectionPool(http1=True, http2=True);
+    geturls_text = httpx_pool.request("GET", httpurl, headers=httpheaders);
+  except httpcore.ConnectTimeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except httpcore.ConnectError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  log.info("Downloading URL "+httpurl);
+  if(geturls_text.headers.get('Content-Type')=="gzip" or geturls_text.headers.get('Content-Type')=="deflate"):
+   if(sys.version[0]=="2"):
+    strbuf = StringIO(geturls_text.content);
+   if(sys.version[0]>="3"):
+    strbuf = BytesIO(geturls_text.content);
+   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+   returnval_content = gzstrbuf.content[:];
+  if(geturls_text.headers.get('Content-Type')!="gzip" and geturls_text.headers.get('Content-Type')!="deflate"):
+   returnval_content = geturls_text.content[:];
+  if(geturls_text.headers.get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = brotli.decompress(returnval_content);
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': dict(geturls_text.headers), 'Version': geturls_text.http_version, 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(geturls_text.url), 'Code': geturls_text.status_code};
+  geturls_text.close();
+  return returnval;
+
+if(not havehttpcore):
+ def download_from_url_with_httpcore2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep)
+  return returnval;
+
+if(havehttpcore):
+ def download_from_url_file_with_httpcore2(httpurl, httpheaders, httpcookie, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  exec_time_start = time.time();
+  myhash = hashlib.new("sha1");
+  if(sys.version[0]=="2"):
+   myhash.update(httpurl);
+   myhash.update(str(buffersize));
+   myhash.update(str(exec_time_start));
+  if(sys.version[0]>="3"):
+   myhash.update(httpurl.encode('utf-8'));
+   myhash.update(str(buffersize).encode('utf-8'));
+   myhash.update(str(exec_time_start).encode('utf-8'));
+  newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
+  if(sleep<0):
+   sleep = geturls_download_sleep;
+  urlparts = urlparse.urlparse(httpurl);
+  if(isinstance(httpheaders, list)):
+   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  if(urlparts.username is not None or urlparts.password is not None):
+   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
+  time.sleep(sleep);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  try:
+   if(httpmethod=="GET"):
+    httpx_pool = httpcore.ConnectionPool(http1=True, http2=True);
+    geturls_text = httpx_pool.request("GET", httpurl, headers=httpheaders);
+   elif(httpmethod=="POST"):
+    httpx_pool = httpcore.ConnectionPool(http1=True, http2=True);
+    geturls_text = httpx_pool.request("GET", httpurl, data=postdata, headers=httpheaders);
+   else:
+    httpx_pool = httpcore.ConnectionPool(http1=True, http2=True);
+    geturls_text = httpx_pool.request("GET", httpurl, headers=httpheaders);
+  except httpcore.ConnectTimeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except httpcore.ConnectError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  downloadsize = int(geturls_text.headers.get('Content-Length'));
+  if(downloadsize is not None):
+   downloadsize = int(downloadsize);
+  if downloadsize is None: downloadsize = 0;
+  fulldatasize = 0;
+  prevdownsize = 0;
+  log.info("Downloading URL "+httpurl);
+  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
+   tmpfilename = f.name;
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': dict(geturls_text.headers), 'Version': geturls_text.http_version, 'Method': httpmethod, 'HeadersSent': make_http_headers_from_list_to_dict(httpheaders), 'URL': str(geturls_text.url), 'Code': geturls_text.status_code};
+   for databytes in geturls_text.iter_content(chunk_size=buffersize):
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    f.write(databytes);
+   f.close();
+  geturls_text.close();
+  exec_time_end = time.time();
+  log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to download file.");
+  returnval.update({'Filesize': os.path.getsize(tmpfilename), 'DownloadTime': float(exec_time_start - exec_time_end), 'DownloadTimeReadable': hms_string(exec_time_start - exec_time_end)});
+  return returnval;
+
+if(not havehttpcore):
+ def download_from_url_file_with_httpcore2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep)
+  return returnval;
+
+if(havehttpcore):
+ def download_from_url_to_file_with_httpcore2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  global geturls_download_sleep;
+  if(sleep<0):
+   sleep = geturls_download_sleep;
+  if(not outfile=="-"):
+   outpath = outpath.rstrip(os.path.sep);
+   filepath = os.path.realpath(outpath+os.path.sep+outfile);
+   if(not os.path.exists(outpath)):
+    os.makedirs(outpath);
+   if(os.path.exists(outpath) and os.path.isfile(outpath)):
+    return False;
+   if(os.path.exists(filepath) and os.path.isdir(filepath)):
+    return False;
+   pretmpfilename = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
+   tmpfilename = pretmpfilename['Filename'];
+   downloadsize = os.path.getsize(tmpfilename);
+   fulldatasize = 0;
+   log.info("Moving file "+tmpfilename+" to "+filepath);
+   exec_time_start = time.time();
+   shutil.move(tmpfilename, filepath);
+   exec_time_end = time.time();
+   log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
+   if(os.path.exists(tmpfilename)):
+    os.remove(tmpfilename);
+   returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+  if(outfile=="-" and sys.version[0]=="2"):
+   pretmpfilename = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
+   tmpfilename = pretmpfilename['Filename'];
+   downloadsize = os.path.getsize(tmpfilename);
+   fulldatasize = 0;
+   prevdownsize = 0;
+   exec_time_start = time.time();
+   with open(tmpfilename, 'rb') as ft:
+    f = StringIO();
+    while True:
+     databytes = ft.read(buffersize[1]);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     f.write(databytes);
+    f.seek(0);
+    fdata = f.getvalue();
+    f.close();
+    ft.close();
+    os.remove(tmpfilename);
+    exec_time_end = time.time();
+    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
+   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': ['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+  if(outfile=="-" and sys.version[0]>="3"):
+   pretmpfilename = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   tmpfilename = pretmpfilename['Filename'];
+   downloadsize = os.path.getsize(tmpfilename);
+   fulldatasize = 0;
+   prevdownsize = 0;
+   exec_time_start = time.time();
+   with open(tmpfilename, 'rb') as ft:
+    f = BytesIO();
+    while True:
+     databytes = ft.read(buffersize[1]);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     f.write(databytes);
+    f.seek(0);
+    fdata = f.getvalue();
+    f.close();
+    ft.close();
+    os.remove(tmpfilename);
+    exec_time_end = time.time();
+    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
+   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+  return returnval;
+
+if(not havehttpx):
+ def download_from_url_to_file_with_httpcore2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
