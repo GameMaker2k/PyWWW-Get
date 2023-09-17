@@ -473,6 +473,10 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpcookie=geturls_c
   httplibuse = "urllib";
  if(not havehttpx and httplibuse=="httpx2"):
   httplibuse = "urllib";
+ if(not havehttpcore and httplibuse=="httpcore"):
+  httplibuse = "urllib";
+ if(not havehttpcore and httplibuse=="httpcore2"):
+  httplibuse = "urllib";
  if(not havemechanize and httplibuse=="mechanize"):
   httplibuse = "urllib";
  if(not havehttplib2 and httplibuse=="httplib2"):
@@ -497,6 +501,10 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpcookie=geturls_c
   returnval = download_from_url_with_httpx(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="httpx2"):
   returnval = download_from_url_with_httpx2(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+ elif(httplibuse=="httpcore"):
+  returnval = download_from_url_with_httpcore(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+ elif(httplibuse=="httpcore2"):
+  returnval = download_from_url_with_httpcore2(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="mechanize"):
   returnval = download_from_url_with_mechanize(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="ftp"):
@@ -520,6 +528,10 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpcookie=getu
  if(not havehttpx and httplibuse=="httpx"):
   httplibuse = "urllib";
  if(not havehttpx and httplibuse=="httpx2"):
+  httplibuse = "urllib";
+ if(not havehttpcore and httplibuse=="httpcore"):
+  httplibuse = "urllib";
+ if(not havehttpcore and httplibuse=="httpcore2"):
   httplibuse = "urllib";
  if(not havemechanize and httplibuse=="mechanize"):
   httplibuse = "urllib";
@@ -545,6 +557,10 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpcookie=getu
   returnval = download_from_url_file_with_httpx(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="httpx2"):
   returnval = download_from_url_file_with_httpx2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+ elif(httplibuse=="httpcore"):
+  returnval = download_from_url_file_with_httpcore(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+ elif(httplibuse=="httpcore2"):
+  returnval = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="mechanize"):
   returnval = download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="ftp"):
@@ -569,6 +585,10 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpcookie=g
   httplibuse = "urllib";
  if(not havehttpx and httplibuse=="httpx2"):
   httplibuse = "urllib";
+ if(not havehttpcore and httplibuse=="httpcore"):
+  httplibuse = "urllib";
+ if(not havehttpcore and httplibuse=="httpcore2"):
+  httplibuse = "urllib";
  if(not havemechanize and httplibuse=="mechanize"):
   httplibuse = "urllib";
  if(not havehttplib2 and httplibuse=="httplib2"):
@@ -590,9 +610,13 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpcookie=g
  elif(httplibuse=="requests"):
   returnval = download_from_url_to_file_with_requests(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="httpx"):
-  returnval = download_from_url_to_file_with_httpx(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_file_with_httpx(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="httpx2"):
-  returnval = download_from_url_to_file_with_httpx2(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_file_with_httpx2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+ elif(httplibuse=="httpcore"):
+  returnval = download_from_url_file_with_httpcore(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+ elif(httplibuse=="httpcore2"):
+  returnval = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="mechanize"):
   returnval = download_from_url_to_file_with_mechanize(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="ftp"):
