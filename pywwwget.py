@@ -105,7 +105,7 @@ __version_info__ = (1, 2, 4, "RC 1", 1);
 __version_date_info__ = (2023, 9, 17, "RC 1", 1);
 __version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2);
 __revision__ = __version_info__[3];
-__revision_id__ = "$Id$";
+__revision_id__ = "$Id: b5160e99346c45eb8cfbba0634fd5c48c9c6646f $";
 if(__version_info__[4] is not None):
  __version_date_plusrc__ = __version_date__+"-"+str(__version_date_info__[4]);
 if(__version_info__[4] is None):
@@ -755,8 +755,14 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  httpheaderout = geturls_text.info();
  httpheadersentout = httpheaders;
  try:
-  httpheaderout = geturls_text.info().headers;
-  print(str(len(httpheaderout)));
+  prehttpheaderout = geturls_text.info();
+  httpheaderkeys = geturls_text.info().keys();
+  imax = len(httpheaderkeys);
+  ic = 0;
+  httpheaderout = {};
+  while(ic < imax):
+   httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+   ic += 1;
  except AttributeError:
   httpheaderout = geturls_text.info();
  if(isinstance(httpheaderout, list)):
@@ -1438,8 +1444,8 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcoo
  httpheaderout = geturls_text.headers;
  httpheadersentout = httpheaders;
  try:
-  prehttpheaderout = geturls_text.info();
-  httpheaderkeys = geturls_text.info().keys();
+  prehttpheaderout = geturls_text.headers;
+  httpheaderkeys = geturls_text.headers.keys();
   imax = len(httpheaderkeys);
   ic = 0;
   httpheaderout = {};
@@ -1447,7 +1453,7 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcoo
    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
    ic += 1;
  except AttributeError:
-  httpheaderout = geturls_text.info();
+  httpheaderout = geturls_text.headers;
  if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
  if(isinstance(httpheadersentout, list)):
@@ -1524,8 +1530,8 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
  httpheaderout = geturls_text.headers;
  httpheadersentout = httpheaders;
  try:
-  prehttpheaderout = geturls_text.info();
-  httpheaderkeys = geturls_text.info().keys();
+  prehttpheaderout = geturls_text.headers;
+  httpheaderkeys = geturls_text.headers.keys();
   imax = len(httpheaderkeys);
   ic = 0;
   httpheaderout = {};
@@ -1533,7 +1539,7 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
    ic += 1;
  except AttributeError:
-  httpheaderout = geturls_text.info();
+  httpheaderout = geturls_text.headers;
  if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
  if(isinstance(httpheadersentout, list)):
