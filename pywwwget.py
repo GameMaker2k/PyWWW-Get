@@ -105,7 +105,7 @@ __version_info__ = (1, 2, 4, "RC 1", 1);
 __version_date_info__ = (2023, 9, 17, "RC 1", 1);
 __version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2);
 __revision__ = __version_info__[3];
-__revision_id__ = "$Id: b5160e99346c45eb8cfbba0634fd5c48c9c6646f $";
+__revision_id__ = "$Id$";
 if(__version_info__[4] is not None):
  __version_date_plusrc__ = __version_date__+"-"+str(__version_date_info__[4]);
 if(__version_info__[4] is None):
