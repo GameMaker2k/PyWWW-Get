@@ -38,6 +38,12 @@ try:
  haveparamiko = True;
 except ImportError:
  haveparamiko = False;
+havepysftp = False;
+try:
+ import pysftp;
+ havepysftp = True;
+except ImportError:
+ havepysftp = False;
 haveurllib3 = False;
 try:
  import urllib3;
@@ -426,7 +432,7 @@ def make_http_headers_from_list_to_dict(headers=[("Referer", "http://google.com/
  return returnval;
 
 def get_httplib_support(checkvalue=None):
- global haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko;
+ global haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  returnval = [];
  returnval.append("ftp");
  returnval.append("httplib");
@@ -470,7 +476,7 @@ def get_httplib_support_list():
  return returnval;
 
 def download_from_url(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", sleep=-1):
- global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko;
+ global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
@@ -526,7 +532,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpcookie=geturls_c
  return returnval;
 
 def download_from_url_file(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", buffersize=524288, sleep=-1):
- global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko;
+ global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
@@ -582,7 +588,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpcookie=getu
  return returnval;
 
 def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
- global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcorei, haveparamiko;
+ global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcorei, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
