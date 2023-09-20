@@ -475,7 +475,7 @@ def get_httplib_support_list():
  returnval = get_httplib_support(None);
  return returnval;
 
-def download_from_url(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", sleep=-1):
+def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", sleep=-1):
  global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -500,38 +500,38 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpcookie=geturls_c
  if(not haveparamiko and httplibuse=="sftp"):
   httplibuse = "ftp";
  if(httplibuse=="urllib"):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="request"):
-  returnval = download_from_url_with_request(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+  returnval = download_from_url_with_request(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="request3"):
-  returnval = download_from_url_with_request3(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+  returnval = download_from_url_with_request3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="httplib"):
-  returnval = download_from_url_with_httplib(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+  returnval = download_from_url_with_httplib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="httplib2"):
-  returnval = download_from_url_with_httplib2(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+  returnval = download_from_url_with_httplib2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="urllib3"):
-  returnval = download_from_url_with_urllib3(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+  returnval = download_from_url_with_urllib3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="requests"):
-  returnval = download_from_url_with_requests(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+  returnval = download_from_url_with_requests(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="httpx"):
-  returnval = download_from_url_with_httpx(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+  returnval = download_from_url_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="httpx2"):
-  returnval = download_from_url_with_httpx2(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+  returnval = download_from_url_with_httpx2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="httpcore"):
-  returnval = download_from_url_with_httpcore(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+  returnval = download_from_url_with_httpcore(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="httpcore2"):
-  returnval = download_from_url_with_httpcore2(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+  returnval = download_from_url_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="mechanize"):
-  returnval = download_from_url_with_mechanize(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+  returnval = download_from_url_with_mechanize(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="ftp"):
-  returnval = download_from_url_with_ftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+  returnval = download_from_url_with_ftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="sftp"):
-  returnval = download_from_url_with_sftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep);
+  returnval = download_from_url_with_sftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  else:
   returnval = False;
  return returnval;
 
-def download_from_url_file(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", buffersize=524288, sleep=-1):
+def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", buffersize=524288, sleep=-1):
  global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -556,38 +556,38 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpcookie=getu
  if(not haveparamiko and httplibuse=="sftp"):
   httplibuse = "ftp";
  if(httplibuse=="urllib"):
-  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="request"):
-  returnval = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_request(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="request3"):
-  returnval = download_from_url_file_with_request3(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_request3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="httplib"):
-  returnval = download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_httplib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="httplib2"):
-  returnval = download_from_url_file_with_httplib2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_httplib2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="urllib3"):
-  returnval = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_urllib3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="requests"):
-  returnval = download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_requests(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="httpx"):
-  returnval = download_from_url_file_with_httpx(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="httpx2"):
-  returnval = download_from_url_file_with_httpx2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_httpx2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="httpcore"):
-  returnval = download_from_url_file_with_httpcore(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_httpcore(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="httpcore2"):
-  returnval = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="mechanize"):
-  returnval = download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_mechanize(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="ftp"):
-  returnval = download_from_url_file_with_ftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_ftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="sftp"):
-  returnval = download_from_url_file_with_sftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_sftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  else:
   returnval = False;
  return returnval;
 
-def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
  global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcorei, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -612,38 +612,38 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpcookie=g
  if(not haveparamiko and httplibuse=="sftp"):
   httplibuse = "ftp";
  if(httplibuse=="urllib"):
-  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="request"):
-  returnval = download_from_url_to_file_with_request(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_request(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="request3"):
-  returnval = download_from_url_to_file_with_request3(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_request3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="httplib"):
-  returnval = download_from_url_to_file_with_httplib(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_httplib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="httplib2"):
-  returnval = download_from_url_to_file_with_httplib2(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_httplib2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="urllib3"):
-  returnval = download_from_url_to_file_with_urllib3(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_urllib3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="requests"):
-  returnval = download_from_url_to_file_with_requests(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_requests(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="httpx"):
-  returnval = download_from_url_file_with_httpx(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="httpx2"):
-  returnval = download_from_url_file_with_httpx2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_httpx2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="httpcore"):
-  returnval = download_from_url_file_with_httpcore(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_httpcore(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="httpcore2"):
-  returnval = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="mechanize"):
-  returnval = download_from_url_to_file_with_mechanize(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_mechanize(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="ftp"):
-  returnval = download_from_url_to_file_with_ftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_ftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="sftp"):
-  returnval = download_from_url_to_file_with_sftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
+  returnval = download_from_url_to_file_with_sftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  else:
   returnval = False;
  return returnval;
 
-def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
  global geturls_download_sleep, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -651,6 +651,16 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpcook
  if(isinstance(httpheaders, list)):
   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
  httpheaders = fix_header_names(httpheaders);
+ if(httpuseragent is not None):
+  if('User-Agent' in httpheaders):
+   httpuseragent['User-Agent'] = httpuseragent;
+  else:
+   httpuseragent.update({'User-Agent': httpuseragent});
+ if(httpreferer is not None):
+  if('Referer' in httpheaders):
+   httpuseragent['Referer'] = httpreferer;
+  else:
+   httpuseragent.update({'Referer': httpreferer});
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -716,7 +726,7 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpcook
  geturls_text.close();
  return returnval;
 
-def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
  exec_time_start = time.time();
  myhash = hashlib.new("sha1");
@@ -735,6 +745,16 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  if(isinstance(httpheaders, list)):
   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
  httpheaders = fix_header_names(httpheaders);
+ if(httpuseragent is not None):
+  if('User-Agent' in httpheaders):
+   httpuseragent['User-Agent'] = httpuseragent;
+  else:
+   httpuseragent.update({'User-Agent': httpuseragent});
+ if(httpreferer is not None):
+  if('Referer' in httpheaders):
+   httpuseragent['Referer'] = httpreferer;
+  else:
+   httpuseragent.update({'Referer': httpreferer});
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -819,7 +839,7 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  returnval.update({'Filesize': os.path.getsize(tmpfilename), 'DownloadTime': float(exec_time_start - exec_time_end), 'DownloadTimeReadable': hms_string(exec_time_start - exec_time_end)});
  return returnval;
 
-def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
  global geturls_download_sleep;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -832,7 +852,7 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, 
    return False;
   if(os.path.exists(filepath) and os.path.isdir(filepath)):
    return False;
-  pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
   if(not pretmpfilename):
    return False;
   tmpfilename = pretmpfilename['Filename'];
@@ -851,7 +871,7 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, 
    os.remove(tmpfilename);
   returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  if(outfile=="-" and sys.version[0]=="2"):
-  pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
   if(not pretmpfilename):
    return False;
   tmpfilename = pretmpfilename['Filename'];
@@ -882,7 +902,7 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, 
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  if(outfile=="-" and sys.version[0]>="3"):
-  pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
   tmpfilename = pretmpfilename['Filename'];
   downloadsize = os.path.getsize(tmpfilename);
   fulldatasize = 0;
@@ -912,7 +932,7 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, 
   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  return returnval;
 
-def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
  global geturls_download_sleep, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -920,6 +940,16 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpcoo
  if(isinstance(httpheaders, list)):
   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
  httpheaders = fix_header_names(httpheaders);
+ if(httpuseragent is not None):
+  if('User-Agent' in httpheaders):
+   httpuseragent['User-Agent'] = httpuseragent;
+  else:
+   httpuseragent.update({'User-Agent': httpuseragent});
+ if(httpreferer is not None):
+  if('Referer' in httpheaders):
+   httpuseragent['Referer'] = httpreferer;
+  else:
+   httpuseragent.update({'Referer': httpreferer});
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -976,7 +1006,7 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpcoo
  geturls_text.close();
  return returnval;
 
-def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
  exec_time_start = time.time();
  myhash = hashlib.new("sha1");
@@ -995,6 +1025,16 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  if(isinstance(httpheaders, list)):
   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
  httpheaders = fix_header_names(httpheaders);
+ if(httpuseragent is not None):
+  if('User-Agent' in httpheaders):
+   httpuseragent['User-Agent'] = httpuseragent;
+  else:
+   httpuseragent.update({'User-Agent': httpuseragent});
+ if(httpreferer is not None):
+  if('Referer' in httpheaders):
+   httpuseragent['Referer'] = httpreferer;
+  else:
+   httpuseragent.update({'Referer': httpreferer});
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -1068,7 +1108,7 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  returnval.update({'Filesize': os.path.getsize(tmpfilename), 'DownloadTime': float(exec_time_start - exec_time_end), 'DownloadTimeReadable': hms_string(exec_time_start - exec_time_end)});
  return returnval;
 
-def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
  global geturls_download_sleep;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -1081,7 +1121,7 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers,
    return False;
   if(os.path.exists(filepath) and os.path.isdir(filepath)):
    return False;
-  pretmpfilename = download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  pretmpfilename = download_from_url_file_with_httplib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
   if(not pretmpfilename):
    return False;
   tmpfilename = pretmpfilename['Filename'];
@@ -1100,7 +1140,7 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers,
    os.remove(tmpfilename);
   returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  if(outfile=="-" and sys.version[0]=="2"):
-  pretmpfilename = download_from_url_file_with_httplib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  pretmpfilename = download_from_url_file_with_httplib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
   if(not pretmpfilename):
    return False;
   tmpfilename = pretmpfilename['Filename'];
@@ -1131,7 +1171,7 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers,
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  if(outfile=="-" and sys.version[0]>="3"):
-  pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
   tmpfilename = pretmpfilename['Filename'];
   downloadsize = os.path.getsize(tmpfilename);
   fulldatasize = 0;
@@ -1162,7 +1202,7 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers,
  return returnval;
 
 if(havehttplib2):
- def download_from_url_with_httplib2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+ def download_from_url_with_httplib2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -1170,6 +1210,16 @@ if(havehttplib2):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -1227,12 +1277,12 @@ if(havehttplib2):
   return returnval;
 
 if(not havehttplib2):
- def download_from_url_with_httplib2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep)
+ def download_from_url_with_httplib2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep)
   return returnval;
 
 if(havehttplib2):
- def download_from_url_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
@@ -1251,6 +1301,16 @@ if(havehttplib2):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -1325,12 +1385,12 @@ if(havehttplib2):
   return returnval;
 
 if(not havehttplib2):
- def download_from_url_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
-  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep)
+ def download_from_url_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep)
   return returnval;
 
 if(havehttplib2):
- def download_from_url_to_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -1343,7 +1403,7 @@ if(havehttplib2):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_httplib2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httplib2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -1362,7 +1422,7 @@ if(havehttplib2):
     os.remove(tmpfilename);
    returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
-   pretmpfilename = download_from_url_file_with_httplib2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httplib2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -1393,7 +1453,7 @@ if(havehttplib2):
     log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
    returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]>="3"):
-   pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1424,11 +1484,11 @@ if(havehttplib2):
   return returnval;
 
 if(not havehttplib2):
- def download_from_url_to_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
-  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
+ def download_from_url_to_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
-def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
  global geturls_download_sleep, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -1436,6 +1496,16 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcoo
  if(isinstance(httpheaders, list)):
   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
  httpheaders = fix_header_names(httpheaders);
+ if(httpuseragent is not None):
+  if('User-Agent' in httpheaders):
+   httpuseragent['User-Agent'] = httpuseragent;
+  else:
+   httpuseragent.update({'User-Agent': httpuseragent});
+ if(httpreferer is not None):
+  if('Referer' in httpheaders):
+   httpuseragent['Referer'] = httpreferer;
+  else:
+   httpuseragent.update({'Referer': httpreferer});
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -1506,7 +1576,7 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcoo
  geturls_text.close();
  return returnval;
 
-def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
  exec_time_start = time.time();
  myhash = hashlib.new("sha1");
@@ -1525,6 +1595,16 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
  if(isinstance(httpheaders, list)):
   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
  httpheaders = fix_header_names(httpheaders);
+ if(httpuseragent is not None):
+  if('User-Agent' in httpheaders):
+   httpuseragent['User-Agent'] = httpuseragent;
+  else:
+   httpuseragent.update({'User-Agent': httpuseragent});
+ if(httpreferer is not None):
+  if('Referer' in httpheaders):
+   httpuseragent['Referer'] = httpreferer;
+  else:
+   httpuseragent.update({'Referer': httpreferer});
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -1612,7 +1692,7 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
  returnval.update({'Filesize': os.path.getsize(tmpfilename), 'DownloadTime': float(exec_time_start - exec_time_end), 'DownloadTimeReadable': hms_string(exec_time_start - exec_time_end)});
  return returnval;
 
-def download_from_url_to_file_with_request(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+def download_from_url_to_file_with_request(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
  global geturls_download_sleep;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -1625,7 +1705,7 @@ def download_from_url_to_file_with_request(httpurl, httpheaders=geturls_headers,
    return False;
   if(os.path.exists(filepath) and os.path.isdir(filepath)):
    return False;
-  pretmpfilename = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  pretmpfilename = download_from_url_file_with_request(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
   if(not pretmpfilename):
    return False;
   tmpfilename = pretmpfilename['Filename'];
@@ -1644,7 +1724,7 @@ def download_from_url_to_file_with_request(httpurl, httpheaders=geturls_headers,
    os.remove(tmpfilename);
   returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent':pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  if(outfile=="-" and sys.version[0]=="2"):
-  pretmpfilename = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  pretmpfilename = download_from_url_file_with_request(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
   if(not pretmpfilename):
    return False;
   tmpfilename = pretmpfilename['Filename'];
@@ -1675,7 +1755,7 @@ def download_from_url_to_file_with_request(httpurl, httpheaders=geturls_headers,
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  if(outfile=="-" and sys.version[0]>="3"):
-  pretmpfilename = download_from_url_file_with_request(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  pretmpfilename = download_from_url_file_with_request(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
   tmpfilename = pretmpfilename['Filename'];
   downloadsize = os.path.getsize(tmpfilename);
   fulldatasize = 0;
@@ -1706,7 +1786,7 @@ def download_from_url_to_file_with_request(httpurl, httpheaders=geturls_headers,
  return returnval;
 
 if(haverequests):
- def download_from_url_with_requests(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+ def download_from_url_with_requests(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -1714,6 +1794,16 @@ if(haverequests):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -1765,12 +1855,12 @@ if(haverequests):
   return returnval;
 
 if(not haverequests):
- def download_from_url_with_requests(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep)
+ def download_from_url_with_requests(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep)
   return returnval;
 
 if(haverequests):
- def download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_requests(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
@@ -1789,6 +1879,16 @@ if(haverequests):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -1855,12 +1955,12 @@ if(haverequests):
   return returnval;
 
 if(not haverequests):
- def download_from_url_file_with_requests(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
-  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep)
+ def download_from_url_file_with_requests(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep)
   return returnval;
 
 if(haverequests):
- def download_from_url_to_file_with_requests(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_requests(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -1873,7 +1973,7 @@ if(haverequests):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_requests(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -1892,7 +1992,7 @@ if(haverequests):
     os.remove(tmpfilename);
    returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
-   pretmpfilename = download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_requests(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -1923,7 +2023,7 @@ if(haverequests):
     log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
    returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': ['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]>="3"):
-   pretmpfilename = download_from_url_file_with_requests(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_requests(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -1954,12 +2054,12 @@ if(haverequests):
   return returnval;
 
 if(not haverequests):
- def download_from_url_to_file_with_requests(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
-  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
+ def download_from_url_to_file_with_requests(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
 if(havehttpx):
- def download_from_url_with_httpx(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+ def download_from_url_with_httpx(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -1967,6 +2067,16 @@ if(havehttpx):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -2021,12 +2131,12 @@ if(havehttpx):
   return returnval;
 
 if(not havehttpx):
- def download_from_url_with_httpx(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep)
+ def download_from_url_with_httpx(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep)
   return returnval;
 
 if(havehttpx):
- def download_from_url_file_with_httpx(httpurl, httpheaders, httpcookie, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
@@ -2045,6 +2155,16 @@ if(havehttpx):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -2114,12 +2234,12 @@ if(havehttpx):
   return returnval;
 
 if(not havehttpx):
- def download_from_url_file_with_httpx(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
-  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep)
+ def download_from_url_file_with_httpx(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep)
   return returnval;
 
 if(havehttpx):
- def download_from_url_to_file_with_httpx(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_httpx(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -2132,7 +2252,7 @@ if(havehttpx):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_httpx(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -2151,7 +2271,7 @@ if(havehttpx):
     os.remove(tmpfilename);
    returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
-   pretmpfilename = download_from_url_file_with_httpx(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -2182,7 +2302,7 @@ if(havehttpx):
     log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
    returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': ['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]>="3"):
-   pretmpfilename = download_from_url_file_with_httpx(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -2213,12 +2333,12 @@ if(havehttpx):
   return returnval;
 
 if(not havehttpx):
- def download_from_url_to_file_with_httpx(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
-  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
+ def download_from_url_to_file_with_httpx(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
 if(havehttpx):
- def download_from_url_with_httpx2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+ def download_from_url_with_httpx2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -2226,6 +2346,16 @@ if(havehttpx):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -2280,12 +2410,12 @@ if(havehttpx):
   return returnval;
 
 if(not havehttpx):
- def download_from_url_with_httpx2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep)
+ def download_from_url_with_httpx2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep)
   return returnval;
 
 if(havehttpx):
- def download_from_url_file_with_httpx2(httpurl, httpheaders, httpcookie, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_httpx2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
@@ -2304,6 +2434,16 @@ if(havehttpx):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -2373,12 +2513,12 @@ if(havehttpx):
   return returnval;
 
 if(not havehttpx):
- def download_from_url_file_with_httpx2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
-  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep)
+ def download_from_url_file_with_httpx2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep)
   return returnval;
 
 if(havehttpx):
- def download_from_url_to_file_with_httpx2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_httpx2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -2391,7 +2531,7 @@ if(havehttpx):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_httpx2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httpx2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -2410,7 +2550,7 @@ if(havehttpx):
     os.remove(tmpfilename);
    returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
-   pretmpfilename = download_from_url_file_with_httpx2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httpx2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -2441,7 +2581,7 @@ if(havehttpx):
     log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
    returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': ['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]>="3"):
-   pretmpfilename = download_from_url_file_with_httpx2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httpx2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -2472,12 +2612,12 @@ if(havehttpx):
   return returnval;
 
 if(not havehttpx):
- def download_from_url_to_file_with_httpx2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
-  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
+ def download_from_url_to_file_with_httpx2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
 if(havehttpcore):
- def download_from_url_with_httpcore(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+ def download_from_url_with_httpcore(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -2485,6 +2625,16 @@ if(havehttpcore):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -2539,12 +2689,12 @@ if(havehttpcore):
   return returnval;
 
 if(not havehttpcore):
- def download_from_url_with_httpcore(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep)
+ def download_from_url_with_httpcore(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep)
   return returnval;
 
 if(havehttpcore):
- def download_from_url_file_with_httpcore(httpurl, httpheaders, httpcookie, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_httpcore(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
@@ -2563,6 +2713,16 @@ if(havehttpcore):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -2632,12 +2792,12 @@ if(havehttpcore):
   return returnval;
 
 if(not havehttpcore):
- def download_from_url_file_with_httpcore(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
-  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep)
+ def download_from_url_file_with_httpcore(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep)
   return returnval;
 
 if(havehttpcore):
- def download_from_url_to_file_with_httpcore(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_httpcore(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -2650,7 +2810,7 @@ if(havehttpcore):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_httpcore(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httpcore(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -2669,7 +2829,7 @@ if(havehttpcore):
     os.remove(tmpfilename);
    returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
-   pretmpfilename = download_from_url_file_with_httpcore(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httpcore(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -2700,7 +2860,7 @@ if(havehttpcore):
     log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
    returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': ['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]>="3"):
-   pretmpfilename = download_from_url_file_with_httpcore(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httpcore(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -2731,12 +2891,12 @@ if(havehttpcore):
   return returnval;
 
 if(not havehttpcore):
- def download_from_url_to_file_with_httpcore(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
-  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
+ def download_from_url_to_file_with_httpcore(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
 if(havehttpcore):
- def download_from_url_with_httpcore2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+ def download_from_url_with_httpcore2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -2744,6 +2904,16 @@ if(havehttpcore):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -2798,12 +2968,12 @@ if(havehttpcore):
   return returnval;
 
 if(not havehttpcore):
- def download_from_url_with_httpcore2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep)
+ def download_from_url_with_httpcore2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep)
   return returnval;
 
 if(havehttpcore):
- def download_from_url_file_with_httpcore2(httpurl, httpheaders, httpcookie, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
@@ -2822,6 +2992,16 @@ if(havehttpcore):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -2891,12 +3071,12 @@ if(havehttpcore):
   return returnval;
 
 if(not havehttpcore):
- def download_from_url_file_with_httpcore2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
-  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep)
+ def download_from_url_file_with_httpcore2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep)
   return returnval;
 
 if(havehttpcore):
- def download_from_url_to_file_with_httpcore2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_httpcore2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -2909,7 +3089,7 @@ if(havehttpcore):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -2928,7 +3108,7 @@ if(havehttpcore):
     os.remove(tmpfilename);
    returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
-   pretmpfilename = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -2959,7 +3139,7 @@ if(havehttpcore):
     log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
    returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': ['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]>="3"):
-   pretmpfilename = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -2990,12 +3170,12 @@ if(havehttpcore):
   return returnval;
 
 if(not havehttpx):
- def download_from_url_to_file_with_httpcore2(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
-  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
+ def download_from_url_to_file_with_httpcore2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
 if(haveurllib3):
- def download_from_url_with_request3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+ def download_from_url_with_request3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -3003,6 +3183,16 @@ if(haveurllib3):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -3058,12 +3248,12 @@ if(haveurllib3):
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_with_request3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep)
+ def download_from_url_with_request3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep)
   return returnval;
 
 if(haveurllib3):
- def download_from_url_file_with_request3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_request3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
@@ -3082,6 +3272,16 @@ if(haveurllib3):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -3154,12 +3354,12 @@ if(haveurllib3):
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_file_with_request3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
-  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep)
+ def download_from_url_file_with_request3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep)
   return returnval;
 
 if(haveurllib3):
- def download_from_url_to_file_with_request3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_request3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -3172,7 +3372,7 @@ if(haveurllib3):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_request3(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_request3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -3191,7 +3391,7 @@ if(haveurllib3):
     os.remove(tmpfilename);
    returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
-   pretmpfilename = download_from_url_file_with_request3(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_request3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -3222,7 +3422,7 @@ if(haveurllib3):
     log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
    returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]>="3"):
-   pretmpfilename = download_from_url_file_with_request3(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_request3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -3253,12 +3453,12 @@ if(haveurllib3):
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_to_file_with_request3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
-  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
+ def download_from_url_to_file_with_request3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
 if(haveurllib3):
- def download_from_url_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+ def download_from_url_with_urllib3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -3266,6 +3466,16 @@ if(haveurllib3):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -3321,12 +3531,12 @@ if(haveurllib3):
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep)
+ def download_from_url_with_urllib3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep)
   return returnval;
 
 if(haveurllib3):
- def download_from_url_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
@@ -3345,6 +3555,16 @@ if(haveurllib3):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -3417,12 +3637,12 @@ if(haveurllib3):
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
-  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep)
+ def download_from_url_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep)
   return returnval;
 
 if(haveurllib3):
- def download_from_url_to_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -3435,7 +3655,7 @@ if(haveurllib3):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -3454,7 +3674,7 @@ if(haveurllib3):
     os.remove(tmpfilename);
    returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
-   pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -3485,7 +3705,7 @@ if(haveurllib3):
     log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
    returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]>="3"):
-   pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -3516,12 +3736,12 @@ if(haveurllib3):
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_to_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
-  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
+ def download_from_url_to_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
 if(havemechanize):
- def download_from_url_with_mechanize(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+ def download_from_url_with_mechanize(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -3529,6 +3749,16 @@ if(havemechanize):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -3586,12 +3816,12 @@ if(havemechanize):
   return returnval;
 
 if(not havemechanize):
- def download_from_url_with_mechanize(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, sleep)
+ def download_from_url_with_mechanize(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep)
   return returnval;
 
 if(havemechanize):
- def download_from_url_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
@@ -3610,6 +3840,16 @@ if(havemechanize):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -3684,12 +3924,12 @@ if(havemechanize):
   return returnval;
 
 if(not havemechanize):
- def download_from_url_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
-  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, sleep)
+ def download_from_url_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep)
   return returnval;
 
 if(havemechanize):
- def download_from_url_to_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -3702,7 +3942,7 @@ if(havemechanize):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -3721,7 +3961,7 @@ if(havemechanize):
     os.remove(tmpfilename);
    returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
-   pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -3752,7 +3992,7 @@ if(havemechanize):
     log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
    returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]>="3"):
-   pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -3783,8 +4023,8 @@ if(havemechanize):
   return returnval;
 
 if(not havemechanize):
- def download_from_url_to_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
-  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
+ def download_from_url_to_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
 def download_file_from_ftp_file(url):
@@ -3834,7 +4074,7 @@ def download_file_from_ftp_string(url):
  ftpfile = download_file_from_ftp_file(url);
  return ftpfile.read();
 
-def download_from_url_with_ftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+def download_from_url_with_ftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
  global geturls_download_sleep, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -3842,6 +4082,16 @@ def download_from_url_with_ftp(httpurl, httpheaders=geturls_headers, httpcookie=
  if(isinstance(httpheaders, list)):
   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
  httpheaders = fix_header_names(httpheaders);
+ if(httpuseragent is not None):
+  if('User-Agent' in httpheaders):
+   httpuseragent['User-Agent'] = httpuseragent;
+  else:
+   httpuseragent.update({'User-Agent': httpuseragent});
+ if(httpreferer is not None):
+  if('Referer' in httpheaders):
+   httpuseragent['Referer'] = httpreferer;
+  else:
+   httpuseragent.update({'Referer': httpreferer});
  if(isinstance(httpheaders, dict)):
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  time.sleep(sleep);
@@ -3854,7 +4104,7 @@ def download_from_url_with_ftp(httpurl, httpheaders=geturls_headers, httpcookie=
  geturls_text.close();
  return returnval;
 
-def download_from_url_file_with_ftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+def download_from_url_file_with_ftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
  exec_time_start = time.time();
  myhash = hashlib.new("sha1");
@@ -3873,6 +4123,16 @@ def download_from_url_file_with_ftp(httpurl, httpheaders=geturls_headers, httpco
  if(isinstance(httpheaders, list)):
   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
  httpheaders = fix_header_names(httpheaders);
+ if(httpuseragent is not None):
+  if('User-Agent' in httpheaders):
+   httpuseragent['User-Agent'] = httpuseragent;
+  else:
+   httpuseragent.update({'User-Agent': httpuseragent});
+ if(httpreferer is not None):
+  if('Referer' in httpheaders):
+   httpuseragent['Referer'] = httpreferer;
+  else:
+   httpuseragent.update({'Referer': httpreferer});
  if(isinstance(httpheaders, dict)):
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  time.sleep(sleep);
@@ -3910,7 +4170,7 @@ def download_from_url_file_with_ftp(httpurl, httpheaders=geturls_headers, httpco
  returnval.update({'Filesize': os.path.getsize(tmpfilename), 'DownloadTime': float(exec_time_start - exec_time_end), 'DownloadTimeReadable': hms_string(exec_time_start - exec_time_end)});
  return returnval;
 
-def download_from_url_to_file_with_ftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+def download_from_url_to_file_with_ftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
  global geturls_download_sleep;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -3923,7 +4183,7 @@ def download_from_url_to_file_with_ftp(httpurl, httpheaders=geturls_headers, htt
    return False;
   if(os.path.exists(filepath) and os.path.isdir(filepath)):
    return False;
-  pretmpfilename = download_from_url_file_with_ftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  pretmpfilename = download_from_url_file_with_ftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
   if(not pretmpfilename):
    return False;
   tmpfilename = pretmpfilename['Filename'];
@@ -3938,7 +4198,7 @@ def download_from_url_to_file_with_ftp(httpurl, httpheaders=geturls_headers, htt
    os.remove(tmpfilename);
   returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': None, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  if(outfile=="-" and sys.version[0]=="2"):
-  pretmpfilename = download_from_url_file_with_ftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  pretmpfilename = download_from_url_file_with_ftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
   if(not pretmpfilename):
    return False;
   tmpfilename = pretmpfilename['Filename'];
@@ -3969,7 +4229,7 @@ def download_from_url_to_file_with_ftp(httpurl, httpheaders=geturls_headers, htt
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': None, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
  if(outfile=="-" and sys.version[0]>="3"):
-  pretmpfilename = download_from_url_file_with_ftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+  pretmpfilename = download_from_url_file_with_ftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
   tmpfilename = pretmpfilename['Filename'];
   downloadsize = os.path.getsize(tmpfilename);
   fulldatasize = 0;
@@ -4103,7 +4363,7 @@ else:
   return False;
 
 if(haveparamiko):
- def download_from_url_with_sftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+ def download_from_url_with_sftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -4111,6 +4371,16 @@ if(haveparamiko):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(isinstance(httpheaders, dict)):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
   time.sleep(sleep);
@@ -4124,11 +4394,11 @@ if(haveparamiko):
   return returnval;
 
 if(not haveparamiko):
- def download_from_url_with_sftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+ def download_from_url_with_sftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
   return False;
 
 if(haveparamiko):
- def download_from_url_file_with_sftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_sftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
   global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
@@ -4147,6 +4417,16 @@ if(haveparamiko):
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
   httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpuseragent['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpuseragent['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
   if(isinstance(httpheaders, dict)):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
   time.sleep(sleep);
@@ -4185,11 +4465,11 @@ if(haveparamiko):
   return returnval;
 
 if(not haveparamiko):
- def download_from_url_file_with_sftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+ def download_from_url_file_with_sftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
   return False;
 
 if(haveparamiko):
- def download_from_url_to_file_with_sftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_sftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -4202,7 +4482,7 @@ if(haveparamiko):
     return False;
    if(os.path.exists(filepath) and os.path.isdir(filepath)):
     return False;
-   pretmpfilename = download_from_url_file_with_sftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_sftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -4217,7 +4497,7 @@ if(haveparamiko):
     os.remove(tmpfilename);
    returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': None, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]=="2"):
-   pretmpfilename = download_from_url_file_with_sftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_sftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
@@ -4248,7 +4528,7 @@ if(haveparamiko):
     log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
    returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': None, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
   if(outfile=="-" and sys.version[0]>="3"):
-   pretmpfilename = download_from_url_file_with_sftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   pretmpfilename = download_from_url_file_with_sftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
    tmpfilename = pretmpfilename['Filename'];
    downloadsize = os.path.getsize(tmpfilename);
    fulldatasize = 0;
@@ -4279,7 +4559,7 @@ if(haveparamiko):
   return returnval;
 
 if(not haveparamiko):
- def download_from_url_to_file_with_sftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+ def download_from_url_to_file_with_sftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   return False;
 
 if(haveparamiko):
