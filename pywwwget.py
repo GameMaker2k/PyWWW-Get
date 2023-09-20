@@ -291,6 +291,10 @@ def arglistize(proexec, *varlist):
   il = il + 1;
  return newarglist;
 
+def fix_header_names(header_dict):
+ header_dict =  {k.title(): v for k, v in header_dict.items()};
+ return header_dict;
+
 # hms_string by ArcGIS Python Recipes
 # https://arcpy.wordpress.com/2012/04/20/146/
 def hms_string(sec_elapsed):
@@ -639,7 +643,8 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpcook
   sleep = geturls_download_sleep;
  urlparts = urlparse.urlparse(httpurl);
  if(isinstance(httpheaders, list)):
-   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+ httpheaders = fix_header_names(httpheaders);
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -681,13 +686,14 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpcook
   while(ic < imax):
    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
    ic += 1;
-  httpheaderout =  {k.title(): v for k, v in httpheaderout.items()}
  except AttributeError:
   httpheaderout = geturls_text.info();
  if(isinstance(httpheaderout, list)):
-   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+ httpheaderout = fix_header_names(httpheaderout);
  if(isinstance(httpheadersentout, list)):
-   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+ httpheadersentout = fix_header_names(httpheadersentout);
  log.info("Downloading URL "+httpurl);
  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
   if(sys.version[0]=="2"):
@@ -721,7 +727,8 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
   sleep = geturls_download_sleep;
  urlparts = urlparse.urlparse(httpurl);
  if(isinstance(httpheaders, list)):
-   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+ httpheaders = fix_header_names(httpheaders);
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -765,13 +772,14 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
   while(ic < imax):
    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
    ic += 1;
-  httpheaderout =  {k.title(): v for k, v in httpheaderout.items()}
  except AttributeError:
   httpheaderout = geturls_text.info();
  if(isinstance(httpheaderout, list)):
-   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+ httpheaderout = fix_header_names(httpheaderout);
  if(isinstance(httpheadersentout, list)):
-   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+ httpheadersentout = fix_header_names(httpheadersentout);
  downloadsize = httpheaderout.get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
@@ -904,7 +912,8 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpcoo
   sleep = geturls_download_sleep;
  urlparts = urlparse.urlparse(httpurl);
  if(isinstance(httpheaders, list)):
-   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+ httpheaders = fix_header_names(httpheaders);
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -940,9 +949,11 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpcoo
  httpheaderout = geturls_text.getheaders();
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
-   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+ httpheaderout = fix_header_names(httpheaderout);
  if(isinstance(httpheadersentout, list)):
-   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+ httpheadersentout = fix_header_names(httpheadersentout);
  log.info("Downloading URL "+httpurl);
  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
   if(sys.version[0]=="2"):
@@ -976,7 +987,8 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
   sleep = geturls_download_sleep;
  urlparts = urlparse.urlparse(httpurl);
  if(isinstance(httpheaders, list)):
-   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+ httpheaders = fix_header_names(httpheaders);
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -1012,9 +1024,11 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  httpheaderout = geturls_text.getheaders();
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
-   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+ httpheaderout = fix_header_names(httpheaderout);
  if(isinstance(httpheadersentout, list)):
-   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+ httpheadersentout = fix_header_names(httpheadersentout);
  downloadsize = httpheaderout.get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
@@ -1149,6 +1163,7 @@ if(havehttplib2):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -1184,9 +1199,11 @@ if(havehttplib2):
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
@@ -1227,6 +1244,7 @@ if(havehttplib2):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -1262,9 +1280,11 @@ if(havehttplib2):
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -1408,7 +1428,8 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcoo
   sleep = geturls_download_sleep;
  urlparts = urlparse.urlparse(httpurl);
  if(isinstance(httpheaders, list)):
-   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+ httpheaders = fix_header_names(httpheaders);
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -1455,13 +1476,14 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcoo
   while(ic < imax):
    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
    ic += 1;
-  httpheaderout =  {k.title(): v for k, v in httpheaderout.items()}
  except AttributeError:
   httpheaderout = geturls_text.headers;
  if(isinstance(httpheaderout, list)):
-   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+ httpheaderout = fix_header_names(httpheaderout);
  if(isinstance(httpheadersentout, list)):
-   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+ httpheadersentout = fix_header_names(httpheadersentout);
  log.info("Downloading URL "+httpurl);
  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
   if(sys.version[0]=="2"):
@@ -1495,7 +1517,8 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
   sleep = geturls_download_sleep;
  urlparts = urlparse.urlparse(httpurl);
  if(isinstance(httpheaders, list)):
-   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+ httpheaders = fix_header_names(httpheaders);
  if(urlparts.username is not None or urlparts.password is not None):
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -1542,13 +1565,14 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
   while(ic < imax):
    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
    ic += 1;
-  httpheaderout =  {k.title(): v for k, v in httpheaderout.items()}
  except AttributeError:
   httpheaderout = geturls_text.headers;
  if(isinstance(httpheaderout, list)):
-   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+ httpheaderout = fix_header_names(httpheaderout);
  if(isinstance(httpheadersentout, list)):
-   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+ httpheadersentout = fix_header_names(httpheadersentout);
  downloadsize = httpheaderout.get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
@@ -1683,6 +1707,7 @@ if(haverequests):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -1712,9 +1737,11 @@ if(haverequests):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
@@ -1755,6 +1782,7 @@ if(haverequests):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -1784,9 +1812,11 @@ if(haverequests):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -1930,6 +1960,7 @@ if(havehttpx):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -1962,9 +1993,11 @@ if(havehttpx):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
@@ -2005,6 +2038,7 @@ if(havehttpx):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -2037,9 +2071,11 @@ if(havehttpx):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -2183,6 +2219,7 @@ if(havehttpx):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -2215,9 +2252,11 @@ if(havehttpx):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
@@ -2258,6 +2297,7 @@ if(havehttpx):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -2290,9 +2330,11 @@ if(havehttpx):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -2436,6 +2478,7 @@ if(havehttpcore):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -2468,9 +2511,11 @@ if(havehttpcore):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
@@ -2511,6 +2556,7 @@ if(havehttpcore):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -2543,9 +2589,11 @@ if(havehttpcore):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -2689,6 +2737,7 @@ if(havehttpcore):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -2721,9 +2770,11 @@ if(havehttpcore):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
    if(sys.version[0]=="2"):
@@ -2764,6 +2815,7 @@ if(havehttpcore):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -2796,9 +2848,11 @@ if(havehttpcore):
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -2942,6 +2996,7 @@ if(haveurllib3):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -2975,9 +3030,11 @@ if(haveurllib3):
   httpheaderout = geturls_text.info();
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
@@ -3018,6 +3075,7 @@ if(haveurllib3):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -3051,9 +3109,11 @@ if(haveurllib3):
   httpheaderout = geturls_text.info();
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   downloadsize = int(geturls_text.headers.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -3199,6 +3259,7 @@ if(haveurllib3):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -3232,9 +3293,11 @@ if(haveurllib3):
   httpheaderout = geturls_text.info();
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
@@ -3275,6 +3338,7 @@ if(haveurllib3):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -3308,9 +3372,11 @@ if(haveurllib3):
   httpheaderout = geturls_text.info();
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   downloadsize = int(geturls_text.headers.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -3456,6 +3522,7 @@ if(havemechanize):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -3491,9 +3558,11 @@ if(havemechanize):
   httpheaderout = geturls_text.info();
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
@@ -3534,6 +3603,7 @@ if(havemechanize):
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(urlparts.username is not None or urlparts.password is not None):
    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
@@ -3569,9 +3639,11 @@ if(havemechanize):
   httpheaderout = geturls_text.info();
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
   downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -3762,7 +3834,8 @@ def download_from_url_with_ftp(httpurl, httpheaders=geturls_headers, httpcookie=
   sleep = geturls_download_sleep;
  urlparts = urlparse.urlparse(httpurl);
  if(isinstance(httpheaders, list)):
-   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+ httpheaders = fix_header_names(httpheaders);
  if(isinstance(httpheaders, dict)):
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  time.sleep(sleep);
@@ -3792,7 +3865,8 @@ def download_from_url_file_with_ftp(httpurl, httpheaders=geturls_headers, httpco
   sleep = geturls_download_sleep;
  urlparts = urlparse.urlparse(httpurl);
  if(isinstance(httpheaders, list)):
-   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+ httpheaders = fix_header_names(httpheaders);
  if(isinstance(httpheaders, dict)):
   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  time.sleep(sleep);
@@ -4029,7 +4103,8 @@ if(haveparamiko):
    sleep = geturls_download_sleep;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
-    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(isinstance(httpheaders, dict)):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
   time.sleep(sleep);
@@ -4064,7 +4139,8 @@ if(haveparamiko):
    sleep = geturls_download_sleep;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
-    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
   if(isinstance(httpheaders, dict)):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
   time.sleep(sleep);
