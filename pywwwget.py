@@ -681,6 +681,7 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpcook
   while(ic < imax):
    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
    ic += 1;
+  httpheaderout =  {k.title(): v for k, v in httpheaderout.items()}
  except AttributeError:
   httpheaderout = geturls_text.info();
  if(isinstance(httpheaderout, list)):
@@ -756,6 +757,7 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  httpheadersentout = httpheaders;
  try:
   prehttpheaderout = geturls_text.info();
+  print(prehttpheaderout.items)
   httpheaderkeys = geturls_text.info().keys();
   imax = len(httpheaderkeys);
   ic = 0;
@@ -763,6 +765,7 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
   while(ic < imax):
    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
    ic += 1;
+  httpheaderout =  {k.title(): v for k, v in httpheaderout.items()}
  except AttributeError:
   httpheaderout = geturls_text.info();
  if(isinstance(httpheaderout, list)):
@@ -781,7 +784,7 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
   try:
    os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple())));
   except AttributeError:
-   os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+   os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   while True:
    databytes = geturls_text.read(buffersize);
@@ -827,7 +830,7 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, 
   try:
    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
   except AttributeError:
-   os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+   os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
   exec_time_end = time.time();
   log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
   if(os.path.exists(tmpfilename)):
@@ -1024,7 +1027,7 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
   try:
    os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple())));
   except AttributeError:
-   os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+   os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   while True:
    databytes = geturls_text.read(buffersize);
@@ -1070,7 +1073,7 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers,
   try:
    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
   except AttributeError:
-   os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+   os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
   exec_time_end = time.time();
   log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
   if(os.path.exists(tmpfilename)):
@@ -1274,7 +1277,7 @@ if(havehttplib2):
    try:
     os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    while True:
     databytes = geturls_text.read(buffersize);
@@ -1326,7 +1329,7 @@ if(havehttplib2):
    try:
     os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
@@ -1452,6 +1455,7 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpcoo
   while(ic < imax):
    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
    ic += 1;
+  httpheaderout =  {k.title(): v for k, v in httpheaderout.items()}
  except AttributeError:
   httpheaderout = geturls_text.headers;
  if(isinstance(httpheaderout, list)):
@@ -1538,6 +1542,7 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
   while(ic < imax):
    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
    ic += 1;
+  httpheaderout =  {k.title(): v for k, v in httpheaderout.items()}
  except AttributeError:
   httpheaderout = geturls_text.headers;
  if(isinstance(httpheaderout, list)):
@@ -1556,7 +1561,7 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
   try:
    os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple())));
   except AttributeError:
-   os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+   os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   while True:
    databytes = geturls_text.read(buffersize);
@@ -1602,7 +1607,7 @@ def download_from_url_to_file_with_request(httpurl, httpheaders=geturls_headers,
   try:
    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
   except AttributeError:
-   os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+   os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
   exec_time_end = time.time();
   log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
   if(os.path.exists(tmpfilename)):
@@ -1794,7 +1799,7 @@ if(haverequests):
    try:
     os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
@@ -1844,7 +1849,7 @@ if(haverequests):
    try:
     os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
@@ -2047,7 +2052,7 @@ if(havehttpx):
    try:
     os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
@@ -2097,7 +2102,7 @@ if(havehttpx):
    try:
     os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
@@ -2300,7 +2305,7 @@ if(havehttpx):
    try:
     os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
@@ -2350,7 +2355,7 @@ if(havehttpx):
    try:
     os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
@@ -2553,7 +2558,7 @@ if(havehttpcore):
    try:
     os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
@@ -2603,7 +2608,7 @@ if(havehttpcore):
    try:
     os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
@@ -2806,7 +2811,7 @@ if(havehttpcore):
    try:
     os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
@@ -2856,7 +2861,7 @@ if(havehttpcore):
    try:
     os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
@@ -3061,7 +3066,7 @@ if(haveurllib3):
    try:
     os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    while True:
     databytes = geturls_text.read(buffersize);
@@ -3113,7 +3118,7 @@ if(haveurllib3):
    try:
     os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
@@ -3318,7 +3323,7 @@ if(haveurllib3):
    try:
     os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    while True:
     databytes = geturls_text.read(buffersize);
@@ -3370,7 +3375,7 @@ if(haveurllib3):
    try:
     os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
@@ -3579,7 +3584,7 @@ if(havemechanize):
    try:
     os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
    while True:
     databytes = geturls_text.read(buffersize);
@@ -3631,7 +3636,7 @@ if(havemechanize):
    try:
     os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
-    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%Y-%m-%d %H:%M:%S %z").timetuple())));
+    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
    if(os.path.exists(tmpfilename)):
