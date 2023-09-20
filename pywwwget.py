@@ -452,6 +452,8 @@ def get_httplib_support(checkvalue=None):
   returnval.append("mechanize");
  if(haveparamiko):
   returnval.append("sftp");
+ if(havepysftp):
+  returnval.append("pysftp");
  if(not checkvalue is None):
   if(checkvalue=="urllib1" or checkvalue=="urllib2"):
    checkvalue = "urllib";
@@ -499,6 +501,8 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httplibuse = "httplib";
  if(not haveparamiko and httplibuse=="sftp"):
   httplibuse = "ftp";
+ if(not havepysftp and httplibuse=="pysftp"):
+  httplibuse = "ftp";
  if(httplibuse=="urllib"):
   returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="request"):
@@ -527,6 +531,8 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   returnval = download_from_url_with_ftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="sftp"):
   returnval = download_from_url_with_sftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
+ elif(httplibuse=="pysftp"):
+  returnval = download_from_url_with_pysftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  else:
   returnval = False;
  return returnval;
@@ -554,6 +560,8 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
  if(not havehttplib2 and httplibuse=="httplib2"):
   httplibuse = "httplib";
  if(not haveparamiko and httplibuse=="sftp"):
+  httplibuse = "ftp";
+ if(not haveparamiko and httplibuse=="pysftp"):
   httplibuse = "ftp";
  if(httplibuse=="urllib"):
   returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
@@ -583,6 +591,8 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   returnval = download_from_url_file_with_ftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="sftp"):
   returnval = download_from_url_file_with_sftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
+ elif(httplibuse=="pysftp"):
+  returnval = download_from_url_file_with_pysftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  else:
   returnval = False;
  return returnval;
@@ -610,6 +620,8 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
  if(not havehttplib2 and httplibuse=="httplib2"):
   httplibuse = "httplib";
  if(not haveparamiko and httplibuse=="sftp"):
+  httplibuse = "ftp";
+ if(not havepysftp and httplibuse=="pysftp"):
   httplibuse = "ftp";
  if(httplibuse=="urllib"):
   returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
@@ -639,6 +651,8 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
   returnval = download_from_url_to_file_with_ftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="sftp"):
   returnval = download_from_url_to_file_with_sftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
+ elif(httplibuse=="pysftp"):
+  returnval = download_from_url_to_file_with_pysftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  else:
   returnval = False;
  return returnval;
@@ -4617,4 +4631,292 @@ if(haveparamiko):
   return sftpfile;
 else:
  def upload_file_to_sftp_string(url):
+  return False;
+
+
+if(havepysftp):
+ def download_file_from_pysftp_file(url):
+  urlparts = urlparse.urlparse(url);
+  file_name = os.path.basename(urlparts.path);
+  file_dir = os.path.dirname(urlparts.path);
+  if(urlparts.scheme=="http" or urlparts.scheme=="https"):
+   return False;
+  sftp_port = urlparts.port;
+  if(urlparts.port is None):
+   sftp_port = 22;
+  else:
+   sftp_port = urlparts.port;
+  if(urlparts.username is not None):
+   sftp_username = urlparts.username;
+  else:
+   sftp_username = "anonymous";
+  if(urlparts.password is not None):
+   sftp_password = urlparts.password;
+  elif(urlparts.password is None and urlparts.username=="anonymous"):
+   sftp_password = "anonymous";
+  else:
+   sftp_password = "";
+  if(urlparts.scheme!="sftp"):
+   return False;
+  try:
+   pysftp.Connection(urlparts.hostname, port=sftp_port, username=urlparts.username, password=urlparts.password);
+  except paramiko.ssh_exception.SSHException:
+   return False;
+  except socket.gaierror:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  sftp = ssh.open_sftp();
+  sftpfile = BytesIO();
+  sftp.getfo(urlparts.path, sftpfile);
+  sftp.close();
+  ssh.close();
+  sftpfile.seek(0, 0);
+  return sftpfile;
+else:
+ def download_file_from_pysftp_file(url):
+  return False;
+
+if(havepysftp):
+ def download_file_from_pysftp_string(url):
+  sftpfile = download_file_from_pysftp_file(url);
+  return sftpfile.read();
+else:
+ def download_file_from_ftp_string(url):
+  return False;
+
+if(havepysftp):
+ def download_from_url_with_pysftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  global geturls_download_sleep, havebrotli;
+  if(sleep<0):
+   sleep = geturls_download_sleep;
+  urlparts = urlparse.urlparse(httpurl);
+  if(isinstance(httpheaders, list)):
+   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
+  if(isinstance(httpheaders, dict)):
+   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
+  time.sleep(sleep);
+  geturls_text = download_file_from_pysftp_file(httpurl);
+  if(not geturls_text):
+   return False;
+  log.info("Downloading URL "+httpurl);
+  returnval_content = geturls_text.read()[:];
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': None, 'Version': None, 'Method': None, 'HeadersSent': None, 'URL': httpurl, 'Code': None};
+  geturls_text.close();
+  return returnval;
+
+if(not havepysftp):
+ def download_from_url_with_pysftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  return False;
+
+if(havepysftp):
+ def download_from_url_file_with_pysftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  exec_time_start = time.time();
+  myhash = hashlib.new("sha1");
+  if(sys.version[0]=="2"):
+   myhash.update(httpurl);
+   myhash.update(str(buffersize));
+   myhash.update(str(exec_time_start));
+  if(sys.version[0]>="3"):
+   myhash.update(httpurl.encode('utf-8'));
+   myhash.update(str(buffersize).encode('utf-8'));
+   myhash.update(str(exec_time_start).encode('utf-8'));
+  newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
+  if(sleep<0):
+   sleep = geturls_download_sleep;
+  urlparts = urlparse.urlparse(httpurl);
+  if(isinstance(httpheaders, list)):
+   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
+  if(isinstance(httpheaders, dict)):
+   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
+  time.sleep(sleep);
+  geturls_text = download_file_from_pysftp_file(httpurl);
+  if(not geturls_text):
+   return False;
+  geturls_text.seek(0, 2);
+  downloadsize = geturls_text.tell();
+  geturls_text.seek(0, 0);
+  if(downloadsize is not None):
+   downloadsize = int(downloadsize);
+  if downloadsize is None: downloadsize = 0;
+  fulldatasize = 0;
+  prevdownsize = 0;
+  log.info("Downloading URL "+httpurl);
+  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
+   tmpfilename = f.name;
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': None, 'Version': None, 'Method': None, 'HeadersSent': None, 'URL': httpurl, 'Code': None};
+   while True:
+    databytes = geturls_text.read(buffersize);
+    if not databytes: break;
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    f.write(databytes);
+   f.close();
+  geturls_text.close();
+  exec_time_end = time.time();
+  log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to download file.");
+  returnval.update({'Filesize': os.path.getsize(tmpfilename), 'DownloadTime': float(exec_time_start - exec_time_end), 'DownloadTimeReadable': hms_string(exec_time_start - exec_time_end)});
+  return returnval;
+
+if(not havepysftp):
+ def download_from_url_file_with_pysftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  return False;
+
+if(havepysftp):
+ def download_from_url_to_file_with_pysftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  global geturls_download_sleep;
+  if(sleep<0):
+   sleep = geturls_download_sleep;
+  if(not outfile=="-"):
+   outpath = outpath.rstrip(os.path.sep);
+   filepath = os.path.realpath(outpath+os.path.sep+outfile);
+   if(not os.path.exists(outpath)):
+    os.makedirs(outpath);
+   if(os.path.exists(outpath) and os.path.isfile(outpath)):
+    return False;
+   if(os.path.exists(filepath) and os.path.isdir(filepath)):
+    return False;
+   pretmpfilename = download_from_url_file_with_pysftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
+   tmpfilename = pretmpfilename['Filename'];
+   downloadsize = os.path.getsize(tmpfilename);
+   fulldatasize = 0;
+   log.info("Moving file "+tmpfilename+" to "+filepath);
+   exec_time_start = time.time();
+   shutil.move(tmpfilename, filepath);
+   exec_time_end = time.time();
+   log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
+   if(os.path.exists(tmpfilename)):
+    os.remove(tmpfilename);
+   returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': None, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+  if(outfile=="-" and sys.version[0]=="2"):
+   pretmpfilename = download_from_url_file_with_pysftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
+   tmpfilename = pretmpfilename['Filename'];
+   downloadsize = os.path.getsize(tmpfilename);
+   fulldatasize = 0;
+   prevdownsize = 0;
+   exec_time_start = time.time();
+   with open(tmpfilename, 'rb') as ft:
+    f = StringIO();
+    while True:
+     databytes = ft.read(buffersize[1]);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     f.write(databytes);
+    f.seek(0);
+    fdata = f.getvalue();
+    f.close();
+    ft.close();
+    os.remove(tmpfilename);
+    exec_time_end = time.time();
+    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
+   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': None, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+  if(outfile=="-" and sys.version[0]>="3"):
+   pretmpfilename = download_from_url_file_with_pysftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   tmpfilename = pretmpfilename['Filename'];
+   downloadsize = os.path.getsize(tmpfilename);
+   fulldatasize = 0;
+   prevdownsize = 0;
+   exec_time_start = time.time();
+   with open(tmpfilename, 'rb') as ft:
+    f = BytesIO();
+    while True:
+     databytes = ft.read(buffersize[1]);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     f.write(databytes);
+    f.seek(0);
+    fdata = f.getvalue();
+    f.close();
+    ft.close();
+    os.remove(tmpfilename);
+    exec_time_end = time.time();
+    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
+   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': None, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+  return returnval;
+
+if(not havepysftp):
+ def download_from_url_to_file_with_pysftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  return False;
+
+if(havepysftp):
+ def upload_file_to_pysftp_file(sftpfile, url):
+  urlparts = urlparse.urlparse(url);
+  file_name = os.path.basename(urlparts.path);
+  file_dir = os.path.dirname(urlparts.path);
+  sftp_port = urlparts.port;
+  if(urlparts.scheme=="http" or urlparts.scheme=="https"):
+   return False;
+  if(urlparts.port is None):
+   sftp_port = 22;
+  else:
+   sftp_port = urlparts.port;
+  if(urlparts.username is not None):
+   sftp_username = urlparts.username;
+  else:
+   sftp_username = "anonymous";
+  if(urlparts.password is not None):
+   sftp_password = urlparts.password;
+  elif(urlparts.password is None and urlparts.username=="anonymous"):
+   sftp_password = "anonymous";
+  else:
+   sftp_password = "";
+  if(urlparts.scheme!="sftp"):
+   return False;
+  try:
+   pysftp.Connection(urlparts.hostname, port=sftp_port, username=urlparts.username, password=urlparts.password);
+  except paramiko.ssh_exception.SSHException:
+   return False;
+  except socket.gaierror:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  sftp = ssh.open_sftp();
+  sftp.putfo(sftpfile, urlparts.path);
+  sftp.close();
+  ssh.close();
+  sftpfile.seek(0, 0);
+  return sftpfile;
+else:
+ def upload_file_to_pysftp_file(sftpfile, url):
+  return False;
+
+if(havepysftp):
+ def upload_file_to_pysftp_string(sftpstring, url):
+  sftpfileo = BytesIO(sftpstring);
+  sftpfile = upload_file_to_pysftp_files(ftpfileo, url);
+  sftpfileo.close();
+  return sftpfile;
+else:
+ def upload_file_to_pysftp_string(url):
   return False;
