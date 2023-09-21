@@ -804,7 +804,6 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  httpheadersentout = httpheaders;
  try:
   prehttpheaderout = geturls_text.info();
-  print(prehttpheaderout.items)
   httpheaderkeys = geturls_text.info().keys();
   imax = len(httpheaderkeys);
   ic = 0;
