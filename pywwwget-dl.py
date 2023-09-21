@@ -12,7 +12,7 @@
     Copyright 2016-2023 Game Maker 2k - https://github.com/GameMaker2k
     Copyright 2016-2023 Kazuki Przyborowski - https://github.com/KazukiPrzyborowski
 
-    $FileInfo: pywwwget-dl.py - Last Update: 9/20/2023 Ver. 1.2.8 RC 1 - Author: cooldude2k $
+    $FileInfo: pywwwget-dl.py - Last Update: 9/20/2023 Ver. 1.2.12 RC 1 - Author: cooldude2k $
 '''
 
 from __future__ import division, absolute_import, print_function;
