@@ -881,10 +881,10 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, 
   exec_time_start = time.time();
   shutil.move(tmpfilename, filepath);
   try:
-   os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
+   os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
   except AttributeError:
    try:
-    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
+    os.utime(filepath, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    except ValueError:
     pass;
   except ValueError:
@@ -1160,10 +1160,10 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers,
   exec_time_start = time.time();
   shutil.move(tmpfilename, filepath);
   try:
-   os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
+   os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
   except AttributeError:
    try:
-    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
+    os.utime(filepath, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    except ValueError:
     pass;
   except ValueError:
@@ -1452,10 +1452,10 @@ if(havehttplib2):
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
    try:
-    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
+    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
     try:
-     os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
+     os.utime(filepath, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
     except ValueError:
      pass;
    except ValueError:
@@ -1764,10 +1764,10 @@ def download_from_url_to_file_with_request(httpurl, httpheaders=geturls_headers,
   exec_time_start = time.time();
   shutil.move(tmpfilename, filepath);
   try:
-   os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
+   os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
   except AttributeError:
    try:
-    os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
+    os.utime(filepath, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    except ValueError:
     pass;
   except ValueError:
@@ -2042,10 +2042,10 @@ if(haverequests):
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
    try:
-    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
+    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
     try:
-     os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
+     os.utime(filepath, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
     except ValueError:
      pass;
    except ValueError:
@@ -2331,10 +2331,10 @@ if(havehttpx):
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
    try:
-    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
+    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
     try:
-     os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
+     os.utime(filepath, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
     except ValueError:
      pass;
    except ValueError:
@@ -2620,10 +2620,10 @@ if(havehttpx):
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
    try:
-    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
+    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
     try:
-     os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
+     os.utime(filepath, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
     except ValueError:
      pass;
    except ValueError:
@@ -2909,10 +2909,10 @@ if(havehttpcore):
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
    try:
-    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
+    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
     try:
-     os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
+     os.utime(filepath, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
     except ValueError:
      pass;
    except ValueError:
@@ -3198,10 +3198,10 @@ if(havehttpcore):
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
    try:
-    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
+    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
     try:
-     os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
+     os.utime(filepath, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
     except ValueError:
      pass;
    except ValueError:
@@ -3491,10 +3491,10 @@ if(haveurllib3):
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
    try:
-    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
+    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
     try:
-     os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
+     os.utime(filepath, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
     except ValueError:
      pass;
    except ValueError:
@@ -3784,10 +3784,10 @@ if(haveurllib3):
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
    try:
-    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
+    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
     try:
-     os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
+     os.utime(filepath, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
     except ValueError:
      pass;
    except ValueError:
@@ -4081,10 +4081,10 @@ if(havemechanize):
    exec_time_start = time.time();
    shutil.move(tmpfilename, filepath);
    try:
-    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Headers').get('Last-Modified')).timetuple())));
+    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
    except AttributeError:
     try:
-     os.utime(filepath, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
+     os.utime(filepath, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
     except ValueError:
      pass;
    except ValueError:
