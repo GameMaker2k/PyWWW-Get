@@ -667,12 +667,12 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuser
  httpheaders = fix_header_names(httpheaders);
  if(httpuseragent is not None):
   if('User-Agent' in httpheaders):
-   httpuseragent['User-Agent'] = httpuseragent;
+   httpheaders['User-Agent'] = httpuseragent;
   else:
    httpuseragent.update({'User-Agent': httpuseragent});
  if(httpreferer is not None):
   if('Referer' in httpheaders):
-   httpuseragent['Referer'] = httpreferer;
+   httpheaders['Referer'] = httpreferer;
   else:
    httpuseragent.update({'Referer': httpreferer});
  if(urlparts.username is not None or urlparts.password is not None):
@@ -761,12 +761,12 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  httpheaders = fix_header_names(httpheaders);
  if(httpuseragent is not None):
   if('User-Agent' in httpheaders):
-   httpuseragent['User-Agent'] = httpuseragent;
+   httpheaders['User-Agent'] = httpuseragent;
   else:
    httpuseragent.update({'User-Agent': httpuseragent});
  if(httpreferer is not None):
   if('Referer' in httpheaders):
-   httpuseragent['Referer'] = httpreferer;
+   httpheaders['Referer'] = httpreferer;
   else:
    httpuseragent.update({'Referer': httpreferer});
  if(urlparts.username is not None or urlparts.password is not None):
@@ -956,12 +956,12 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuse
  httpheaders = fix_header_names(httpheaders);
  if(httpuseragent is not None):
   if('User-Agent' in httpheaders):
-   httpuseragent['User-Agent'] = httpuseragent;
+   httpheaders['User-Agent'] = httpuseragent;
   else:
    httpuseragent.update({'User-Agent': httpuseragent});
  if(httpreferer is not None):
   if('Referer' in httpheaders):
-   httpuseragent['Referer'] = httpreferer;
+   httpheaders['Referer'] = httpreferer;
   else:
    httpuseragent.update({'Referer': httpreferer});
  if(urlparts.username is not None or urlparts.password is not None):
@@ -1041,12 +1041,12 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  httpheaders = fix_header_names(httpheaders);
  if(httpuseragent is not None):
   if('User-Agent' in httpheaders):
-   httpuseragent['User-Agent'] = httpuseragent;
+   httpheaders['User-Agent'] = httpuseragent;
   else:
    httpuseragent.update({'User-Agent': httpuseragent});
  if(httpreferer is not None):
   if('Referer' in httpheaders):
-   httpuseragent['Referer'] = httpreferer;
+   httpheaders['Referer'] = httpreferer;
   else:
    httpuseragent.update({'Referer': httpreferer});
  if(urlparts.username is not None or urlparts.password is not None):
@@ -1226,12 +1226,12 @@ if(havehttplib2):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -1317,12 +1317,12 @@ if(havehttplib2):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -1512,12 +1512,12 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpuse
  httpheaders = fix_header_names(httpheaders);
  if(httpuseragent is not None):
   if('User-Agent' in httpheaders):
-   httpuseragent['User-Agent'] = httpuseragent;
+   httpheaders['User-Agent'] = httpuseragent;
   else:
    httpuseragent.update({'User-Agent': httpuseragent});
  if(httpreferer is not None):
   if('Referer' in httpheaders):
-   httpuseragent['Referer'] = httpreferer;
+   httpheaders['Referer'] = httpreferer;
   else:
    httpuseragent.update({'Referer': httpreferer});
  if(urlparts.username is not None or urlparts.password is not None):
@@ -1611,12 +1611,12 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
  httpheaders = fix_header_names(httpheaders);
  if(httpuseragent is not None):
   if('User-Agent' in httpheaders):
-   httpuseragent['User-Agent'] = httpuseragent;
+   httpheaders['User-Agent'] = httpuseragent;
   else:
    httpuseragent.update({'User-Agent': httpuseragent});
  if(httpreferer is not None):
   if('Referer' in httpheaders):
-   httpuseragent['Referer'] = httpreferer;
+   httpheaders['Referer'] = httpreferer;
   else:
    httpuseragent.update({'Referer': httpreferer});
  if(urlparts.username is not None or urlparts.password is not None):
@@ -1810,12 +1810,12 @@ if(haverequests):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -1895,12 +1895,12 @@ if(haverequests):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -2083,12 +2083,12 @@ if(havehttpx):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -2171,12 +2171,12 @@ if(havehttpx):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -2362,12 +2362,12 @@ if(havehttpx):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -2450,12 +2450,12 @@ if(havehttpx):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -2641,12 +2641,12 @@ if(havehttpcore):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -2729,12 +2729,12 @@ if(havehttpcore):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -2920,12 +2920,12 @@ if(havehttpcore):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -3008,12 +3008,12 @@ if(havehttpcore):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -3199,12 +3199,12 @@ if(haveurllib3):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -3288,12 +3288,12 @@ if(haveurllib3):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -3482,12 +3482,12 @@ if(haveurllib3):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -3571,12 +3571,12 @@ if(haveurllib3):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -3765,12 +3765,12 @@ if(havemechanize):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -3856,12 +3856,12 @@ if(havemechanize):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(urlparts.username is not None or urlparts.password is not None):
@@ -4098,12 +4098,12 @@ def download_from_url_with_ftp(httpurl, httpheaders=geturls_headers, httpuserage
  httpheaders = fix_header_names(httpheaders);
  if(httpuseragent is not None):
   if('User-Agent' in httpheaders):
-   httpuseragent['User-Agent'] = httpuseragent;
+   httpheaders['User-Agent'] = httpuseragent;
   else:
    httpuseragent.update({'User-Agent': httpuseragent});
  if(httpreferer is not None):
   if('Referer' in httpheaders):
-   httpuseragent['Referer'] = httpreferer;
+   httpheaders['Referer'] = httpreferer;
   else:
    httpuseragent.update({'Referer': httpreferer});
  if(isinstance(httpheaders, dict)):
@@ -4139,12 +4139,12 @@ def download_from_url_file_with_ftp(httpurl, httpheaders=geturls_headers, httpus
  httpheaders = fix_header_names(httpheaders);
  if(httpuseragent is not None):
   if('User-Agent' in httpheaders):
-   httpuseragent['User-Agent'] = httpuseragent;
+   httpheaders['User-Agent'] = httpuseragent;
   else:
    httpuseragent.update({'User-Agent': httpuseragent});
  if(httpreferer is not None):
   if('Referer' in httpheaders):
-   httpuseragent['Referer'] = httpreferer;
+   httpheaders['Referer'] = httpreferer;
   else:
    httpuseragent.update({'Referer': httpreferer});
  if(isinstance(httpheaders, dict)):
@@ -4387,12 +4387,12 @@ if(haveparamiko):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(isinstance(httpheaders, dict)):
@@ -4433,12 +4433,12 @@ if(haveparamiko):
   httpheaders = fix_header_names(httpheaders);
   if(httpuseragent is not None):
    if('User-Agent' in httpheaders):
-    httpuseragent['User-Agent'] = httpuseragent;
+    httpheaders['User-Agent'] = httpuseragent;
    else:
     httpuseragent.update({'User-Agent': httpuseragent});
   if(httpreferer is not None):
    if('Referer' in httpheaders):
-    httpuseragent['Referer'] = httpreferer;
+    httpheaders['Referer'] = httpreferer;
    else:
     httpuseragent.update({'Referer': httpreferer});
   if(isinstance(httpheaders, dict)):
