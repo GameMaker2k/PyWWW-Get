@@ -735,6 +735,7 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuser
  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
   returnval_content = geturls_text.read()[:];
  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  returnval_content = geturls_text.read()[:];
   returnval_content = brotli.decompress(returnval_content);
  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
  geturls_text.close();
@@ -1024,6 +1025,7 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuse
  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
   returnval_content = geturls_text.read()[:];
  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  returnval_content = geturls_text.read()[:];
   returnval_content = brotli.decompress(returnval_content);
  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
  geturls_text.close();
@@ -1304,6 +1306,7 @@ if(havehttplib2):
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    returnval_content = geturls_text.read()[:];
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = geturls_text.read()[:];
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
@@ -1614,6 +1617,7 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpuse
  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
   returnval_content = geturls_text.read()[:];
  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  returnval_content = geturls_text.read()[:];
   returnval_content = brotli.decompress(returnval_content);
  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
  geturls_text.close();
@@ -1902,6 +1906,7 @@ if(haverequests):
   if(httpheaderout.get('Content-Type')!="gzip" and httpheaderout.get('Content-Type')!="deflate" and httpheaderout.get('Content-Type')!="br"):
    returnval_content = geturls_text.content[:];
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = geturls_text.content[:];
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
@@ -2188,6 +2193,7 @@ if(havehttpx):
   if(httpheaderout.get('Content-Type')!="gzip" and httpheaderout.get('Content-Type')!="deflate" and httpheaderout.get('Content-Type')!="br"):
    returnval_content = geturls_text.content[:];
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = geturls_text.content[:];
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
@@ -2477,6 +2483,7 @@ if(havehttpx):
   if(httpheaderout.get('Content-Type')!="gzip" and httpheaderout.get('Content-Type')!="deflate" and httpheaderout.get('Content-Type')!="br"):
    returnval_content = geturls_text.content[:];
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = geturls_text.content[:];
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
@@ -2766,6 +2773,7 @@ if(havehttpcore):
   if(httpheaderout.get('Content-Type')!="gzip" and httpheaderout.get('Content-Type')!="deflate" and httpheaderout.get('Content-Type')!="br"):
    returnval_content = geturls_text.content[:];
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = geturls_text.content[:];
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
@@ -3055,6 +3063,7 @@ if(havehttpcore):
   if(httpheaderout.get('Content-Type')!="gzip" and httpheaderout.get('Content-Type')!="deflate" and httpheaderout.get('Content-Type')!="br"):
    returnval_content = geturls_text.content[:];
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = geturls_text.content[:];
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
@@ -3345,6 +3354,7 @@ if(haveurllib3):
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    returnval_content = geturls_text.read()[:];
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = geturls_text.read()[:];
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
@@ -3638,6 +3648,7 @@ if(haveurllib3):
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    returnval_content = geturls_text.read()[:];
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = geturls_text.read()[:];
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
@@ -3933,6 +3944,7 @@ if(havemechanize):
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    returnval_content = geturls_text.read()[:];
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = geturls_text.read()[:];
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
