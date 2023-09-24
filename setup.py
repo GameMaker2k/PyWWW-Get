@@ -48,8 +48,8 @@ pymodule['downloadurl'] = 'https://github.com/GameMaker2k/PyWWW-Get/archive/mast
 pymodule['longdescription'] = 'Python libary/module to download files.';
 pymodule['platforms'] = 'OS Independent';
 pymodule['zipsafe'] = True;
-pymodule['pymodules'] = ['pywwwget'];
-pymodule['scripts'] = ['pywwwget-dl.py'];
+pymodule['pymodules'] = ['pywwwget', 'pywwwgetold'];
+pymodule['scripts'] = ['pywwwget-dl.py', 'pywwwgetold-dl.py'];
 pymodule['classifiers'] = [
  'Development Status :: 5 - Production/Stable',
  'Intended Audience :: Developers',
