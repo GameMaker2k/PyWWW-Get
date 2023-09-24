@@ -1429,7 +1429,7 @@ if(havehttplib2):
     ic = 0;
     httpheaderout = {};
     while(ic < imax):
-      httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
      ic += 1;
    except AttributeError:
     pass;
