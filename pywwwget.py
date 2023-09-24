@@ -917,6 +917,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   pass;
  else:
   returnval = False;
+ returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
  return returnval;
 
 def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", buffersize=524288, sleep=-1):
