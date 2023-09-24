@@ -710,17 +710,18 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuser
  if(isinstance(httpheaderout, list)):
   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
  httpheaderout = fix_header_names(httpheaderout);
- try:
-  prehttpheaderout = httpheaderout;
-  httpheaderkeys = httpheaderout.keys();
-  imax = len(httpheaderkeys);
-  ic = 0;
-  httpheaderout = {};
-  while(ic < imax):
-   httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-   ic += 1;
- except AttributeError:
-  pass;
+ if(sys.version[0]=="2"):
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
  httpheadersentout = fix_header_names(httpheadersentout);
@@ -805,17 +806,18 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
- try:
-  prehttpheaderout = httpheaderout;
-  httpheaderkeys = httpheaderout.keys();
-  imax = len(httpheaderkeys);
-  ic = 0;
-  httpheaderout = {};
-  while(ic < imax):
-   httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-   ic += 1;
- except AttributeError:
-  pass;
+ if(sys.version[0]=="2"):
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
  httpheaderout = fix_header_names(httpheaderout);
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -1010,17 +1012,18 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuse
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
- try:
-  prehttpheaderout = httpheaderout;
-  httpheaderkeys = httpheaderout.keys();
-  imax = len(httpheaderkeys);
-  ic = 0;
-  httpheaderout = {};
-  while(ic < imax):
-   httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-   ic += 1;
- except AttributeError:
-  pass;
+ if(sys.version[0]=="2"):
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
  httpheaderout = fix_header_names(httpheaderout);
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -1107,17 +1110,18 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
- try:
-  prehttpheaderout = httpheaderout;
-  httpheaderkeys = httpheaderout.keys();
-  imax = len(httpheaderkeys);
-  ic = 0;
-  httpheaderout = {};
-  while(ic < imax):
-   httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-   ic += 1;
- except AttributeError:
-  pass;
+ if(sys.version[0]=="2"):
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
  httpheaderout = fix_header_names(httpheaderout);
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -1313,17 +1317,18 @@ if(havehttplib2):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -1416,17 +1421,18 @@ if(havehttplib2):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+      httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -1635,17 +1641,18 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpuse
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
- try:
-  prehttpheaderout = httpheaderout;
-  httpheaderkeys = httpheaderout.keys();
-  imax = len(httpheaderkeys);
-  ic = 0;
-  httpheaderout = {};
-  while(ic < imax):
-   httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-   ic += 1;
- except AttributeError:
-  pass;
+ if(sys.version[0]=="2"):
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
  httpheaderout = fix_header_names(httpheaderout);
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -1735,17 +1742,18 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
- try:
-  prehttpheaderout = httpheaderout;
-  httpheaderkeys = httpheaderout.keys();
-  imax = len(httpheaderkeys);
-  ic = 0;
-  httpheaderout = {};
-  while(ic < imax):
-   httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-   ic += 1;
- except AttributeError:
-  pass;
+ if(sys.version[0]=="2"):
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
  httpheaderout = fix_header_names(httpheaderout);
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -1935,17 +1943,18 @@ if(haverequests):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -2032,17 +2041,18 @@ if(haverequests):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -2244,17 +2254,18 @@ if(havehttpx):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -2344,17 +2355,18 @@ if(havehttpx):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -2556,17 +2568,18 @@ if(havehttpx):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -2656,17 +2669,18 @@ if(havehttpx):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -2868,17 +2882,18 @@ if(havehttpcore):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -2968,17 +2983,18 @@ if(havehttpcore):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -3180,17 +3196,18 @@ if(havehttpcore):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -3280,17 +3297,18 @@ if(havehttpcore):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -3493,17 +3511,18 @@ if(haveurllib3):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -3594,17 +3613,18 @@ if(haveurllib3):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -3809,17 +3829,18 @@ if(haveurllib3):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -3910,17 +3931,18 @@ if(haveurllib3):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -4127,17 +4149,18 @@ if(havemechanize):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -4230,17 +4253,18 @@ if(havemechanize):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
-  try:
-   prehttpheaderout = httpheaderout;
-   httpheaderkeys = httpheaderout.keys();
-   imax = len(httpheaderkeys);
-   ic = 0;
-   httpheaderout = {};
-   while(ic < imax):
-    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
-    ic += 1;
-  except AttributeError:
-   pass;
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
