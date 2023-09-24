@@ -897,6 +897,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    returnval_content = geturls_text.read()[:];
    returnval_content = brotli.decompress(returnval_content);
+  geturls_text.close();
  elif(httplibuse=="requests"):
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
@@ -911,24 +912,11 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    returnval_content = gzstrbuf.raw.read()[:];
    returnval_content = brotli.decompress(returnval_content);
+  geturls_text.close();
  elif(httplibuse=="ftp" or httplibuse=="sftp" or httplibuse=="pysftp"):
   pass;
  else:
   returnval = False;
- if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-  if(sys.version[0]=="2"):
-   strbuf = StringIO(geturls_text.read());
-  if(sys.version[0]>="3"):
-   strbuf = BytesIO(geturls_text.read());
-  gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-  returnval_content = gzstrbuf.read()[:];
- if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-  returnval_content = geturls_text.read()[:];
- if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-  returnval_content = geturls_text.read()[:];
-  returnval_content = brotli.decompress(returnval_content);
- returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
- geturls_text.close();
  return returnval;
 
 def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", buffersize=524288, sleep=-1):
