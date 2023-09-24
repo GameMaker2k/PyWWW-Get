@@ -638,13 +638,13 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
  elif(httplibuse=="requests"):
   returnval = download_from_url_to_file_with_requests(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="httpx"):
-  returnval = download_from_url_file_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_to_file_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="httpx2"):
-  returnval = download_from_url_file_with_httpx2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_to_file_with_httpx2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="httpcore"):
-  returnval = download_from_url_file_with_httpcore(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_to_file_with_httpcore(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="httpcore2"):
-  returnval = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
+  returnval = download_from_url_to_file_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="mechanize"):
   returnval = download_from_url_to_file_with_mechanize(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="ftp"):
@@ -707,9 +707,12 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuser
  httpurlout = geturls_text.geturl();
  httpheaderout = geturls_text.info();
  httpheadersentout = httpheaders;
+ if(isinstance(httpheaderout, list)):
+  httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+ httpheaderout = fix_header_names(httpheaderout);
  try:
-  prehttpheaderout = geturls_text.info();
-  httpheaderkeys = geturls_text.info().keys();
+  prehttpheaderout = httpheaderout;
+  httpheaderkeys = httpheaderout.keys();
   imax = len(httpheaderkeys);
   ic = 0;
   httpheaderout = {};
@@ -717,10 +720,7 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuser
    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
    ic += 1;
  except AttributeError:
-  httpheaderout = geturls_text.info();
- if(isinstance(httpheaderout, list)):
-  httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
- httpheaderout = fix_header_names(httpheaderout);
+  pass;
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
  httpheadersentout = fix_header_names(httpheadersentout);
@@ -803,9 +803,11 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  httpurlout = geturls_text.geturl();
  httpheaderout = geturls_text.info();
  httpheadersentout = httpheaders;
+ if(isinstance(httpheaderout, list)):
+  httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
  try:
-  prehttpheaderout = geturls_text.info();
-  httpheaderkeys = geturls_text.info().keys();
+  prehttpheaderout = httpheaderout;
+  httpheaderkeys = httpheaderout.keys();
   imax = len(httpheaderkeys);
   ic = 0;
   httpheaderout = {};
@@ -813,9 +815,7 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
    ic += 1;
  except AttributeError:
-  httpheaderout = geturls_text.info();
- if(isinstance(httpheaderout, list)):
-  httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  pass;
  httpheaderout = fix_header_names(httpheaderout);
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -1010,6 +1010,17 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuse
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+ try:
+  prehttpheaderout = httpheaderout;
+  httpheaderkeys = httpheaderout.keys();
+  imax = len(httpheaderkeys);
+  ic = 0;
+  httpheaderout = {};
+  while(ic < imax):
+   httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+   ic += 1;
+ except AttributeError:
+  pass;
  httpheaderout = fix_header_names(httpheaderout);
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -1096,6 +1107,17 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+ try:
+  prehttpheaderout = httpheaderout;
+  httpheaderkeys = httpheaderout.keys();
+  imax = len(httpheaderkeys);
+  ic = 0;
+  httpheaderout = {};
+  while(ic < imax):
+   httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+   ic += 1;
+ except AttributeError:
+  pass;
  httpheaderout = fix_header_names(httpheaderout);
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -1291,6 +1313,17 @@ if(havehttplib2):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -1383,6 +1416,17 @@ if(havehttplib2):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -1589,9 +1633,11 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpuse
  httpurlout = geturls_text.geturl();
  httpheaderout = geturls_text.headers;
  httpheadersentout = httpheaders;
+ if(isinstance(httpheaderout, list)):
+  httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
  try:
-  prehttpheaderout = geturls_text.headers;
-  httpheaderkeys = geturls_text.headers.keys();
+  prehttpheaderout = httpheaderout;
+  httpheaderkeys = httpheaderout.keys();
   imax = len(httpheaderkeys);
   ic = 0;
   httpheaderout = {};
@@ -1599,9 +1645,7 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpuse
    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
    ic += 1;
  except AttributeError:
-  httpheaderout = geturls_text.headers;
- if(isinstance(httpheaderout, list)):
-  httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  pass;
  httpheaderout = fix_header_names(httpheaderout);
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -1689,9 +1733,11 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
  httpurlout = geturls_text.geturl();
  httpheaderout = geturls_text.headers;
  httpheadersentout = httpheaders;
+ if(isinstance(httpheaderout, list)):
+  httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
  try:
-  prehttpheaderout = geturls_text.headers;
-  httpheaderkeys = geturls_text.headers.keys();
+  prehttpheaderout = httpheaderout;
+  httpheaderkeys = httpheaderout.keys();
   imax = len(httpheaderkeys);
   ic = 0;
   httpheaderout = {};
@@ -1699,9 +1745,7 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
    ic += 1;
  except AttributeError:
-  httpheaderout = geturls_text.headers;
- if(isinstance(httpheaderout, list)):
-  httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  pass;
  httpheaderout = fix_header_names(httpheaderout);
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -1869,11 +1913,11 @@ if(haverequests):
    postdata = urlencode(postdata);
   try:
    if(httpmethod=="GET"):
-    geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
+    geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie, stream=True);
    elif(httpmethod=="POST"):
-    geturls_text = requests.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie);
+    geturls_text = requests.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie, stream=True);
    else:
-    geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
+    geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie, stream=True);
   except requests.exceptions.ConnectTimeout:
    log.info("Error With URL "+httpurl);
    return False;
@@ -1891,22 +1935,33 @@ if(haverequests):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
-  if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
+  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.content);
+    strbuf = StringIO(gzstrbuf.raw.read());
    if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.content);
+    strbuf = BytesIO(gzstrbuf.raw.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.content[:];
-  if(httpheaderout.get('Content-Type')!="gzip" and httpheaderout.get('Content-Type')!="deflate" and httpheaderout.get('Content-Type')!="br"):
-   returnval_content = geturls_text.content[:];
+   returnval_content = gzstrbuf.read()[:];
+  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
+   returnval_content = gzstrbuf.raw.read()[:];
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   returnval_content = geturls_text.content[:];
+   returnval_content = gzstrbuf.raw.read()[:];
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
@@ -1955,11 +2010,11 @@ if(haverequests):
    postdata = urlencode(postdata);
   try:
    if(httpmethod=="GET"):
-    geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
+    geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie, stream=True);
    elif(httpmethod=="POST"):
-    geturls_text = requests.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie);
+    geturls_text = requests.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie, stream=True);
    else:
-    geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie);
+    geturls_text = requests.get(httpurl, headers=httpheaders, cookies=httpcookie, stream=True);
   except requests.exceptions.ConnectTimeout:
    log.info("Error With URL "+httpurl);
    return False;
@@ -1977,6 +2032,17 @@ if(haverequests):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -2178,22 +2244,33 @@ if(havehttpx):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
-  if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
+  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.content);
+    strbuf = StringIO(geturls_text.read());
    if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.content);
+    strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.content[:];
-  if(httpheaderout.get('Content-Type')!="gzip" and httpheaderout.get('Content-Type')!="deflate" and httpheaderout.get('Content-Type')!="br"):
-   returnval_content = geturls_text.content[:];
+   returnval_content = gzstrbuf.read()[:];
+  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
+   returnval_content = geturls_text.read()[:];
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   returnval_content = geturls_text.content[:];
+   returnval_content = geturls_text.read()[:];
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
@@ -2267,6 +2344,17 @@ if(havehttpx):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -2468,22 +2556,33 @@ if(havehttpx):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
-  if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
+  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.content);
+    strbuf = StringIO(geturls_text.read());
    if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.content);
+    strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.content[:];
-  if(httpheaderout.get('Content-Type')!="gzip" and httpheaderout.get('Content-Type')!="deflate" and httpheaderout.get('Content-Type')!="br"):
-   returnval_content = geturls_text.content[:];
+   returnval_content = gzstrbuf.read()[:];
+  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
+   returnval_content = geturls_text.read()[:];
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   returnval_content = geturls_text.content[:];
+   returnval_content = geturls_text.read()[:];
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
@@ -2557,6 +2656,17 @@ if(havehttpx):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -2758,22 +2868,33 @@ if(havehttpcore):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
-  if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
+  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.content);
+    strbuf = StringIO(geturls_text.read());
    if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.content);
+    strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.content[:];
-  if(httpheaderout.get('Content-Type')!="gzip" and httpheaderout.get('Content-Type')!="deflate" and httpheaderout.get('Content-Type')!="br"):
-   returnval_content = geturls_text.content[:];
+   returnval_content = gzstrbuf.read()[:];
+  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
+   returnval_content = geturls_text.read()[:];
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   returnval_content = geturls_text.content[:];
+   returnval_content = geturls_text.read()[:];
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
@@ -2847,6 +2968,17 @@ if(havehttpcore):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -3048,22 +3180,33 @@ if(havehttpcore):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
-  if(httpheaderout.get('Content-Type')=="gzip" or httpheaderout.get('Content-Type')=="deflate"):
+  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.content);
+    strbuf = StringIO(geturls_text.read());
    if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.content);
+    strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.content[:];
-  if(httpheaderout.get('Content-Type')!="gzip" and httpheaderout.get('Content-Type')!="deflate" and httpheaderout.get('Content-Type')!="br"):
-   returnval_content = geturls_text.content[:];
+   returnval_content = gzstrbuf.read()[:];
+  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
+   returnval_content = geturls_text.read()[:];
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   returnval_content = geturls_text.content[:];
+   returnval_content = geturls_text.read()[:];
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
   geturls_text.close();
@@ -3137,6 +3280,17 @@ if(havehttpcore):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -3339,6 +3493,17 @@ if(haveurllib3):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -3429,6 +3594,17 @@ if(haveurllib3):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -3633,6 +3809,17 @@ if(haveurllib3):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -3723,6 +3910,17 @@ if(haveurllib3):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -3929,6 +4127,17 @@ if(havemechanize):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
@@ -4021,6 +4230,17 @@ if(havemechanize):
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  try:
+   prehttpheaderout = httpheaderout;
+   httpheaderkeys = httpheaderout.keys();
+   imax = len(httpheaderkeys);
+   ic = 0;
+   httpheaderout = {};
+   while(ic < imax):
+    httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+    ic += 1;
+  except AttributeError:
+   pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
