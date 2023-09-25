@@ -521,7 +521,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
  geturls_opener = build_opener(HTTPCookieProcessor(httpcookie));
- if(httplibuse=="urllib" or httplibuse=="request" or httplibuse=="mechanize" or httplibuse=="mechanize"):
+ if(httplibuse=="urllib" or httplibuse=="request" or httplibuse=="mechanize"):
   if(isinstance(httpheaders, dict)):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  geturls_opener.addheaders = httpheaders;
@@ -815,6 +815,15 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
  elif(httplibuse=="mechanize"):
+  geturls_opener = mechanize.Browser();
+  if(isinstance(httpheaders, dict)):
+   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
+  time.sleep(sleep);
+  geturls_opener.addheaders = httpheaders;
+  geturls_opener.set_cookiejar(httpcookie);
+  geturls_opener.set_handle_robots(False);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
   try:
    if(httpmethod=="GET"):
     geturls_text = geturls_opener.open(httpurl);
@@ -836,7 +845,9 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.info();
-  httpheadersentout = httpheaders;
+  reqhead = geturls_opener.request;
+  httpheadersentout = reqhead.header_items();
+
  elif(httplibuse=="ftp"):
   geturls_text = download_file_from_ftp_file(httpurl);
   if(not geturls_text):
@@ -975,7 +986,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
  geturls_opener = build_opener(HTTPCookieProcessor(httpcookie));
- if(httplibuse=="urllib" or httplibuse=="request" or httplibuse=="mechanize" or httplibuse=="mechanize"):
+ if(httplibuse=="urllib" or httplibuse=="request" or httplibuse=="mechanize"):
   if(isinstance(httpheaders, dict)):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  geturls_opener.addheaders = httpheaders;
@@ -1262,6 +1273,15 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
  elif(httplibuse=="mechanize"):
+  geturls_opener = mechanize.Browser();
+  if(isinstance(httpheaders, dict)):
+   httpheaders = make_http_headers_from_dict_to_list(httpheaders);
+  time.sleep(sleep);
+  geturls_opener.addheaders = httpheaders;
+  geturls_opener.set_cookiejar(httpcookie);
+  geturls_opener.set_handle_robots(False);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
   try:
    if(httpmethod=="GET"):
     geturls_text = geturls_opener.open(httpurl);
@@ -1283,7 +1303,8 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.info();
-  httpheadersentout = httpheaders;
+  reqhead = geturls_opener.request;
+  httpheadersentout = reqhead.header_items();
  elif(httplibuse=="ftp"):
   geturls_text = download_file_from_ftp_file(httpurl);
   if(not geturls_text):
