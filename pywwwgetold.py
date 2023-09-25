@@ -4147,7 +4147,7 @@ if(havemechanize):
   httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.info();
   reqhead = geturls_opener.request;
-  httpheadersentout = reqhead.header_items();();
+  httpheadersentout = reqhead.header_items();
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(sys.version[0]=="2"):
