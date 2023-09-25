@@ -902,15 +902,15 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
    if(sys.version[0]=="2"):
-    strbuf = StringIO(gzstrbuf.raw.read());
+    strbuf = StringIO(geturls_text.raw.read());
    if(sys.version[0]>="3"):
-    strbuf = BytesIO(gzstrbuf.raw.read());
+    strbuf = BytesIO(geturls_text.raw.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-   returnval_content = gzstrbuf.raw.read()[:];
+   returnval_content = geturls_text.raw.read()[:];
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   returnval_content = gzstrbuf.raw.read()[:];
+   returnval_content = geturls_text.raw.read()[:];
    returnval_content = brotli.decompress(returnval_content);
   geturls_text.close();
  elif(httplibuse=="ftp" or httplibuse=="sftp" or httplibuse=="pysftp"):
