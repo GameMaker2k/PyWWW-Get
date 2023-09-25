@@ -1940,7 +1940,7 @@ if(haverequests):
   httpmethodout = httpmethod;
   httpurlout = geturls_text.url;
   httpheaderout = geturls_text.headers;
-  httpheadersentout = httpheaders;
+  httpheadersentout = geturls_text.request.headers;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(sys.version[0]=="2"):
@@ -2038,7 +2038,7 @@ if(haverequests):
   httpmethodout = httpmethod;
   httpurlout = geturls_text.url;
   httpheaderout = geturls_text.headers;
-  httpheadersentout = httpheaders;
+  httpheadersentout = geturls_text.request.headers;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(sys.version[0]=="2"):
@@ -2251,7 +2251,7 @@ if(havehttpx):
   httpmethodout = httpmethod;
   httpurlout = str(geturls_text.url);
   httpheaderout = geturls_text.headers;
-  httpheadersentout = httpheaders;
+  httpheadersentout = geturls_text.request.headers;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(sys.version[0]=="2"):
@@ -2352,7 +2352,7 @@ if(havehttpx):
   httpmethodout = httpmethod;
   httpurlout = str(geturls_text.url);
   httpheaderout = geturls_text.headers;
-  httpheadersentout = httpheaders;
+  httpheadersentout = geturls_text.request.headers;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(sys.version[0]=="2"):
@@ -2565,7 +2565,7 @@ if(havehttpx):
   httpmethodout = httpmethod;
   httpurlout = str(geturls_text.url);
   httpheaderout = geturls_text.headers;
-  httpheadersentout = httpheaders;
+  httpheadersentout = geturls_text.request.headers;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(sys.version[0]=="2"):
@@ -2666,7 +2666,7 @@ if(havehttpx):
   httpmethodout = httpmethod;
   httpurlout = str(geturls_text.url);
   httpheaderout = geturls_text.headers;
-  httpheadersentout = httpheaders;
+  httpheadersentout = geturls_text.request.headers;
   if(isinstance(httpheaderout, list)):
    httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
   if(sys.version[0]=="2"):

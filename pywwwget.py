@@ -709,7 +709,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpmethodout = httpmethod;
   httpurlout = geturls_text.url;
   httpheaderout = geturls_text.headers;
-  httpheadersentout = httpheaders;
+  httpheadersentout = geturls_text.request.headers;
  elif(httplibuse=="httpx"):
   try:
    if(httpmethod=="GET"):
@@ -735,7 +735,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpmethodout = httpmethod;
   httpurlout = str(geturls_text.url);
   httpheaderout = geturls_text.headers;
-  httpheadersentout = httpheaders;
+  httpheadersentout = geturls_text.request.headers;
  elif(httplibuse=="httpx2"):
   try:
    if(httpmethod=="GET"):
@@ -761,7 +761,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpmethodout = httpmethod;
   httpurlout = str(geturls_text.url);
   httpheaderout = geturls_text.headers;
-  httpheadersentout = httpheaders;
+  httpheadersentout = geturls_text.request.headers;
  elif(httplibuse=="httpcore"):
   try:
    if(httpmethod=="GET"):
@@ -1167,7 +1167,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httpmethodout = httpmethod;
   httpurlout = geturls_text.url;
   httpheaderout = geturls_text.headers;
-  httpheadersentout = httpheaders;
+  httpheadersentout = geturls_text.request.headers;
  elif(httplibuse=="httpx"):
   try:
    if(httpmethod=="GET"):
@@ -1193,7 +1193,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httpmethodout = httpmethod;
   httpurlout = str(geturls_text.url);
   httpheaderout = geturls_text.headers;
-  httpheadersentout = httpheaders;
+  httpheadersentout = geturls_text.request.headers;
  elif(httplibuse=="httpx2"):
   try:
    if(httpmethod=="GET"):
@@ -1219,7 +1219,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httpmethodout = httpmethod;
   httpurlout = str(geturls_text.url);
   httpheaderout = geturls_text.headers;
-  httpheadersentout = httpheaders;
+  httpheadersentout = geturls_text.request.headers;
  elif(httplibuse=="httpcore"):
   try:
    if(httpmethod=="GET"):
