@@ -546,6 +546,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.getcode();
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
@@ -572,6 +573,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.getcode();
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
@@ -598,6 +600,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status;
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
@@ -627,6 +630,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    return False;
   geturls_text = httpconn.getresponse();
   httpcodeout = geturls_text.status;
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = httpurl;
@@ -656,6 +660,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    return False;
   geturls_text = httpconn.getresponse();
   httpcodeout = geturls_text.status;
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = httpurl;
@@ -682,6 +687,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status;
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
@@ -706,6 +712,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status_code;
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.url;
@@ -732,6 +739,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status_code;
+  httpcodereason = geturls_text.reason;
   httpversionout = geturls_text.http_version;
   httpmethodout = httpmethod;
   httpurlout = str(geturls_text.url);
@@ -758,6 +766,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status_code;
+  httpcodereason = geturls_text.reason;
   httpversionout = geturls_text.http_version;
   httpmethodout = httpmethod;
   httpurlout = str(geturls_text.url);
@@ -784,6 +793,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status;
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = str(httpurl);
@@ -810,6 +820,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status;
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = str(httpurl);
@@ -842,6 +853,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.code;
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
@@ -929,7 +941,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   pass;
  else:
   returnval = False;
- returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
+ returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
  return returnval;
 
 def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", buffersize=524288, sleep=-1):
@@ -1013,6 +1025,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.getcode();
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
@@ -1039,6 +1052,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.getcode();
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
@@ -1065,6 +1079,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status;
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
@@ -1094,6 +1109,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    return False;
   geturls_text = httpconn.getresponse();
   httpcodeout = geturls_text.status;
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = httpurl;
@@ -1115,6 +1131,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    return False;
   geturls_text = httpconn.getresponse();
   httpcodeout = geturls_text.status;
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = httpurl;
@@ -1141,6 +1158,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status;
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
@@ -1165,6 +1183,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status_code;
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.url;
@@ -1191,6 +1210,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status_code;
+  httpcodereason = geturls_text.reason;
   httpversionout = geturls_text.http_version;
   httpmethodout = httpmethod;
   httpurlout = str(geturls_text.url);
@@ -1217,6 +1237,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status_code;
+  httpcodereason = geturls_text.reason;
   httpversionout = geturls_text.http_version;
   httpmethodout = httpmethod;
   httpurlout = str(geturls_text.url);
@@ -1243,6 +1264,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status;
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = str(httpurl);
@@ -1269,6 +1291,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status;
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = str(httpurl);
@@ -1301,6 +1324,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.code;
+  httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
@@ -1373,7 +1397,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
      pass;
    except ValueError:
     pass;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
    while True:
     databytes = geturls_text.read(buffersize);
     if not databytes: break;
@@ -1399,7 +1423,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
      pass;
    except ValueError:
     pass;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout};
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
@@ -1476,7 +1500,7 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
   log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
   if(os.path.exists(tmpfilename)):
    os.remove(tmpfilename);
-  returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+  returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code'], 'Reason': pretmpfilename['Reason']};
  if(outfile=="-" and sys.version[0]=="2"):
   pretmpfilename = download_from_url_file(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, httplibuse, buffersize[0], sleep);
   if(not pretmpfilename):
@@ -1507,7 +1531,7 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
    os.remove(tmpfilename);
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
-  returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+  returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code'], 'Reason': pretmpfilename['Reason']};
  if(outfile=="-" and sys.version[0]>="3"):
   pretmpfilename = download_from_url_file(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, httplibuse, buffersize[0], sleep);
   tmpfilename = pretmpfilename['Filename'];
@@ -1536,7 +1560,7 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
    os.remove(tmpfilename);
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
-  returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code']};
+  returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code'], 'Reason': pretmpfilename['Reason']};
  return returnval;
 
 def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
