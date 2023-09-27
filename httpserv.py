@@ -33,9 +33,9 @@ class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
         self.send_header('Content-type', 'text/plain');
         self.end_headers();
         # Print all headers
-        headers_list = ["{}: {}".format(key, self.headers[key]) for key in self.headers];
+        headers_list = ["{}: {}".format(key.title().title(), self.headers[key]) for key in self.headers];
         headers_str = "\n".join(headers_list);
-        self.wfile.write(headers_str.encode('utf-8'));
+        self.wfile.write(headers_str.encode('utf-8'))
     def do_HEAD(self):
         self.send_response(200);
         self.send_header('Content-type', 'text/plain');
