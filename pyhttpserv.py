@@ -12,7 +12,7 @@
     Copyright 2016-2023 Game Maker 2k - https://github.com/GameMaker2k
     Copyright 2016-2023 Kazuki Przyborowski - https://github.com/KazukiPrzyborowski
 
-    $FileInfo: httpserv.py - Last Update: 9/24/2023 Ver. 1.5.0 RC 1 - Author: cooldude2k $
+    $FileInfo: pyhttpserv.py - Last Update: 9/24/2023 Ver. 1.5.0 RC 1 - Author: cooldude2k $
 '''
 
 pyoldver = True;
