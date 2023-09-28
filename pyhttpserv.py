@@ -60,20 +60,28 @@ class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         self.display_info();
     def do_POST(self):
-        content_length = int(self.headers['Content-Length']);
-        post_data = self.rfile.read(content_length).decode('utf-8');
+        if 'Transfer-Encoding' in self.headers and self.headers['Transfer-Encoding'] == 'chunked':
+            post_data = '';
+            while True:
+                chunk_size_line = self.rfile.readline().decode('utf-8');
+                chunk_size = int(chunk_size_line, 16);
+                if chunk_size == 0:
+                    self.rfile.readline();
+                    break;
+                chunk_data = self.rfile.read(chunk_size).decode('utf-8');
+                post_data += chunk_data;
+                self.rfile.readline();
+        else:
+            content_length = int(self.headers['Content-Length']);
+            post_data = self.rfile.read(content_length).decode('utf-8');
         params = parse_qs(post_data);
-        # Displaying POST parameters
-        response = 'POST Parameters:\n'
+        response = 'POST Parameters:\n';
         for key, values in params.items():
             response += '{}: {}\n'.format(key, ', '.join(values));
-        # Setting headers for the response
         self.send_response(200);
         self.send_header('Content-type', 'text/plain');
-        # Set a sample cookie in the response
         self.send_header('Set-Cookie', 'sample_cookie=sample_value; Path=/;');
         self.end_headers();
-        # Sending the response
         self.wfile.write(response.encode('utf-8'));
 
 if __name__ == "__main__":
