@@ -20,9 +20,11 @@ try:
     from BaseHTTPServer import HTTPServer;
     from SimpleHTTPServer import SimpleHTTPRequestHandler;
     from urlparse import parse_qs;
+    from Cookie import SimpleCookie
 except ImportError:
     from http.server import SimpleHTTPRequestHandler, HTTPServer;
     from urllib.parse import parse_qs;
+    from http.cookies import SimpleCookie;
     pyoldver = False;
 
 class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
@@ -30,6 +32,8 @@ class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
         # Setting headers for the response
         self.send_response(200);
         self.send_header('Content-type', 'text/plain');
+        # Set a sample cookie in the response;
+        self.send_header('Set-Cookie', 'sample_cookie=sample_value; Path=/;');
         self.end_headers();
         # Displaying request method
         response = 'Method: {}\n'.format(self.command);
@@ -37,6 +41,12 @@ class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
         # Displaying all headers
         headers_list = ["{}: {}".format(key.title(), self.headers[key]) for key in self.headers];
         response += '\nHeaders:\n' + '\n'.join(headers_list) + '\n';
+        # Extract and display cookies from headers
+        if 'Cookie' in self.headers:
+            response += '\nCookies:\n';
+            cookies = SimpleCookie(self.headers['Cookie']);
+            for key, morsel in cookies.items():
+                response += '{}: {}\n'.format(key, morsel.value);
         # Displaying GET parameters (if any)
         if self.command == 'GET':
             query = self.path.split('?', 1)[-1];
@@ -54,12 +64,14 @@ class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
         post_data = self.rfile.read(content_length).decode('utf-8');
         params = parse_qs(post_data);
         # Displaying POST parameters
-        response = 'POST Parameters:\n';
+        response = 'POST Parameters:\n'
         for key, values in params.items():
             response += '{}: {}\n'.format(key, ', '.join(values));
         # Setting headers for the response
         self.send_response(200);
         self.send_header('Content-type', 'text/plain');
+        # Set a sample cookie in the response
+        self.send_header('Set-Cookie', 'sample_cookie=sample_value; Path=/;');
         self.end_headers();
         # Sending the response
         self.wfile.write(response.encode('utf-8'));
