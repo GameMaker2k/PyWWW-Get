@@ -18,7 +18,26 @@
 enablessl = False;
 sslkeypem = None;
 sslcertpem = None;
-serverport = 8080;
+servport = 8080;
+if(isinstance(servport, int)):
+    if(servport<1 or servport>65535):
+        servport = 8080;
+elif(isinstance(servport, str)):
+    if(servport.isnumeric()):
+        servport = int(servport);
+        if(servport<1 or servport>65535):
+            servport = 8080;
+    else:
+        servport = 8080;
+else:
+    servport = 8080;
+if(enablessl):
+    if(sslkeypem is not None and 
+      (not os.path.exists(sslkeypem) or not os.path.isfile(sslkeypem))):
+        sslkeypem = None;
+    if(sslcertpem is not None and 
+      (not os.path.exists(sslkeypem) or not os.path.isfile(sslkeypem))):
+        sslcertpem = None;
 pyoldver = True;
 try:
     from BaseHTTPServer import HTTPServer;
@@ -95,13 +114,11 @@ class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
         self.wfile.write(response.encode('utf-8'));
 # Start Server Forever
 if __name__ == "__main__":
-    server_address = ('', int(serverport));
+    server_address = ('', int(servport));
     httpd = HTTPServer(server_address, CustomHTTPRequestHandler);
-    if(enablessl and 
-      (sslkeypem is not None and (os.path.exists(sslkeypem) and os.path.isfile(sslkeypem))) and 
-      (sslcertpem is not None and (os.path.exists(sslkeypem) and os.path.isfile(sslkeypem)))):
+    if(enablessl and sslkeypem is not None and sslcertpem is not None):
         httpd.socket = ssl.wrap_socket (httpd.socket, 
             keyfile="path/to/key.pem", 
             certfile='path/to/cert.pem', server_side=True);
-    print("Server started at http://localhost:"+str(serverport));
+    print("Server started at http://localhost:"+str(servport));
     httpd.serve_forever();
