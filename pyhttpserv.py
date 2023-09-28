@@ -120,8 +120,7 @@ if __name__ == "__main__":
     httpd = HTTPServer(server_address, CustomHTTPRequestHandler);
     if(enablessl and sslkeypem is not None and sslcertpem is not None):
         httpd.socket = ssl.wrap_socket (httpd.socket, 
-            keyfile="path/to/key.pem", 
-            certfile='path/to/cert.pem', server_side=True);
+        keyfile=sslkeypem, certfile=sslcertpem, server_side=True);
     if(enablessl):
         print("Server started at https://localhost:"+str(servport));
     else:
