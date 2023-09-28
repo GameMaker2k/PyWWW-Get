@@ -35,9 +35,11 @@ if(enablessl):
     if(sslkeypem is not None and 
       (not os.path.exists(sslkeypem) or not os.path.isfile(sslkeypem))):
         sslkeypem = None;
+        enablessl = False;
     if(sslcertpem is not None and 
       (not os.path.exists(sslkeypem) or not os.path.isfile(sslkeypem))):
         sslcertpem = None;
+        enablessl = False;
 pyoldver = True;
 try:
     from BaseHTTPServer import HTTPServer;
@@ -120,5 +122,8 @@ if __name__ == "__main__":
         httpd.socket = ssl.wrap_socket (httpd.socket, 
             keyfile="path/to/key.pem", 
             certfile='path/to/cert.pem', server_side=True);
-    print("Server started at http://localhost:"+str(servport));
+    if(enablessl):
+        print("Server started at https://localhost:"+str(servport));
+    else:
+        print("Server started at http://localhost:"+str(servport));
     httpd.serve_forever();
