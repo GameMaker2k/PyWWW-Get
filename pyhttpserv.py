@@ -15,6 +15,10 @@
     $FileInfo: pyhttpserv.py - Last Update: 9/24/2023 Ver. 1.5.0 RC 1 - Author: cooldude2k $
 '''
 
+enablessl = False;
+sslkeypem = None;
+sslcertpem = None;
+serverport = 8080;
 pyoldver = True;
 try:
     from BaseHTTPServer import HTTPServer;
@@ -26,7 +30,11 @@ except ImportError:
     from urllib.parse import parse_qs;
     from http.cookies import SimpleCookie;
     pyoldver = False;
-
+if(enablessl and 
+  (sslkeypem is not None and (os.path.exists(sslkeypem) and os.path.isfile(sslkeypem))) and 
+  (sslcertpem is not None and (os.path.exists(sslkeypem) and os.path.isfile(sslkeypem)))):
+    import ssl;
+# HTTP/HTTPS Server Class
 class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
     def display_info(self):
         # Setting headers for the response
@@ -57,8 +65,10 @@ class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
                     response += '{}: {}\n'.format(key, ', '.join(values));
         # Sending the response
         self.wfile.write(response.encode('utf-8'));
+    # Get Method
     def do_GET(self):
         self.display_info();
+    # Post Method
     def do_POST(self):
         if 'Transfer-Encoding' in self.headers and self.headers['Transfer-Encoding'] == 'chunked':
             post_data = '';
@@ -83,9 +93,15 @@ class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
         self.send_header('Set-Cookie', 'sample_cookie=sample_value; Path=/;');
         self.end_headers();
         self.wfile.write(response.encode('utf-8'));
-
+# Start Server Forever
 if __name__ == "__main__":
-    server_address = ('', 8080);
+    server_address = ('', int(serverport));
     httpd = HTTPServer(server_address, CustomHTTPRequestHandler);
-    print("Server started at http://localhost:8080");
+    if(enablessl and 
+      (sslkeypem is not None and (os.path.exists(sslkeypem) and os.path.isfile(sslkeypem))) and 
+      (sslcertpem is not None and (os.path.exists(sslkeypem) and os.path.isfile(sslkeypem)))):
+        httpd.socket = ssl.wrap_socket (httpd.socket, 
+            keyfile="path/to/key.pem", 
+            certfile='path/to/cert.pem', server_side=True);
+    print("Server started at http://localhost:"+str(serverport));
     httpd.serve_forever();
