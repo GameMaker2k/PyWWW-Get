@@ -495,6 +495,20 @@ def ftp_status_to_reason(code):
     };
     return reasons.get(code, 'Unknown Status Code');
 
+def sftp_status_to_reason(code):
+    reasons = {
+        0: 'SSH_FX_OK',
+        1: 'SSH_FX_EOF',
+        2: 'SSH_FX_NO_SUCH_FILE',
+        3: 'SSH_FX_PERMISSION_DENIED',
+        4: 'SSH_FX_FAILURE',
+        5: 'SSH_FX_BAD_MESSAGE',
+        6: 'SSH_FX_NO_CONNECTION',
+        7: 'SSH_FX_CONNECTION_LOST',
+        8: 'SSH_FX_OP_UNSUPPORTED'
+    };
+    return reasons.get(code, 'Unknown Status Code');
+
 def make_http_headers_from_dict_to_list(headers={'Referer': "http://google.com/", 'User-Agent': geturls_ua, 'Accept-Encoding': compression_supported, 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"}):
  if isinstance(headers, dict):
   returnval = [];
