@@ -580,6 +580,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
  elif(httplibuse=="request3"):
+  urllib_pool = urllib3.PoolManager(headers=httpheaders);
   try:
    if(httpmethod=="GET"):
     geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
@@ -667,6 +668,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
  elif(httplibuse=="urllib3"):
+  urllib_pool = urllib3.PoolManager(headers=httpheaders);
   try:
    if(httpmethod=="GET"):
     geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
@@ -1059,6 +1061,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
  elif(httplibuse=="request3"):
+  urllib_pool = urllib3.PoolManager(headers=httpheaders);
   try:
    if(httpmethod=="GET"):
     geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
@@ -1138,6 +1141,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
  elif(httplibuse=="urllib3"):
+  urllib_pool = urllib3.PoolManager(headers=httpheaders);
   try:
    if(httpmethod=="GET"):
     geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
