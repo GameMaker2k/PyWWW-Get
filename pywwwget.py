@@ -32,6 +32,12 @@ try:
  havemechanize = True;
 except ImportError:
  havemechanize = False;
+havepycurl = False;
+try:
+ import pycurl;
+ havepycurl = True;
+except ImportError:
+ havepycurl = False;
 haveparamiko = False;
 try:
  import paramiko;
@@ -82,9 +88,14 @@ except ImportError:
  havezstd = False;
 if(sys.version[0]=="2"):
  try:
-  from cStringIO import StringIO;
+  from io import StringIO, BytesIO;
  except ImportError:
-  from StringIO import StringIO;
+  try:
+   from cStringIO import StringIO;
+   from cStringIO import StringIO as BytesIO;
+  except ImportError:
+   from StringIO import StringIO;
+   from StringIO import StringIO as BytesIO;
  # From http://python-future.org/compatible_idioms.html
  from urlparse import urlparse, urlunparse, urlsplit, urlunsplit, urljoin;
  from urllib import urlencode;
@@ -600,7 +611,7 @@ def get_httplib_support_list():
  return returnval;
 
 def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", sleep=-1):
- global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
+ global geturls_download_sleep, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
@@ -618,6 +629,8 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  if(not havehttpcore and httplibuse=="httpcore2"):
   httplibuse = "urllib";
  if(not havemechanize and httplibuse=="mechanize"):
+  httplibuse = "urllib";
+ if(not havepycurl and httplibuse=="pycurl"):
   httplibuse = "urllib";
  if(not havehttplib2 and httplibuse=="httplib2"):
   httplibuse = "httplib";
@@ -1114,6 +1127,8 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httplibuse = "urllib";
  if(not havemechanize and httplibuse=="mechanize"):
   httplibuse = "urllib";
+ if(not havepycurl and httplibuse=="pycurl"):
+  httplibuse = "urllib";
  if(not havehttplib2 and httplibuse=="httplib2"):
   httplibuse = "httplib";
  if(not haveparamiko and httplibuse=="sftp"):
@@ -1600,7 +1615,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
  return returnval;
 
 def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
- global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
+ global geturls_download_sleep, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
@@ -1618,6 +1633,8 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
  if(not havehttpcore and httplibuse=="httpcore2"):
   httplibuse = "urllib";
  if(not havemechanize and httplibuse=="mechanize"):
+  httplibuse = "urllib";
+ if(not havepycurl and httplibuse=="pycurl"):
   httplibuse = "urllib";
  if(not havehttplib2 and httplibuse=="httplib2"):
   httplibuse = "httplib";
