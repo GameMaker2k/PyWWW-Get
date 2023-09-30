@@ -593,6 +593,8 @@ def get_httplib_support(checkvalue=None):
   returnval.append("httpx2");
  if(havemechanize):
   returnval.append("mechanize");
+ if(havepycurl):
+  returnval.append("pycurl");
  if(haveparamiko):
   returnval.append("sftp");
  if(havepysftp):
