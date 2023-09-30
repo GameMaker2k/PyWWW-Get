@@ -550,6 +550,16 @@ def make_http_headers_from_dict_to_pycurl(headers={'Referer': "http://google.com
   returnval = False;
  return returnval;
 
+def make_http_headers_from_pycurl_to_dict(headers):
+ header_dict = {};
+ headers = headers.strip().split('\r\n');
+ for header in headers:
+  parts = header.split(': ', 1)
+  if(len(parts) == 2):
+   key, value = parts;
+   header_dict[key.title()] = value;
+ return header_dict;
+
 def make_http_headers_from_list_to_dict(headers=[("Referer", "http://google.com/"), ("User-Agent", geturls_ua), ("Accept-Encoding", compression_supported), ("Accept-Language", "en-US,en;q=0.8,en-CA,en-GB;q=0.6"), ("Accept-Charset", "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7"), ("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"), ("Connection", "close")]):
  if isinstance(headers, list):
   returnval = {};
@@ -662,6 +672,8 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   returnval = download_from_url_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="mechanize"):
   returnval = download_from_url_with_mechanize(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
+ elif(httplibuse=="pycurl"):
+  returnval = download_from_url_with_pycurl(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="ftp"):
   returnval = download_from_url_with_ftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep);
  elif(httplibuse=="sftp"):
@@ -724,6 +736,8 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   returnval = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="mechanize"):
   returnval = download_from_url_file_with_mechanize(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
+ elif(httplibuse=="pycurl"):
+  returnval = download_from_url_file_with_pycurl(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="ftp"):
   returnval = download_from_url_file_with_ftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="sftp"):
@@ -786,6 +800,8 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
   returnval = download_from_url_to_file_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep);
  elif(httplibuse=="mechanize"):
   returnval = download_from_url_to_file_with_mechanize(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
+ elif(httplibuse=="pycurl"):
+  returnval = download_from_url_to_file_with_pycurl(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="ftp"):
   returnval = download_from_url_to_file_with_ftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, buffersize, sleep);
  elif(httplibuse=="sftp"):
@@ -4610,6 +4626,370 @@ if(havemechanize):
 
 if(not havemechanize):
  def download_from_url_to_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
+  return returnval;
+
+if(havepycurl):
+ def download_from_url_with_pycurl(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  global geturls_download_sleep, havebrotli;
+  if(sleep<0):
+   sleep = geturls_download_sleep;
+  urlparts = urlparse.urlparse(httpurl);
+  if(isinstance(httpheaders, list)):
+   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpheaders['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpheaders['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
+  if(urlparts.username is not None or urlparts.password is not None):
+   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
+  geturls_opener = build_opener(HTTPCookieProcessor(httpcookie));
+  if(isinstance(httpheaders, dict)):
+   httpheaders = make_http_headers_from_dict_to_pycurl(httpheaders);
+  geturls_opener.addheaders = httpheaders;
+  time.sleep(sleep);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  retrieved_body = BytesIO();
+  retrieved_headers = BytesIO();
+  try:
+   if(httpmethod=="GET"):
+    geturls_text = pycurl.Curl();
+    geturls_text.setopt(geturls_text.URL, httpurl);
+    geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write);
+    geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
+    geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
+    geturls_text.perform();
+   elif(httpmethod=="POST"):
+    geturls_text = pycurl.Curl();
+    geturls_text.setopt(geturls_text.URL, httpurl);
+    geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write);
+    geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
+    geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
+    geturls_text.perform();
+   else:
+    geturls_text = pycurl.Curl();
+    geturls_text.setopt(geturls_text.URL, httpurl);
+    geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write);
+    geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
+    geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
+    geturls_text.perform();
+   retrieved_headers.seek(0);
+   pycurlhead = retrieved_headers.read().decode('UTF-8');
+   pyhttpverinfo = re.findall(r'^HTTP/([0-9.]+) (\d+) ([A-Za-z\s]+)$', pycurlhead.splitlines()[0])[0];
+   pycurlheadersout = make_http_headers_from_pycurl_to_dict(pycurlhead);
+   retrieved_body.seek(0);
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.gaierror:
+   log.info("Error With URL "+httpurl);
+   return False;
+  httpcodeout = geturls_text.getinfo(geturls_text.HTTP_CODE);
+  httpcodereason = http_status_to_reason(geturls_text.getinfo(geturls_text.HTTP_CODE));
+  httpversionout = pyhttpverinfo[0];
+  httpmethodout = httpmethod;
+  httpurlout = geturls_text.getinfo(geturls_text.EFFECTIVE_URL);
+  httpheaderout = pycurlheadersout;
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+   httpheaderout = dict(make_http_headers_from_pycurl_to_dict("".join(httpheaderout)));
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
+  httpheaderout = fix_header_names(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+   httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("".join(httpheadersentout)));
+  httpheadersentout = fix_header_names(httpheadersentout);
+  log.info("Downloading URL "+httpurl);
+  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
+   if(sys.version[0]=="2"):
+    strbuf = StringIO(retrieved_body.read());
+   if(sys.version[0]>="3"):
+    strbuf = BytesIO(retrieved_body.read());
+   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+   returnval_content = gzstrbuf.read()[:];
+  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
+   returnval_content = retrieved_body.read()[:];
+  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+   returnval_content = retrieved_body.read()[:];
+   returnval_content = brotli.decompress(returnval_content);
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
+  geturls_text.close();
+  return returnval;
+
+if(not havepycurl):
+ def download_from_url_with_pycurl(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep)
+  return returnval;
+
+if(havepycurl):
+ def download_from_url_file_with_pycurl(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  exec_time_start = time.time();
+  myhash = hashlib.new("sha1");
+  if(sys.version[0]=="2"):
+   myhash.update(httpurl);
+   myhash.update(str(buffersize));
+   myhash.update(str(exec_time_start));
+  if(sys.version[0]>="3"):
+   myhash.update(httpurl.encode('utf-8'));
+   myhash.update(str(buffersize).encode('utf-8'));
+   myhash.update(str(exec_time_start).encode('utf-8'));
+  newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
+  if(sleep<0):
+   sleep = geturls_download_sleep;
+  urlparts = urlparse.urlparse(httpurl);
+  if(isinstance(httpheaders, list)):
+   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpheaders['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpheaders['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
+  if(urlparts.username is not None or urlparts.password is not None):
+   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
+  geturls_opener = build_opener(HTTPCookieProcessor(httpcookie));
+  if(isinstance(httpheaders, dict)):
+   httpheaders = make_http_headers_from_dict_to_pycurl(httpheaders);
+  geturls_opener.addheaders = httpheaders;
+  time.sleep(sleep);
+  if(urlparts[0]=="http"):
+   httpconn = HTTPConnectionWithTimeout(urlparts[1]);
+  elif(urlparts[0]=="https"):
+   httpconn = HTTPSConnectionWithTimeout(urlparts[1]);
+  else:
+   return False;
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  retrieved_body = BytesIO();
+  retrieved_headers = BytesIO();
+  try:
+   if(httpmethod=="GET"):
+    geturls_text = pycurl.Curl();
+    geturls_text.setopt(geturls_text.URL, httpurl);
+    geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write);
+    geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
+    geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
+    geturls_text.perform();
+   elif(httpmethod=="POST"):
+    geturls_text = pycurl.Curl();
+    geturls_text.setopt(geturls_text.URL, httpurl);
+    geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write);
+    geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
+    geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
+    geturls_text.perform();
+   else:
+    geturls_text = pycurl.Curl();
+    geturls_text.setopt(geturls_text.URL, httpurl);
+    geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write);
+    geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
+    geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
+    geturls_text.perform();
+   retrieved_headers.seek(0);
+   pycurlhead = retrieved_headers.read().decode('UTF-8');
+   pyhttpverinfo = re.findall(r'^HTTP/([0-9.]+) (\d+) ([A-Za-z\s]+)$', pycurlhead.splitlines()[0])[0];
+   pycurlheadersout = make_http_headers_from_pycurl_to_dict(pycurlhead);
+   retrieved_body.seek(0);
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.gaierror:
+   log.info("Error With URL "+httpurl);
+   return False;
+  httpcodeout = geturls_text.getinfo(geturls_text.HTTP_CODE);
+  httpcodereason = http_status_to_reason(geturls_text.getinfo(geturls_text.HTTP_CODE));
+  httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = geturls_text.getinfo(geturls_text.EFFECTIVE_URL);
+  httpheaderout = pycurlheadersout;
+  httpheadersentout = httpheaders;
+  if(isinstance(httpheaderout, list)):
+   httpheaderout = dict(make_http_headers_from_pycurl_to_dict("".join(httpheaderout)));
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
+  httpheaderout = fix_header_names(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+   httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("".join(httpheadersentout)));
+  httpheadersentout = fix_header_names(httpheadersentout);
+  downloadsize = httpheaderout.get('Content-Length');
+  if(downloadsize is not None):
+   downloadsize = int(downloadsize);
+  if downloadsize is None: downloadsize = 0;
+  fulldatasize = 0;
+  prevdownsize = 0;
+  log.info("Downloading URL "+httpurl);
+  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
+   tmpfilename = f.name;
+   try:
+    os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(httpheaderout.get('Last-Modified')).timetuple())));
+   except AttributeError:
+    try:
+     os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(httpheaderout.get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
+    except ValueError:
+     pass;
+   except ValueError:
+    pass;
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
+   while True:
+    databytes = retrieved_body.read(buffersize);
+    if not databytes: break;
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    f.write(databytes);
+   f.close();
+  geturls_text.close();
+  exec_time_end = time.time();
+  log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to download file.");
+  returnval.update({'Filesize': os.path.getsize(tmpfilename), 'DownloadTime': float(exec_time_start - exec_time_end), 'DownloadTimeReadable': hms_string(exec_time_start - exec_time_end)});
+  return returnval;
+
+if(not havepycurl):
+ def download_from_url_file_with_pycurl(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep)
+  return returnval;
+
+if(havepycurl):
+ def download_from_url_to_file_with_pycurl(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
+  global geturls_download_sleep;
+  if(sleep<0):
+   sleep = geturls_download_sleep;
+  if(not outfile=="-"):
+   outpath = outpath.rstrip(os.path.sep);
+   filepath = os.path.realpath(outpath+os.path.sep+outfile);
+   if(not os.path.exists(outpath)):
+    os.makedirs(outpath);
+   if(os.path.exists(outpath) and os.path.isfile(outpath)):
+    return False;
+   if(os.path.exists(filepath) and os.path.isdir(filepath)):
+    return False;
+   pretmpfilename = download_from_url_file_with_pycurl(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
+   tmpfilename = pretmpfilename['Filename'];
+   downloadsize = os.path.getsize(tmpfilename);
+   fulldatasize = 0;
+   log.info("Moving file "+tmpfilename+" to "+filepath);
+   exec_time_start = time.time();
+   shutil.move(tmpfilename, filepath);
+   try:
+    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
+   except AttributeError:
+    try:
+     os.utime(filepath, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
+    except ValueError:
+     pass;
+   except ValueError:
+    pass;
+   exec_time_end = time.time();
+   log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
+   if(os.path.exists(tmpfilename)):
+    os.remove(tmpfilename);
+   returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code'], 'Reason': pretmpfilename['Reason']};
+  if(outfile=="-" and sys.version[0]=="2"):
+   pretmpfilename = download_from_url_file_with_pycurl(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   if(not pretmpfilename):
+    return False;
+   tmpfilename = pretmpfilename['Filename'];
+   downloadsize = os.path.getsize(tmpfilename);
+   fulldatasize = 0;
+   prevdownsize = 0;
+   exec_time_start = time.time();
+   with open(tmpfilename, 'rb') as ft:
+    f = StringIO();
+    while True:
+     databytes = ft.read(buffersize[1]);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     f.write(databytes);
+    f.seek(0);
+    fdata = f.getvalue();
+    f.close();
+    ft.close();
+    os.remove(tmpfilename);
+    exec_time_end = time.time();
+    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
+   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code'], 'Reason': pretmpfilename['Reason']};
+  if(outfile=="-" and sys.version[0]>="3"):
+   pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize[0], sleep);
+   tmpfilename = pretmpfilename['Filename'];
+   downloadsize = os.path.getsize(tmpfilename);
+   fulldatasize = 0;
+   prevdownsize = 0;
+   exec_time_start = time.time();
+   with open(tmpfilename, 'rb') as ft:
+    f = BytesIO();
+    while True:
+     databytes = ft.read(buffersize[1]);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     f.write(databytes);
+    f.seek(0);
+    fdata = f.getvalue();
+    f.close();
+    ft.close();
+    os.remove(tmpfilename);
+    exec_time_end = time.time();
+    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
+   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code'], 'Reason': pretmpfilename['Reason']};
+  return returnval;
+
+if(not havepycurl):
+ def download_from_url_to_file_with_pycurl(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
   returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep)
   return returnval;
 
