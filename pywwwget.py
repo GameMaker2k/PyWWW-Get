@@ -754,7 +754,10 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   geturls_text = httpconn.getresponse();
   httpcodeout = geturls_text.status;
   httpcodereason = geturls_text.reason;
-  httpversionout = "1.1";
+  if(geturls_text.version=="10"):
+   httpversionout = "1.0";
+  else:
+   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = httpurl;
   httpheaderout = geturls_text.getheaders();
@@ -784,7 +787,10 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   geturls_text = httpconn.getresponse();
   httpcodeout = geturls_text.status;
   httpcodereason = geturls_text.reason;
-  httpversionout = "1.1";
+  if(geturls_text.version=="10"):
+   httpversionout = "1.0";
+  else:
+   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = httpurl;
   httpheaderout = geturls_text.getheaders();
@@ -837,7 +843,10 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    return False;
   httpcodeout = geturls_text.status_code;
   httpcodereason = geturls_text.reason;
-  httpversionout = "1.1";
+  if(geturls_text.raw.version=="10"):
+   httpversionout = "1.0";
+  else:
+   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.url;
   httpheaderout = geturls_text.headers;
@@ -1235,7 +1244,10 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   geturls_text = httpconn.getresponse();
   httpcodeout = geturls_text.status;
   httpcodereason = geturls_text.reason;
-  httpversionout = "1.1";
+  if(geturls_text.version=="10"):
+   httpversionout = "1.0";
+  else:
+   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = httpurl;
   httpheaderout = geturls_text.getheaders();
@@ -1257,7 +1269,10 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   geturls_text = httpconn.getresponse();
   httpcodeout = geturls_text.status;
   httpcodereason = geturls_text.reason;
-  httpversionout = "1.1";
+  if(geturls_text.version=="10"):
+   httpversionout = "1.0";
+  else:
+   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = httpurl;
   httpheaderout = geturls_text.getheaders();
@@ -1310,7 +1325,10 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    return False;
   httpcodeout = geturls_text.status_code;
   httpcodereason = geturls_text.reason;
-  httpversionout = "1.1";
+  if(geturls_text.raw.version=="10"):
+   httpversionout = "1.0";
+  else:
+   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.url;
   httpheaderout = geturls_text.headers;
