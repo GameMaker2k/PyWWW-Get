@@ -1020,7 +1020,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.code;
-  httpcodereason = http_status_to_reason(geturls_text.code);
+  httpcodereason = geturls_text.msg;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
@@ -1574,7 +1574,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.code;
-  httpcodereason = http_status_to_reason(geturls_text.code);
+  httpcodereason = geturls_text.msg;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
