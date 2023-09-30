@@ -721,7 +721,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
  return returnval;
 
 def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", outfile="-", outpath=os.getcwd(), buffersize=[524288, 524288], sleep=-1):
- global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcorei, haveparamiko, havepysftp;
+ global geturls_download_sleep, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(httplibuse=="urllib1" or httplibuse=="urllib2"):
@@ -3014,7 +3014,7 @@ if(havehttpcore):
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status;
-  httpcodereason = geturls_text.reason_phrase;
+  httpcodereason = http_status_to_reason(geturls_text.status);
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = str(httpurl);
@@ -3116,7 +3116,7 @@ if(havehttpcore):
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status;
-  httpcodereason = geturls_text.reason_phrase;
+  httpcodereason = http_status_to_reason(geturls_text.status);
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = str(httpurl);
