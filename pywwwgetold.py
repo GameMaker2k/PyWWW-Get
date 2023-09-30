@@ -4353,7 +4353,7 @@ if(havemechanize):
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.code;
-  httpcodereason = http_status_to_reason(geturls_text.code);
+  httpcodereason = geturls_text.msg;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
@@ -4459,7 +4459,7 @@ if(havemechanize):
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.code;
-  httpcodereason = http_status_to_reason(geturls_text.code);
+  httpcodereason = geturls_text.msg;
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
