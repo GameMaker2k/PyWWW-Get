@@ -724,7 +724,10 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    return False;
   httpcodeout = geturls_text.status;
   httpcodereason = geturls_text.reason;
-  httpversionout = "1.1";
+  if(geturls_text.version=="10"):
+   httpversionout = "1.0";
+  else:
+   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.info();
@@ -1217,7 +1220,10 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    return False;
   httpcodeout = geturls_text.status;
   httpcodereason = geturls_text.reason;
-  httpversionout = "1.1";
+  if(geturls_text.version=="10"):
+   httpversionout = "1.0";
+  else:
+   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.info();

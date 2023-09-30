@@ -448,8 +448,7 @@ def http_status_to_reason(code):
         508: 'Loop Detected',
         510: 'Not Extended',
         511: 'Network Authentication Required'
-    };
-    
+    }
     return reasons.get(code, 'Unknown Status Code');
 
 def ftp_status_to_reason(code):
@@ -508,7 +507,7 @@ def sftp_status_to_reason(code):
         7: 'SSH_FX_CONNECTION_LOST',
         8: 'SSH_FX_OP_UNSUPPORTED'
     };
-    return reasons.get(code, 'Unknown Status Code
+    return reasons.get(code, 'Unknown Status Code');
 
 def make_http_headers_from_dict_to_list(headers={'Referer': "http://google.com/", 'User-Agent': geturls_ua, 'Accept-Encoding': compression_supported, 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6", 'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"}):
  if isinstance(headers, dict):
@@ -3666,7 +3665,10 @@ if(haveurllib3):
    return False;
   httpcodeout = geturls_text.status;
   httpcodereason = geturls_text.reason;
-  httpversionout = "1.1";
+  if(geturls_text.version=="10"):
+   httpversionout = "1.0";
+  else:
+   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.info();
@@ -3769,7 +3771,10 @@ if(haveurllib3):
    return False;
   httpcodeout = geturls_text.status;
   httpcodereason = geturls_text.reason;
-  httpversionout = "1.1";
+  if(geturls_text.version=="10"):
+   httpversionout = "1.0";
+  else:
+   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.info();
