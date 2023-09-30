@@ -12,7 +12,7 @@
     Copyright 2016-2023 Game Maker 2k - https://github.com/GameMaker2k
     Copyright 2016-2023 Kazuki Przyborowski - https://github.com/KazukiPrzyborowski
 
-    $FileInfo: pywwwgetold.py - Last Update: 9/24/2023 Ver. 1.5.0 RC 1 - Author: cooldude2k $
+    $FileInfo: pywwwgetold.py - Last Update: 9/30/2023 Ver. 1.7.0 RC 1 - Author: cooldude2k $
 '''
 
 from __future__ import division, absolute_import, print_function;
@@ -118,8 +118,8 @@ __program_alt_name__ = "PyWWWGet";
 __program_small_name__ = "wwwget";
 __project__ = __program_name__;
 __project_url__ = "https://github.com/GameMaker2k/PyWWW-Get";
-__version_info__ = (1, 5, 0, "RC 1", 1);
-__version_date_info__ = (2023, 9, 24, "RC 1", 1);
+__version_info__ = (1, 7, 0, "RC 1", 1);
+__version_date_info__ = (2023, 9, 30, "RC 1", 1);
 __version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2);
 __revision__ = __version_info__[3];
 __revision_id__ = "$Id$";
