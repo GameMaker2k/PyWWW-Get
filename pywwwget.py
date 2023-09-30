@@ -1099,7 +1099,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  if(isinstance(httpheaderout, list) and httplibuse!="pycurl"):
   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
  if(isinstance(httpheaderout, list) and httplibuse=="pycurl"):
-  httpheaderout = dict(make_http_headers_from_pycurl_to_dict("".join(httpheaderout)));
+  httpheaderout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheaderout)));
  if(sys.version[0]=="2"):
   try:
    prehttpheaderout = httpheaderout;
@@ -1116,7 +1116,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  if(isinstance(httpheadersentout, list) and httplibuse!="pycurl"):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
  if(isinstance(httpheadersentout, list) and httplibuse=="pycurl"):
-  httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("".join(httpheadersentout)));
+  httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheadersentout)));
  httpheadersentout = fix_header_names(httpheadersentout);
  log.info("Downloading URL "+httpurl);
  if(httplibuse=="urllib" or httplibuse=="request" or httplibuse=="request3" or httplibuse=="httplib" or httplibuse=="httplib2" or httplibuse=="urllib3" or httplibuse=="mechanize" or httplibuse=="httpx" or httplibuse=="httpx2" or httplibuse=="httpcore" or httplibuse=="httpcore2"):
@@ -1653,7 +1653,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
  if(isinstance(httpheaderout, list) and httplibuse!="pycurl"):
   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
  if(isinstance(httpheaderout, list) and httplibuse=="pycurl"):
-  httpheaderout = dict(make_http_headers_from_pycurl_to_dict("".join(httpheaderout)));
+  httpheaderout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheaderout)));
  if(sys.version[0]=="2"):
   try:
    prehttpheaderout = httpheaderout;
@@ -1670,7 +1670,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
  if(isinstance(httpheadersentout, list) and httplibuse!="pycurl"):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
  if(isinstance(httpheadersentout, list) and httplibuse=="pycurl"):
-  httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("".join(httpheadersentout)));
+  httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheadersentout)));
  httpheadersentout = fix_header_names(httpheadersentout);
  if(httplibuse=="urllib" or httplibuse=="request" or httplibuse=="request3" or httplibuse=="httplib" or httplibuse=="httplib2" or httplibuse=="urllib3" or httplibuse=="requests" or httplibuse=="mechanize" or httplibuse=="httpx" or httplibuse=="httpx2" or httplibuse=="httpcore" or httplibuse=="httpcore2"):
   downloadsize = httpheaderout.get('Content-Length');

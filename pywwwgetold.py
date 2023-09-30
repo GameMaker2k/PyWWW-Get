@@ -4701,7 +4701,7 @@ if(havepycurl):
   httpheaderout = pycurlheadersout;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-   httpheaderout = dict(make_http_headers_from_pycurl_to_dict("".join(httpheaderout)));
+   httpheaderout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheaderout)));
   if(sys.version[0]=="2"):
    try:
     prehttpheaderout = httpheaderout;
@@ -4716,7 +4716,7 @@ if(havepycurl):
     pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-   httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("".join(httpheadersentout)));
+   httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheadersentout)));
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
@@ -4829,7 +4829,7 @@ if(havepycurl):
   httpheaderout = pycurlheadersout;
   httpheadersentout = httpheaders;
   if(isinstance(httpheaderout, list)):
-   httpheaderout = dict(make_http_headers_from_pycurl_to_dict("".join(httpheaderout)));
+   httpheaderout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheaderout)));
   if(sys.version[0]=="2"):
    try:
     prehttpheaderout = httpheaderout;
@@ -4844,7 +4844,7 @@ if(havepycurl):
     pass;
   httpheaderout = fix_header_names(httpheaderout);
   if(isinstance(httpheadersentout, list)):
-   httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("".join(httpheadersentout)));
+   httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheadersentout)));
   httpheadersentout = fix_header_names(httpheadersentout);
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
