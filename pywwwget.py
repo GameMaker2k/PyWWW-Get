@@ -1055,7 +1055,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
     geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
     geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
     geturls_text.setopt(geturls_text.FOLLOWLOCATION, True);
-    geturls_text.setopt(pycurl.POST, True);
+    geturls_text.setopt(geturls_text.POST, True);
     geturls_text.setopt(geturls_text.POSTFIELDS, postdata);
     geturls_text.perform();
    else:
@@ -1619,7 +1619,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
     geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
     geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
     geturls_text.setopt(geturls_text.FOLLOWLOCATION, True);
-    geturls_text.setopt(pycurl.POST, True);
+    geturls_text.setopt(geturls_text.POST, True);
     geturls_text.setopt(geturls_text.POSTFIELDS, postdata);
     geturls_text.perform();
    else:
