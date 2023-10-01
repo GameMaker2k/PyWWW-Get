@@ -4761,6 +4761,7 @@ if(havepycurl):
     geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write);
     geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
     geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
+    geturls_text.setopt(geturls_text.FOLLOWLOCATION, True);
     geturls_text.perform();
    elif(httpmethod=="POST"):
     geturls_text = pycurl.Curl();
@@ -4768,6 +4769,9 @@ if(havepycurl):
     geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write);
     geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
     geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
+    geturls_text.setopt(geturls_text.FOLLOWLOCATION, True);
+    geturls_text.setopt(pycurl.POST, True);
+    geturls_text.setopt(geturls_text.POSTFIELDS, postdata);
     geturls_text.perform();
    else:
     geturls_text = pycurl.Curl();
@@ -4775,6 +4779,7 @@ if(havepycurl):
     geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write);
     geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
     geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
+    geturls_text.setopt(geturls_text.FOLLOWLOCATION, True);
     geturls_text.perform();
    retrieved_headers.seek(0);
    pycurlhead = retrieved_headers.read().decode('UTF-8');
@@ -4894,6 +4899,7 @@ if(havepycurl):
     geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write);
     geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
     geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
+    geturls_text.setopt(geturls_text.FOLLOWLOCATION, True);
     geturls_text.perform();
    elif(httpmethod=="POST"):
     geturls_text = pycurl.Curl();
@@ -4901,6 +4907,9 @@ if(havepycurl):
     geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write);
     geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
     geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
+    geturls_text.setopt(geturls_text.FOLLOWLOCATION, True);
+    geturls_text.setopt(pycurl.POST, True);
+    geturls_text.setopt(geturls_text.POSTFIELDS, postdata);
     geturls_text.perform();
    else:
     geturls_text = pycurl.Curl();
@@ -4908,6 +4917,7 @@ if(havepycurl):
     geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write);
     geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
     geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
+    geturls_text.setopt(geturls_text.FOLLOWLOCATION, True);
     geturls_text.perform();
    retrieved_headers.seek(0);
    pycurlhead = retrieved_headers.read().decode('UTF-8');
