@@ -863,7 +863,10 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuser
   log.info("Error With URL "+httpurl);
   return False;
  httpcodeout = geturls_text.getcode();
- httpcodereason = geturls_text.reason;
+ try:
+  httpcodereason = geturls_text.reason;
+ except AttributeError:
+  httpcodereason = http_status_to_reason(geturls_text.getcode());
  httpversionout = "1.1";
  httpmethodout = httpmethod;
  httpurlout = geturls_text.geturl();
@@ -966,7 +969,10 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
   log.info("Error With URL "+httpurl);
   return False;
  httpcodeout = geturls_text.getcode();
- httpcodereason = geturls_text.reason;
+ try:
+  httpcodereason = geturls_text.reason;
+ except AttributeError:
+  httpcodereason = http_status_to_reason(geturls_text.getcode());
  httpversionout = "1.1";
  httpmethodout = httpmethod;
  httpurlout = geturls_text.geturl();
@@ -1836,7 +1842,10 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpuse
   log.info("Error With URL "+httpurl);
   return False;
  httpcodeout = geturls_text.getcode();
- httpcodereason = geturls_text.reason;
+ try:
+  httpcodereason = geturls_text.reason;
+ except AttributeError:
+  httpcodereason = http_status_to_reason(geturls_text.getcode());
  httpversionout = "1.1";
  httpmethodout = geturls_request.get_method();
  httpurlout = geturls_text.geturl();
@@ -1943,7 +1952,10 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
   log.info("Error With URL "+httpurl);
   return False;
  httpcodeout = geturls_text.getcode();
- httpcodereason = geturls_text.reason;
+ try:
+  httpcodereason = geturls_text.reason;
+ except AttributeError:
+  httpcodereason = http_status_to_reason(geturls_text.getcode());
  httpversionout = "1.1";
  httpmethodout = geturls_request.get_method();
  httpurlout = geturls_text.geturl();
