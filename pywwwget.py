@@ -668,7 +668,10 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   else:
    httpuseragent.update({'Referer': httpreferer});
  if(urlparts.username is not None or urlparts.password is not None):
-  inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+  if(sys.version[0]=="2"):
+   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password));
+  if(sys.version[0]>="3"):
+   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
  geturls_opener = build_opener(HTTPCookieProcessor(httpcookie));
  if(httplibuse=="urllib" or httplibuse=="mechanize"):
@@ -1067,7 +1070,10 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
     geturls_text.setopt(geturls_text.FOLLOWLOCATION, True);
     geturls_text.perform();
    retrieved_headers.seek(0);
-   pycurlhead = retrieved_headers.read().decode('UTF-8');
+   if(sys.version[0]=="2"):
+    pycurlhead = retrieved_headers.read();
+   if(sys.version[0]>="3"):
+    pycurlhead = retrieved_headers.read().decode('UTF-8');
    pyhttpverinfo = re.findall(r'^HTTP/([0-9.]+) (\d+) ([A-Za-z\s]+)$', pycurlhead.splitlines()[0])[0];
    pycurlheadersout = make_http_headers_from_pycurl_to_dict(pycurlhead);
    retrieved_body.seek(0);
@@ -1239,7 +1245,10 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   else:
    httpuseragent.update({'Referer': httpreferer});
  if(urlparts.username is not None or urlparts.password is not None):
-  inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+  if(sys.version[0]=="2"):
+   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password));
+  if(sys.version[0]>="3"):
+   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
  geturls_opener = build_opener(HTTPCookieProcessor(httpcookie));
  if(httplibuse=="urllib" or httplibuse=="mechanize"):
@@ -1631,7 +1640,10 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
     geturls_text.setopt(geturls_text.FOLLOWLOCATION, True);
     geturls_text.perform();
    retrieved_headers.seek(0);
-   pycurlhead = retrieved_headers.read().decode('UTF-8');
+   if(sys.version[0]=="2"):
+    pycurlhead = retrieved_headers.read();
+   if(sys.version[0]>="3"):
+    pycurlhead = retrieved_headers.read().decode('UTF-8');
    pyhttpverinfo = re.findall(r'^HTTP/([0-9.]+) (\d+) ([A-Za-z\s]+)$', pycurlhead.splitlines()[0])[0];
    pycurlheadersout = make_http_headers_from_pycurl_to_dict(pycurlhead);
    retrieved_body.seek(0);
