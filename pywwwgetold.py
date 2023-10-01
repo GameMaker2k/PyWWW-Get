@@ -1166,9 +1166,9 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuse
  geturls_opener.addheaders = httpheaders;
  time.sleep(sleep);
  if(urlparts[0]=="http"):
-  httpconn = HTTPConnection(urlparts[1]);
+  httpconn = HTTPConnection(urlparts[1], timeout=10);
  elif(urlparts[0]=="https"):
-  httpconn = HTTPSConnection(urlparts[1]);
+  httpconn = HTTPSConnection(urlparts[1], timeout=10);
  else:
   return False;
  if(postdata is not None and not isinstance(postdata, dict)):
@@ -1284,9 +1284,9 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  geturls_opener.addheaders = httpheaders;
  time.sleep(sleep);
  if(urlparts[0]=="http"):
-  httpconn = HTTPConnection(urlparts[1]);
+  httpconn = HTTPConnection(urlparts[1], timeout=10);
  elif(urlparts[0]=="https"):
-  httpconn = HTTPSConnection(urlparts[1]);
+  httpconn = HTTPSConnection(urlparts[1], timeout=10);
  else:
   return False;
  if(postdata is not None and not isinstance(postdata, dict)):
@@ -1498,9 +1498,9 @@ if(havehttplib2):
   geturls_opener.addheaders = httpheaders;
   time.sleep(sleep);
   if(urlparts[0]=="http"):
-   httpconn = HTTPConnectionWithTimeout(urlparts[1]);
+   httpconn = HTTPConnectionWithTimeout(urlparts[1], timeout=10);
   elif(urlparts[0]=="https"):
-   httpconn = HTTPSConnectionWithTimeout(urlparts[1]);
+   httpconn = HTTPSConnectionWithTimeout(urlparts[1], timeout=10);
   else:
    return False;
   if(postdata is not None and not isinstance(postdata, dict)):
@@ -1614,9 +1614,9 @@ if(havehttplib2):
   geturls_opener.addheaders = httpheaders;
   time.sleep(sleep);
   if(urlparts[0]=="http"):
-   httpconn = HTTPConnectionWithTimeout(urlparts[1]);
+   httpconn = HTTPConnectionWithTimeout(urlparts[1], timeout=10);
   elif(urlparts[0]=="https"):
-   httpconn = HTTPSConnectionWithTimeout(urlparts[1]);
+   httpconn = HTTPSConnectionWithTimeout(urlparts[1], timeout=10);
   else:
    return False;
   if(postdata is not None and not isinstance(postdata, dict)):
@@ -1846,13 +1846,13 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpuse
  try:
   if(httpmethod=="GET"):
    geturls_request = Request(httpurl, headers=httpheaders);
-   geturls_text = urlopen(geturls_request);
+   geturls_text = urlopen(geturls_request, timeout=10);
   elif(httpmethod=="POST"):
    geturls_request = Request(httpurl, headers=httpheaders);
-   geturls_text = urlopen(geturls_request, data=postdata);
+   geturls_text = urlopen(geturls_request, timeout=10, data=postdata);
   else:
    geturls_request = Request(httpurl, headers=httpheaders);
-   geturls_text = urlopen(geturls_request);
+   geturls_text = urlopen(geturls_request, timeout=10);
  except HTTPError as geturls_text_error:
   geturls_text = geturls_text_error;
   log.info("Error With URL "+httpurl);
@@ -1959,13 +1959,13 @@ def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, ht
  try:
   if(httpmethod=="GET"):
    geturls_request = Request(httpurl, headers=httpheaders);
-   geturls_text = urlopen(geturls_request);
+   geturls_text = urlopen(geturls_request, timeout=10);
   elif(httpmethod=="POST"):
    geturls_request = Request(httpurl, headers=httpheaders);
-   geturls_text = urlopen(geturls_request, data=postdata);
+   geturls_text = urlopen(geturls_request, timeout=10, data=postdata);
   else:
    geturls_request = Request(httpurl, headers=httpheaders);
-   geturls_text = urlopen(geturls_request);
+   geturls_text = urlopen(geturls_request, timeout=10);
  except HTTPError as geturls_text_error:
   geturls_text = geturls_text_error;
   log.info("Error With URL "+httpurl);
@@ -3810,7 +3810,8 @@ if(haveurllib3):
     inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
   time.sleep(sleep);
-  urllib_pool = urllib3.PoolManager(headers=httpheaders);
+  timeout = urllib3.util.Timeout(connect=10, read=10);
+  urllib_pool = urllib3.PoolManager(headers=httpheaders, timeout=timeout);
   if(postdata is not None and not isinstance(postdata, dict)):
    postdata = urlencode(postdata);
   try:
@@ -3924,7 +3925,8 @@ if(haveurllib3):
     inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
   time.sleep(sleep);
-  urllib_pool = urllib3.PoolManager(headers=httpheaders);
+  timeout = urllib3.util.Timeout(connect=10, read=10);
+  urllib_pool = urllib3.PoolManager(headers=httpheaders, timeout=timeout);
   if(postdata is not None and not isinstance(postdata, dict)):
    postdata = urlencode(postdata);
   try:
@@ -4147,16 +4149,17 @@ if(haveurllib3):
     inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
   time.sleep(sleep);
-  urllib_pool = urllib3.PoolManager(headers=httpheaders);
+  timeout = urllib3.util.Timeout(connect=10, read=10);
+  urllib_pool = urllib3.PoolManager(headers=httpheaders, timeout=timeout);
   if(postdata is not None and not isinstance(postdata, dict)):
    postdata = urlencode(postdata);
   try:
    if(httpmethod=="GET"):
-    geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, headers=httpheaders, preload_content=False);
    elif(httpmethod=="POST"):
-    geturls_text = urllib_pool.urlopen("GET", httpurl, body=postdata, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, body=postdata, headers=httpheaders, preload_content=False);
    else:
-    geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, headers=httpheaders, preload_content=False);
   except urllib3.exceptions.ConnectTimeoutError:
    log.info("Error With URL "+httpurl);
    return False;
@@ -4261,16 +4264,17 @@ if(haveurllib3):
     inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
   time.sleep(sleep);
-  urllib_pool = urllib3.PoolManager(headers=httpheaders);
+  timeout = urllib3.util.Timeout(connect=10, read=10);
+  urllib_pool = urllib3.PoolManager(headers=httpheaders, timeout=timeout);
   if(postdata is not None and not isinstance(postdata, dict)):
    postdata = urlencode(postdata);
   try:
    if(httpmethod=="GET"):
-    geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, headers=httpheaders, preload_content=False);
    elif(httpmethod=="POST"):
-    geturls_text = urllib_pool.urlopen("GET", httpurl, body=postdata, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, body=postdata, headers=httpheaders, preload_content=False);
    else:
-    geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, headers=httpheaders, preload_content=False);
   except urllib3.exceptions.ConnectTimeoutError:
    log.info("Error With URL "+httpurl);
    return False;
@@ -4964,9 +4968,9 @@ if(havepycurl):
   geturls_opener.addheaders = httpheaders;
   time.sleep(sleep);
   if(urlparts[0]=="http"):
-   httpconn = HTTPConnectionWithTimeout(urlparts[1]);
+   httpconn = HTTPConnectionWithTimeout(urlparts[1], timeout=10);
   elif(urlparts[0]=="https"):
-   httpconn = HTTPSConnectionWithTimeout(urlparts[1]);
+   httpconn = HTTPSConnectionWithTimeout(urlparts[1], timeout=10);
   else:
    return False;
   if(postdata is not None and not isinstance(postdata, dict)):

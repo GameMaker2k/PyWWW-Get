@@ -742,7 +742,8 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
  elif(httplibuse=="request3"):
-  urllib_pool = urllib3.PoolManager(headers=httpheaders);
+  timeout = urllib3.util.Timeout(connect=10, read=10);
+  urllib_pool = urllib3.PoolManager(headers=httpheaders, timeout=timeout);
   try:
    if(httpmethod=="GET"):
     geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
@@ -774,9 +775,9 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpheadersentout = httpheaders;
  elif(httplibuse=="httplib"):
   if(urlparts[0]=="http"):
-   httpconn = HTTPConnection(urlparts[1]);
+   httpconn = HTTPConnection(urlparts[1], timeout=10);
   elif(urlparts[0]=="https"):
-   httpconn = HTTPSConnection(urlparts[1]);
+   httpconn = HTTPSConnection(urlparts[1], timeout=10);
   else:
    return False;
   if(postdata is not None and not isinstance(postdata, dict)):
@@ -807,9 +808,9 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpheadersentout = httpheaders;
  elif(httplibuse=="httplib2"):
   if(urlparts[0]=="http"):
-   httpconn = HTTPConnectionWithTimeout(urlparts[1]);
+   httpconn = HTTPConnectionWithTimeout(urlparts[1], timeout=10);
   elif(urlparts[0]=="https"):
-   httpconn = HTTPSConnectionWithTimeout(urlparts[1]);
+   httpconn = HTTPSConnectionWithTimeout(urlparts[1], timeout=10);
   else:
    return False;
   if(postdata is not None and not isinstance(postdata, dict)):
@@ -839,14 +840,15 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
  elif(httplibuse=="urllib3"):
-  urllib_pool = urllib3.PoolManager(headers=httpheaders);
+  timeout = urllib3.util.Timeout(connect=10, read=10);
+  urllib_pool = urllib3.PoolManager(headers=httpheaders, timeout=timeout);
   try:
    if(httpmethod=="GET"):
-    geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, headers=httpheaders, preload_content=False);
    elif(httpmethod=="POST"):
-    geturls_text = urllib_pool.urlopen("GET", httpurl, body=postdata, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, body=postdata, headers=httpheaders, preload_content=False);
    else:
-    geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, headers=httpheaders, preload_content=False);
   except urllib3.exceptions.ConnectTimeoutError:
    log.info("Error With URL "+httpurl);
    return False;
@@ -873,11 +875,11 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   try:
    reqsession = requests.Session();
    if(httpmethod=="GET"):
-    geturls_text = reqsession.get(httpurl, headers=httpheaders, cookies=httpcookie);
+    geturls_text = reqsession.get(httpurl, timeout=10, headers=httpheaders, cookies=httpcookie);
    elif(httpmethod=="POST"):
-    geturls_text = reqsession.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie);
+    geturls_text = reqsession.post(httpurl, timeout=10, data=postdata, headers=httpheaders, cookies=httpcookie);
    else:
-    geturls_text = reqsession.get(httpurl, headers=httpheaders, cookies=httpcookie);
+    geturls_text = reqsession.get(httpurl, timeout=10, headers=httpheaders, cookies=httpcookie);
   except requests.exceptions.ConnectTimeout:
    log.info("Error With URL "+httpurl);
    return False;
@@ -1320,7 +1322,8 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
  elif(httplibuse=="request3"):
-  urllib_pool = urllib3.PoolManager(headers=httpheaders);
+  timeout = urllib3.util.Timeout(connect=10, read=10);
+  urllib_pool = urllib3.PoolManager(headers=httpheaders, timeout=timeout);
   try:
    if(httpmethod=="GET"):
     geturls_text = geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
@@ -1352,9 +1355,9 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httpheadersentout = httpheaders;
  elif(httplibuse=="httplib"):
   if(urlparts[0]=="http"):
-   httpconn = HTTPConnection(urlparts[1]);
+   httpconn = HTTPConnection(urlparts[1], timeout=10);
   elif(urlparts[0]=="https"):
-   httpconn = HTTPSConnection(urlparts[1]);
+   httpconn = HTTPSConnection(urlparts[1], timeout=10);
   else:
    return False;
   if(postdata is not None and not isinstance(postdata, dict)):
@@ -1409,14 +1412,15 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
  elif(httplibuse=="urllib3"):
-  urllib_pool = urllib3.PoolManager(headers=httpheaders);
+  timeout = urllib3.util.Timeout(connect=10, read=10);
+  urllib_pool = urllib3.PoolManager(headers=httpheaders, timeout=timeout);
   try:
    if(httpmethod=="GET"):
-    geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, headers=httpheaders, preload_content=False);
    elif(httpmethod=="POST"):
-    geturls_text = urllib_pool.urlopen("GET", httpurl, body=postdata, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, body=postdata, headers=httpheaders, preload_content=False);
    else:
-    geturls_text = urllib_pool.urlopen("GET", httpurl, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, headers=httpheaders, preload_content=False);
   except urllib3.exceptions.ConnectTimeoutError:
    log.info("Error With URL "+httpurl);
    return False;
@@ -1443,11 +1447,11 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   try:
    reqsession = requests.Session();
    if(httpmethod=="GET"):
-    geturls_text = reqsession.get(httpurl, headers=httpheaders, cookies=httpcookie, stream=True);
+    geturls_text = reqsession.get(httpurl, timeout=10, headers=httpheaders, cookies=httpcookie, stream=True);
    elif(httpmethod=="POST"):
-    geturls_text = reqsession.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie, stream=True);
+    geturls_text = reqsession.post(httpurl, timeout=10, data=postdata, headers=httpheaders, cookies=httpcookie, stream=True);
    else:
-    geturls_text = reqsession.get(httpurl, headers=httpheaders, cookies=httpcookie, stream=True);
+    geturls_text = reqsession.get(httpurl, timeout=10, headers=httpheaders, cookies=httpcookie, stream=True);
   except requests.exceptions.ConnectTimeout:
    log.info("Error With URL "+httpurl);
    return False;
