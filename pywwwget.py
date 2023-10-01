@@ -58,6 +58,7 @@ except ImportError:
  haveurllib3 = False;
 havehttplib2 = False;
 try:
+ import httplib2;
  from httplib2 import HTTPConnectionWithTimeout, HTTPSConnectionWithTimeout;
  havehttplib2 = True;
 except ImportError:
@@ -581,6 +582,7 @@ def get_httplib_support(checkvalue=None):
  returnval.append("httplib");
  if(havehttplib2):
   returnval.append("httplib2");
+  returnval.append("http2");
  returnval.append("urllib");
  if(haveurllib3):
   returnval.append("urllib3");
@@ -668,7 +670,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
  geturls_opener = build_opener(HTTPCookieProcessor(httpcookie));
- if(httplibuse=="urllib" or httplibuse=="request" or httplibuse=="mechanize"):
+ if(httplibuse=="urllib" or httplibuse=="mechanize"):
   if(isinstance(httpheaders, dict)):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  if(httplibuse=="pycurl"):
@@ -725,7 +727,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpcodeout = geturls_text.getcode();
   httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
-  httpmethodout = httpmethod;
+  httpmethodout = geturls_request.get_method();
   httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
@@ -756,7 +758,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    httpversionout = "1.0";
   else:
    httpversionout = "1.1";
-  httpmethodout = httpmethod;
+  httpmethodout = geturls_text.request.method;
   httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.info();
   httpheadersentout = httpheaders;
@@ -789,7 +791,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    httpversionout = "1.0";
   else:
    httpversionout = "1.1";
-  httpmethodout = httpmethod;
+  httpmethodout = geturls_text._method;
   httpurlout = httpurl;
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
@@ -826,6 +828,36 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpurlout = httpurl;
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
+
+ elif(httplibuse=="http2"):
+  httpconn = httplib2.Http(urlparts[1]);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  try:
+   if(httpmethod=="GET"):
+    httpconn.request(httpurl, "GET", headers=httpheaders);
+   elif(httpmethod=="POST"):
+    httpconn.request(httpurl, "GET", body=postdata, headers=httpheaders);
+   else:
+    httpconn.request(httpurl, "GET", headers=httpheaders);
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.gaierror:
+   log.info("Error With URL "+httpurl);
+   return False;
+  geturls_text = httpconn.getresponse();
+  httpcodeout = geturls_text.status;
+  httpcodereason = geturls_text.reason;
+  if(geturls_text.version=="10"):
+   httpversionout = "1.0";
+  else:
+   httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = httpurl;
+  httpheaderout = geturls_text.getheaders();
+  httpheadersentout = httpheaders;
+
  elif(httplibuse=="urllib3"):
   urllib_pool = urllib3.PoolManager(headers=httpheaders);
   try:
@@ -1237,7 +1269,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
  geturls_opener = build_opener(HTTPCookieProcessor(httpcookie));
- if(httplibuse=="urllib" or httplibuse=="request" or httplibuse=="mechanize"):
+ if(httplibuse=="urllib" or httplibuse=="mechanize"):
   if(isinstance(httpheaders, dict)):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
  if(httplibuse=="pycurl"):
@@ -1295,7 +1327,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httpcodeout = geturls_text.getcode();
   httpcodereason = geturls_text.reason;
   httpversionout = "1.1";
-  httpmethodout = httpmethod;
+  httpmethodout = geturls_request.get_method();
   httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.headers;
   httpheadersentout = httpheaders;
@@ -1326,7 +1358,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    httpversionout = "1.0";
   else:
    httpversionout = "1.1";
-  httpmethodout = httpmethod;
+  httpmethodout = geturls_text.request.method;
   httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.info();
   httpheadersentout = httpheaders;
@@ -1359,7 +1391,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    httpversionout = "1.0";
   else:
    httpversionout = "1.1";
-  httpmethodout = httpmethod;
+  httpmethodout = geturls_text._method;
   httpurlout = httpurl;
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
@@ -1388,6 +1420,36 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httpurlout = httpurl;
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
+
+ elif(httplibuse=="http2"):
+  httpconn = httplib2.Http(urlparts[1]);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  try:
+   if(httpmethod=="GET"):
+    httpconn.request(httpurl, "GET", headers=httpheaders);
+   elif(httpmethod=="POST"):
+    httpconn.request(httpurl, "GET", body=postdata, headers=httpheaders);
+   else:
+    httpconn.request(httpurl, "GET", headers=httpheaders);
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.gaierror:
+   log.info("Error With URL "+httpurl);
+   return False;
+  geturls_text = httpconn.getresponse();
+  httpcodeout = geturls_text.status;
+  httpcodereason = geturls_text.reason;
+  if(geturls_text.version=="10"):
+   httpversionout = "1.0";
+  else:
+   httpversionout = "1.1";
+  httpmethodout = httpmethod;
+  httpurlout = httpurl;
+  httpheaderout = geturls_text.getheaders();
+  httpheadersentout = httpheaders;
+
  elif(httplibuse=="urllib3"):
   urllib_pool = urllib3.PoolManager(headers=httpheaders);
   try:
@@ -1916,6 +1978,10 @@ def download_from_url_with_httplib2(httpurl, httpheaders=geturls_headers, httpus
   returnval = download_from_url(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, "httplib2", sleep);
   return returnval;
 
+def download_from_url_with_http2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
+  returnval = download_from_url(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, "http2", sleep);
+  return returnval;
+
 def download_from_url_with_urllib3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1):
   returnval = download_from_url(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, "urllib3", sleep);
   return returnval;
@@ -1980,6 +2046,10 @@ def download_from_url_file_with_httplib2(httpurl, httpheaders=geturls_headers, h
   returnval = download_from_url_file(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, "httplib2", ranges, buffersize, sleep);
   return returnval;
 
+def download_from_url_file_with_http2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1):
+  returnval = download_from_url_file(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, "http2", ranges, buffersize, sleep);
+  return returnval;
+
 def download_from_url_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1):
   returnval = download_from_url_file(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, "urllib3", ranges, buffersize, sleep);
   return returnval;
@@ -2042,6 +2112,10 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers,
 
 def download_from_url_to_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1):
   returnval = download_from_url_file(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, "httplib2", outfile, outpath, ranges, buffersize, sleep);
+  return returnval;
+
+def download_from_url_to_file_with_http2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1):
+  returnval = download_from_url_file(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, "http2", outfile, outpath, ranges, buffersize, sleep);
   return returnval;
 
 def download_from_url_to_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1):
