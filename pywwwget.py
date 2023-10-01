@@ -309,7 +309,10 @@ def arglistize(proexec, *varlist):
  return newarglist;
 
 def fix_header_names(header_dict):
- header_dict =  {k.title(): v for k, v in header_dict.items()};
+ if(sys.version[0]=="2"):
+  header_dict =  {k.title(): v for k, v in header_dict.iteritems()};
+ if(sys.version[0]>="3"):
+  header_dict =  {k.title(): v for k, v in header_dict.items()};
  return header_dict;
 
 # hms_string by ArcGIS Python Recipes
@@ -1123,10 +1126,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  log.info("Downloading URL "+httpurl);
  if(httplibuse=="urllib" or httplibuse=="request" or httplibuse=="request3" or httplibuse=="httplib" or httplibuse=="httplib2" or httplibuse=="urllib3" or httplibuse=="mechanize" or httplibuse=="httpx" or httplibuse=="httpx2" or httplibuse=="httpcore" or httplibuse=="httpcore2"):
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.read());
-   if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.read());
+   strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
@@ -1138,10 +1138,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  elif(httplibuse=="requests"):
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.raw.read());
-   if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.raw.read());
+   strbuf = BytesIO(geturls_text.raw.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
@@ -1153,10 +1150,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  elif(httplibuse=="pycurl"):
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   if(sys.version[0]=="2"):
-    strbuf = StringIO(retrieved_body.read());
-   if(sys.version[0]>="3"):
-    strbuf = BytesIO(retrieved_body.read());
+   strbuf = BytesIO(retrieved_body.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):

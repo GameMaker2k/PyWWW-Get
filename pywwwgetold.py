@@ -310,7 +310,10 @@ def arglistize(proexec, *varlist):
  return newarglist;
 
 def fix_header_names(header_dict):
- header_dict =  {k.title(): v for k, v in header_dict.items()};
+ if(sys.version[0]=="2"):
+  header_dict =  {k.title(): v for k, v in header_dict.iteritems()};
+ if(sys.version[0]>="3"):
+  header_dict =  {k.title(): v for k, v in header_dict.items()};
  return header_dict;
 
 # hms_string by ArcGIS Python Recipes
@@ -886,10 +889,7 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuser
  httpheadersentout = fix_header_names(httpheadersentout);
  log.info("Downloading URL "+httpurl);
  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-  if(sys.version[0]=="2"):
-   strbuf = StringIO(geturls_text.read());
-  if(sys.version[0]>="3"):
-   strbuf = BytesIO(geturls_text.read());
+  strbuf = BytesIO(geturls_text.read());
   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
   returnval_content = gzstrbuf.read()[:];
  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
@@ -1202,10 +1202,7 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuse
  httpheadersentout = fix_header_names(httpheadersentout);
  log.info("Downloading URL "+httpurl);
  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-  if(sys.version[0]=="2"):
-   strbuf = StringIO(geturls_text.read());
-  if(sys.version[0]>="3"):
-   strbuf = BytesIO(geturls_text.read());
+  strbuf = BytesIO(geturls_text.read());
   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
   returnval_content = gzstrbuf.read()[:];
  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
@@ -1531,10 +1528,7 @@ if(havehttplib2):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.read());
-   if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.read());
+   strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
@@ -1868,10 +1862,7 @@ def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpuse
  httpheadersentout = fix_header_names(httpheadersentout);
  log.info("Downloading URL "+httpurl);
  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-  if(sys.version[0]=="2"):
-   strbuf = StringIO(geturls_text.read());
-  if(sys.version[0]>="3"):
-   strbuf = BytesIO(geturls_text.read());
+  strbuf = BytesIO(geturls_text.read());
   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
   returnval_content = gzstrbuf.read()[:];
  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
@@ -2184,10 +2175,7 @@ if(haverequests):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.raw.read());
-   if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.raw.read());
+   strbuf = BytesIO(geturls_text.raw.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
@@ -2509,10 +2497,7 @@ if(havehttpx):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.read());
-   if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.read());
+   strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
@@ -2636,7 +2621,9 @@ if(havehttpx):
    except ValueError:
     pass;
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
-   for databytes in geturls_text.iter_content(chunk_size=buffersize):
+   while True:
+    databytes = geturls_text.read(buffersize);
+    if not databytes: break;
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
     percentage = "";
@@ -2833,10 +2820,7 @@ if(havehttpx):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.read());
-   if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.read());
+   strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
@@ -2960,7 +2944,9 @@ if(havehttpx):
    except ValueError:
     pass;
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
-   for databytes in geturls_text.iter_content(chunk_size=buffersize):
+   while True:
+    databytes = geturls_text.read(buffersize);
+    if not databytes: break;
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
     percentage = "";
@@ -3157,10 +3143,7 @@ if(havehttpcore):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.read());
-   if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.read());
+   strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
@@ -3284,7 +3267,9 @@ if(havehttpcore):
    except ValueError:
     pass;
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
-   for databytes in geturls_text.iter_content(chunk_size=buffersize):
+   while True:
+    databytes = geturls_text.read(buffersize);
+    if not databytes: break;
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
     percentage = "";
@@ -3481,10 +3466,7 @@ if(havehttpcore):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.read());
-   if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.read());
+   strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
@@ -3608,7 +3590,9 @@ if(havehttpcore):
    except ValueError:
     pass;
    returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
-   for databytes in geturls_text.iter_content(chunk_size=buffersize):
+   while True:
+    databytes = geturls_text.read(buffersize);
+    if not databytes: break;
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
     percentage = "";
@@ -3809,10 +3793,7 @@ if(haveurllib3):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.read());
-   if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.read());
+   strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
@@ -4143,10 +4124,7 @@ if(haveurllib3):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.read());
-   if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.read());
+   strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
@@ -4477,10 +4455,7 @@ if(havemechanize):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   if(sys.version[0]=="2"):
-    strbuf = StringIO(geturls_text.read());
-   if(sys.version[0]>="3"):
-    strbuf = BytesIO(geturls_text.read());
+   strbuf = BytesIO(geturls_text.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
@@ -4827,10 +4802,7 @@ if(havepycurl):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   if(sys.version[0]=="2"):
-    strbuf = StringIO(retrieved_body.read());
-   if(sys.version[0]>="3"):
-    strbuf = BytesIO(retrieved_body.read());
+   strbuf = BytesIO(retrieved_body.read());
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
