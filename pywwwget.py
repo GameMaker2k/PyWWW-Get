@@ -903,13 +903,13 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   try:
    if(httpmethod=="GET"):
     httpx_pool = httpx.Client(http1=True, http2=False, trust_env=True);
-    geturls_text = httpx_pool.get(httpurl, headers=httpheaders, cookies=httpcookie);
+    geturls_text = httpx_pool.get(httpurl, timeout=10, headers=httpheaders, cookies=httpcookie);
    elif(httpmethod=="POST"):
     httpx_pool = httpx.Client(http1=True, http2=False, trust_env=True);
-    geturls_text = httpx_pool.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie);
+    geturls_text = httpx_pool.post(httpurl, timeout=10, data=postdata, headers=httpheaders, cookies=httpcookie);
    else:
     httpx_pool = httpx.Client(http1=True, http2=False, trust_env=True);
-    geturls_text = httpx_pool.get(httpurl, headers=httpheaders, cookies=httpcookie);
+    geturls_text = httpx_pool.get(httpurl, timeout=10, headers=httpheaders, cookies=httpcookie);
   except httpx.ConnectTimeout:
    log.info("Error With URL "+httpurl);
    return False;
@@ -930,13 +930,13 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   try:
    if(httpmethod=="GET"):
     httpx_pool = httpx.Client(http1=True, http2=True, trust_env=True);
-    geturls_text = httpx_pool.get(httpurl, headers=httpheaders, cookies=httpcookie);
+    geturls_text = httpx_pool.get(httpurl, timeout=10, headers=httpheaders, cookies=httpcookie);
    elif(httpmethod=="POST"):
     httpx_pool = httpx.Client(http1=True, http2=True, trust_env=True);
-    geturls_text = httpx_pool.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie);
+    geturls_text = httpx_pool.post(httpurl, timeout=10, data=postdata, headers=httpheaders, cookies=httpcookie);
    else:
     httpx_pool = httpx.Client(http1=True, http2=True, trust_env=True);
-    geturls_text = httpx_pool.get(httpurl, headers=httpheaders, cookies=httpcookie);
+    geturls_text = httpx_pool.get(httpurl, timeout=10, headers=httpheaders, cookies=httpcookie);
   except httpx.ConnectTimeout:
    log.info("Error With URL "+httpurl);
    return False;
@@ -1009,6 +1009,8 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpheadersentout = httpheaders;
  elif(httplibuse=="mechanize"):
   geturls_opener = mechanize.Browser();
+  socket_timeout = socket.timeout(10);
+  geturls_opener.set_handle_timeout(timeout_seconds);
   if(isinstance(httpheaders, dict)):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
   time.sleep(sleep);
@@ -1052,6 +1054,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
     geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
     geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
     geturls_text.setopt(geturls_text.FOLLOWLOCATION, True);
+    geturls_text.setopt(geturls_text.TIMEOUT, 10);
     geturls_text.perform();
    elif(httpmethod=="POST"):
     geturls_text = pycurl.Curl();
@@ -1060,6 +1063,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
     geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
     geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
     geturls_text.setopt(geturls_text.FOLLOWLOCATION, True);
+    geturls_text.setopt(geturls_text.TIMEOUT, 10);
     geturls_text.setopt(geturls_text.POST, True);
     geturls_text.setopt(geturls_text.POSTFIELDS, postdata);
     geturls_text.perform();
@@ -1070,6 +1074,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
     geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
     geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
     geturls_text.setopt(geturls_text.FOLLOWLOCATION, True);
+    geturls_text.setopt(geturls_text.TIMEOUT, 10);
     geturls_text.perform();
    retrieved_headers.seek(0);
    if(sys.version[0]=="2"):
@@ -1475,13 +1480,13 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   try:
    if(httpmethod=="GET"):
     httpx_pool = httpx.Client(http1=True, http2=False, trust_env=True);
-    geturls_text = httpx_pool.get(httpurl, headers=httpheaders, cookies=httpcookie);
+    geturls_text = httpx_pool.get(httpurl, timeout=10, headers=httpheaders, cookies=httpcookie);
    elif(httpmethod=="POST"):
     httpx_pool = httpx.Client(http1=True, http2=False, trust_env=True);
-    geturls_text = httpx_pool.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie);
+    geturls_text = httpx_pool.post(httpurl, timeout=10, data=postdata, headers=httpheaders, cookies=httpcookie);
    else:
     httpx_pool = httpx.Client(http1=True, http2=False, trust_env=True);
-    geturls_text = httpx_pool.get(httpurl, headers=httpheaders, cookies=httpcookie);
+    geturls_text = httpx_pool.get(httpurl, timeout=10, headers=httpheaders, cookies=httpcookie);
   except httpx.ConnectTimeout:
    log.info("Error With URL "+httpurl);
    return False;
@@ -1502,13 +1507,13 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   try:
    if(httpmethod=="GET"):
     httpx_pool = httpx.Client(http1=True, http2=True, trust_env=True);
-    geturls_text = httpx_pool.get(httpurl, headers=httpheaders, cookies=httpcookie);
+    geturls_text = httpx_pool.get(httpurl, timeout=10, headers=httpheaders, cookies=httpcookie);
    elif(httpmethod=="POST"):
     httpx_pool = httpx.Client(http1=True, http2=True, trust_env=True);
-    geturls_text = httpx_pool.post(httpurl, data=postdata, headers=httpheaders, cookies=httpcookie);
+    geturls_text = httpx_pool.post(httpurl, timeout=10, data=postdata, headers=httpheaders, cookies=httpcookie);
    else:
     httpx_pool = httpx.Client(http1=True, http2=True, trust_env=True);
-    geturls_text = httpx_pool.get(httpurl, headers=httpheaders, cookies=httpcookie);
+    geturls_text = httpx_pool.get(httpurl, timeout=10, headers=httpheaders, cookies=httpcookie);
   except httpx.ConnectTimeout:
    log.info("Error With URL "+httpurl);
    return False;
@@ -1581,6 +1586,8 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httpheadersentout = httpheaders;
  elif(httplibuse=="mechanize"):
   geturls_opener = mechanize.Browser();
+  socket_timeout = socket.timeout(10);
+  geturls_opener.set_handle_timeout(timeout_seconds);
   if(isinstance(httpheaders, dict)):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
   time.sleep(sleep);
@@ -1624,6 +1631,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
     geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
     geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
     geturls_text.setopt(geturls_text.FOLLOWLOCATION, True);
+    geturls_text.setopt(geturls_text.TIMEOUT, 10);
     geturls_text.perform();
    elif(httpmethod=="POST"):
     geturls_text = pycurl.Curl();
@@ -1632,6 +1640,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
     geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
     geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
     geturls_text.setopt(geturls_text.FOLLOWLOCATION, True);
+    geturls_text.setopt(geturls_text.TIMEOUT, 10);
     geturls_text.setopt(geturls_text.POST, True);
     geturls_text.setopt(geturls_text.POSTFIELDS, postdata);
     geturls_text.perform();
@@ -1642,6 +1651,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
     geturls_text.setopt(geturls_text.HTTPHEADER, httpheaders);
     geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write);
     geturls_text.setopt(geturls_text.FOLLOWLOCATION, True);
+    geturls_text.setopt(geturls_text.TIMEOUT, 10);
     geturls_text.perform();
    retrieved_headers.seek(0);
    if(sys.version[0]=="2"):
