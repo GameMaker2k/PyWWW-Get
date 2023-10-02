@@ -1194,7 +1194,7 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuse
  else:
   httpversionout = "1.1";
  httpmethodout = geturls_text._method;
- httpurlout = httpurl;
+ httpurlout = geturls_text.geturl();
  httpheaderout = geturls_text.getheaders();
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
@@ -1312,7 +1312,7 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  else:
   httpversionout = "1.1";
  httpmethodout = geturls_text._method;
- httpurlout = httpurl;
+ httpurlout = geturls_text.geturl();
  httpheaderout = geturls_text.getheaders();
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):

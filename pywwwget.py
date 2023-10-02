@@ -803,7 +803,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   else:
    httpversionout = "1.1";
   httpmethodout = geturls_text._method;
-  httpurlout = httpurl;
+  httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
  elif(httplibuse=="httplib2"):
@@ -1388,7 +1388,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   else:
    httpversionout = "1.1";
   httpmethodout = geturls_text._method;
-  httpurlout = httpurl;
+  httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
  elif(httplibuse=="httplib2"):
@@ -1413,7 +1413,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   else:
    httpversionout = "1.1";
   httpmethodout = httpmethod;
-  httpurlout = httpurl;
+  httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
  elif(httplibuse=="urllib3"):
