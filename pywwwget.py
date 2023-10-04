@@ -684,7 +684,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  time.sleep(sleep);
  if(postdata is not None and not isinstance(postdata, dict)):
   postdata = urlencode(postdata);
- if(httplibuse=="urllib"):
+ if(httplibuse=="urllib" or httplibuse=="request"):
   geturls_request = Request(httpurl);
   try:
    if(httpmethod=="GET"):
@@ -709,38 +709,6 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    httpcodereason = http_status_to_reason(geturls_text.getcode());
   httpversionout = geturls_text.version;
   httpmethodout = geturls_request.get_method();
-  httpurlout = geturls_text.geturl();
-  httpheaderout = geturls_text.info();
-  httpheadersentout = httpheaders;
- elif(httplibuse=="request3"):
-  timeout = urllib3.util.Timeout(connect=10, read=10);
-  urllib_pool = urllib3.PoolManager(headers=httpheaders, timeout=timeout);
-  try:
-   if(httpmethod=="GET"):
-    geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
-   elif(httpmethod=="POST"):
-    geturls_text = urllib_pool.request("POST", httpurl, body=postdata, headers=httpheaders, preload_content=False);
-   else:
-    geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
-  except urllib3.exceptions.ConnectTimeoutError:
-   log.info("Error With URL "+httpurl);
-   return False;
-  except urllib3.exceptions.ConnectError:
-   log.info("Error With URL "+httpurl);
-   return False;
-  except urllib3.exceptions.MaxRetryError:
-   log.info("Error With URL "+httpurl);
-   return False;
-  except socket.timeout:
-   log.info("Error With URL "+httpurl);
-   return False;
-  httpcodeout = geturls_text.status;
-  httpcodereason = geturls_text.reason;
-  if(geturls_text.version=="10"):
-   httpversionout = "1.0";
-  else:
-   httpversionout = "1.1";
-  httpmethodout = geturls_text.method;
   httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.info();
   httpheadersentout = httpheaders;
@@ -810,16 +778,16 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpurlout = httpurl;
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
- elif(httplibuse=="urllib3"):
+ elif(httplibuse=="urllib3" or httplibuse=="request3"):
   timeout = urllib3.util.Timeout(connect=10, read=10);
   urllib_pool = urllib3.PoolManager(headers=httpheaders, timeout=timeout);
   try:
    if(httpmethod=="GET"):
-    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
    elif(httpmethod=="POST"):
-    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, body=postdata, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.request("POST", httpurl, body=postdata, headers=httpheaders, preload_content=False);
    else:
-    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
   except urllib3.exceptions.ConnectTimeoutError:
    log.info("Error With URL "+httpurl);
    return False;
@@ -1237,7 +1205,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    httpheaders = make_http_headers_from_dict_to_pycurl(httpheaders);
  geturls_opener.addheaders = httpheaders;
  time.sleep(sleep);
- if(httplibuse=="urllib"):
+ if(httplibuse=="urllib" or httplibuse=="request"):
   try:
    geturls_request = Request(httpurl);
    if(httpmethod=="GET"):
@@ -1265,38 +1233,6 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    httpcodereason = http_status_to_reason(geturls_text.getcode());
   httpversionout = geturls_text.version;
   httpmethodout = geturls_request.get_method();
-  httpurlout = geturls_text.geturl();
-  httpheaderout = geturls_text.info();
-  httpheadersentout = httpheaders;
- elif(httplibuse=="request3"):
-  timeout = urllib3.util.Timeout(connect=10, read=10);
-  urllib_pool = urllib3.PoolManager(headers=httpheaders, timeout=timeout);
-  try:
-   if(httpmethod=="GET"):
-    geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
-   elif(httpmethod=="POST"):
-    geturls_text = urllib_pool.request("POST", httpurl, body=postdata, headers=httpheaders, preload_content=False);
-   else:
-    geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
-  except urllib3.exceptions.ConnectTimeoutError:
-   log.info("Error With URL "+httpurl);
-   return False;
-  except urllib3.exceptions.ConnectError:
-   log.info("Error With URL "+httpurl);
-   return False;
-  except urllib3.exceptions.MaxRetryError:
-   log.info("Error With URL "+httpurl);
-   return False;
-  except socket.timeout:
-   log.info("Error With URL "+httpurl);
-   return False;
-  httpcodeout = geturls_text.status;
-  httpcodereason = geturls_text.reason;
-  if(geturls_text.version=="10"):
-   httpversionout = "1.0";
-  else:
-   httpversionout = "1.1";
-  httpmethodout = geturls_text.method;
   httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.info();
   httpheadersentout = httpheaders;
@@ -1358,16 +1294,16 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httpurlout = geturls_text.geturl();
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
- elif(httplibuse=="urllib3"):
+ elif(httplibuse=="urllib3" or httplibuse=="request3"):
   timeout = urllib3.util.Timeout(connect=10, read=10);
   urllib_pool = urllib3.PoolManager(headers=httpheaders, timeout=timeout);
   try:
    if(httpmethod=="GET"):
-    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
    elif(httpmethod=="POST"):
-    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, body=postdata, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.request("POST", httpurl, body=postdata, headers=httpheaders, preload_content=False);
    else:
-    geturls_text = urllib_pool.urlopen("GET", httpurl, timeout=10, headers=httpheaders, preload_content=False);
+    geturls_text = urllib_pool.request("GET", httpurl, headers=httpheaders, preload_content=False);
   except urllib3.exceptions.ConnectTimeoutError:
    log.info("Error With URL "+httpurl);
    return False;
