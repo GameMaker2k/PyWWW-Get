@@ -71,6 +71,8 @@ parser.add_argument("-O", "--output-document", default="-", help="specify a file
 parser.add_argument("-o", "--output-directory", default=os.path.realpath(os.getcwd()), help="specify a directory to output file to");
 parser.add_argument("-l", "--use-httplib", default="urllib", help="select library to download file can be urllib or requests or mechanize");
 parser.add_argument("-b", "--set-buffersize", default=524288, type=int, help="set how big buffersize is in bytes. how much it will download");
+parser.add_argument("-t", "--timeout", default=10, type=int, help="set timeout time for http request");
+parser.add_argument("-s", "--sleep", default=10, type=int, help="set sleep time for request");
 parser.add_argument("-v", "--verbose", action="store_true", help="print various debugging information");
 getargs = parser.parse_args();
 
@@ -91,11 +93,11 @@ if(getargs.dump_user_agent==True):
 
 if(getargs.output_document=="-"):
  if(sys.version[0]=="2"):
-  precontstr = pywwwget.download_from_url_to_file(getargs.url, getargs_headers, getargs.user_agent, getargs.referer, geturls_cj, httplibuse=getargs.use_httplib, buffersize=[getargs.set_buffersize, getargs.set_buffersize], outfile=getargs.output_document, outpath=os.getcwd());
+  precontstr = pywwwget.download_from_url_to_file(getargs.url, getargs_headers, getargs.user_agent, getargs.referer, geturls_cj, httplibuse=getargs.use_httplib, buffersize=[getargs.set_buffersize, getargs.set_buffersize], outfile=getargs.output_document, outpath=os.getcwd(), sleep=getargs.sleep, timeout=getargs.timeout);
   print(precontstr['Content']);
  if(sys.version[0]>="3"):
-  precontstr = pywwwget.download_from_url_to_file(getargs.url, getargs_headers, getargs.user_agent, getargs.referer, geturls_cj, httplibuse=getargs.use_httplib, buffersize=[getargs.set_buffersize, getargs.set_buffersize], outfile=getargs.output_document, outpath=os.getcwd());
+  precontstr = pywwwget.download_from_url_to_file(getargs.url, getargs_headers, getargs.user_agent, getargs.referer, geturls_cj, httplibuse=getargs.use_httplib, buffersize=[getargs.set_buffersize, getargs.set_buffersize], outfile=getargs.output_document, outpath=os.getcwd(), sleep=getargs.sleep, timeout=getargs.timeout);
   print(precontstr['Content'].decode('ascii', 'replace'));
 
 if(getargs.output_document!="-"):
- pywwwget.download_from_url_to_file(getargs.url, getargs_headers, getargs.user_agent, getargs.referer, geturls_cj, httplibuse=getargs.use_httplib, buffersize=[getargs.set_buffersize, getargs.set_buffersize], outfile=getargs.output_document, outpath=getargs.output_directory);
+ pywwwget.download_from_url_to_file(getargs.url, getargs_headers, getargs.user_agent, getargs.referer, geturls_cj, httplibuse=getargs.use_httplib, buffersize=[getargs.set_buffersize, getargs.set_buffersize], outfile=getargs.output_document, outpath=getargs.output_directory, sleep=getargs.sleep, timeout=getargs.timeout);
