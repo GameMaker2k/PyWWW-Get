@@ -629,6 +629,8 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  global geturls_download_sleep, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
+ if(timeout<=0):
+  timeout = 10;
  if(httplibuse=="urllib1" or httplibuse=="urllib2" or httplibuse=="request"):
   httplibuse = "urllib";
  if(httplibuse=="httplib1"):
@@ -748,7 +750,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   else:
    httpversionout = "1.1";
   httpmethodout = geturls_text._method;
-  httpurlout = geturls_text.geturl();
+  httpurlout = httpurl;
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
  elif(httplibuse=="httplib2"):
@@ -1157,6 +1159,8 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
  newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
  if(sleep<0):
   sleep = geturls_download_sleep;
+ if(timeout<=0):
+  timeout = 10;
  if(httplibuse=="urllib1" or httplibuse=="urllib2" or httplibuse=="request"):
   httplibuse = "urllib";
  if(httplibuse=="httplib1"):
@@ -1285,7 +1289,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   else:
    httpversionout = "1.1";
   httpmethodout = geturls_text._method;
-  httpurlout = geturls_text.geturl();
+  httpurlout = httpurl;
   httpheaderout = geturls_text.getheaders();
   httpheadersentout = httpheaders;
  elif(httplibuse=="httplib2"):
@@ -1726,6 +1730,8 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
  global geturls_download_sleep, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
+ if(timeout<=0):
+  timeout = 10;
  if(httplibuse=="urllib1" or httplibuse=="urllib2" or httplibuse=="request"):
   httplibuse = "urllib";
  if(httplibuse=="httplib1"):

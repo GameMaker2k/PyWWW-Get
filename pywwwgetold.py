@@ -630,6 +630,8 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  global geturls_download_sleep, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
+ if(timeout<=0):
+  timeout = 10;
  if(httplibuse=="urllib1" or httplibuse=="urllib2" or httplibuse=="request"):
   httplibuse = "urllib";
  if(httplibuse=="httplib1"):
@@ -694,6 +696,8 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
  global geturls_download_sleep, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
+ if(timeout<=0):
+  timeout = 10;
  if(httplibuse=="urllib1" or httplibuse=="urllib2" or httplibuse=="request"):
   httplibuse = "urllib";
  if(httplibuse=="httplib1"):
@@ -758,6 +762,8 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
  global geturls_download_sleep, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
+ if(timeout<=0):
+  timeout = 10;
  if(httplibuse=="urllib1" or httplibuse=="urllib2" or httplibuse=="request"):
   httplibuse = "urllib";
  if(httplibuse=="httplib1"):
@@ -822,6 +828,8 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuser
  global geturls_download_sleep, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
+ if(timeout<=0):
+  timeout = 10;
  urlparts = urlparse.urlparse(httpurl);
  if(isinstance(httpheaders, list)):
   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -926,6 +934,8 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
  if(sleep<0):
   sleep = geturls_download_sleep;
+ if(timeout<=0):
+  timeout = 10;
  urlparts = urlparse.urlparse(httpurl);
  if(isinstance(httpheaders, list)):
   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -1052,6 +1062,8 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, 
  global geturls_download_sleep;
  if(sleep<0):
   sleep = geturls_download_sleep;
+ if(timeout<=0):
+  timeout = 10;
  if(not outfile=="-"):
   outpath = outpath.rstrip(os.path.sep);
   filepath = os.path.realpath(outpath+os.path.sep+outfile);
@@ -1119,6 +1131,8 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuse
  global geturls_download_sleep, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
+ if(timeout<=0):
+  timeout = 10;
  urlparts = urlparse.urlparse(httpurl);
  if(isinstance(httpheaders, list)):
   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -1174,7 +1188,7 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuse
  else:
   httpversionout = "1.1";
  httpmethodout = geturls_text._method;
- httpurlout = geturls_text.geturl();
+ httpurlout = httpurl;
  httpheaderout = geturls_text.getheaders();
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
@@ -1224,6 +1238,8 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
  if(sleep<0):
   sleep = geturls_download_sleep;
+ if(timeout<=0):
+  timeout = 10;
  urlparts = urlparse.urlparse(httpurl);
  if(isinstance(httpheaders, list)):
   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -1295,7 +1311,7 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  else:
   httpversionout = "1.1";
  httpmethodout = geturls_text._method;
- httpurlout = geturls_text.geturl();
+ httpurlout = httpurl;
  httpheaderout = geturls_text.getheaders();
  httpheadersentout = httpheaders;
  if(isinstance(httpheaderout, list)):
@@ -1358,6 +1374,8 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers,
  global geturls_download_sleep;
  if(sleep<0):
   sleep = geturls_download_sleep;
+ if(timeout<=0):
+  timeout = 10;
  if(not outfile=="-"):
   outpath = outpath.rstrip(os.path.sep);
   filepath = os.path.realpath(outpath+os.path.sep+outfile);
@@ -1426,6 +1444,8 @@ if(havehttplib2):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -1537,6 +1557,8 @@ if(havehttplib2):
   newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -1669,6 +1691,8 @@ if(havehttplib2):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   if(not outfile=="-"):
    outpath = outpath.rstrip(os.path.sep);
    filepath = os.path.realpath(outpath+os.path.sep+outfile);
@@ -1754,6 +1778,8 @@ if(haverequests):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -1857,6 +1883,8 @@ if(haverequests):
   newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -1981,6 +2009,8 @@ if(haverequests):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   if(not outfile=="-"):
    outpath = outpath.rstrip(os.path.sep);
    filepath = os.path.realpath(outpath+os.path.sep+outfile);
@@ -2054,6 +2084,8 @@ if(havehttpx):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -2156,6 +2188,8 @@ if(havehttpx):
   newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -2279,6 +2313,8 @@ if(havehttpx):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   if(not outfile=="-"):
    outpath = outpath.rstrip(os.path.sep);
    filepath = os.path.realpath(outpath+os.path.sep+outfile);
@@ -2352,6 +2388,8 @@ if(havehttpx):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -2454,6 +2492,8 @@ if(havehttpx):
   newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -2577,6 +2617,8 @@ if(havehttpx):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   if(not outfile=="-"):
    outpath = outpath.rstrip(os.path.sep);
    filepath = os.path.realpath(outpath+os.path.sep+outfile);
@@ -2650,6 +2692,8 @@ if(havehttpcore):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -2752,6 +2796,8 @@ if(havehttpcore):
   newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -2875,6 +2921,8 @@ if(havehttpcore):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   if(not outfile=="-"):
    outpath = outpath.rstrip(os.path.sep);
    filepath = os.path.realpath(outpath+os.path.sep+outfile);
@@ -2948,6 +2996,8 @@ if(havehttpcore):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -3050,6 +3100,8 @@ if(havehttpcore):
   newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -3173,6 +3225,8 @@ if(havehttpcore):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   if(not outfile=="-"):
    outpath = outpath.rstrip(os.path.sep);
    filepath = os.path.realpath(outpath+os.path.sep+outfile);
@@ -3276,6 +3330,8 @@ if(haveurllib3):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -3386,6 +3442,8 @@ if(haveurllib3):
   newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -3517,6 +3575,8 @@ if(haveurllib3):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   if(not outfile=="-"):
    outpath = outpath.rstrip(os.path.sep);
    filepath = os.path.realpath(outpath+os.path.sep+outfile);
@@ -3590,6 +3650,8 @@ if(havemechanize):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -3696,6 +3758,8 @@ if(havemechanize):
   newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -3823,6 +3887,8 @@ if(havemechanize):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   if(not outfile=="-"):
    outpath = outpath.rstrip(os.path.sep);
    filepath = os.path.realpath(outpath+os.path.sep+outfile);
@@ -3896,6 +3962,8 @@ if(havepycurl):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -4032,6 +4100,8 @@ if(havepycurl):
   newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -4195,6 +4265,8 @@ if(havepycurl):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   if(not outfile=="-"):
    outpath = outpath.rstrip(os.path.sep);
    filepath = os.path.realpath(outpath+os.path.sep+outfile);
@@ -4314,6 +4386,8 @@ def download_from_url_with_ftp(httpurl, httpheaders=geturls_headers, httpuserage
  global geturls_download_sleep, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
+ if(timeout<=0):
+  timeout = 10;
  urlparts = urlparse.urlparse(httpurl);
  if(isinstance(httpheaders, list)):
   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -4355,6 +4429,8 @@ def download_from_url_file_with_ftp(httpurl, httpheaders=geturls_headers, httpus
  newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
  if(sleep<0):
   sleep = geturls_download_sleep;
+ if(timeout<=0):
+  timeout = 10;
  urlparts = urlparse.urlparse(httpurl);
  if(isinstance(httpheaders, list)):
   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -4418,6 +4494,8 @@ def download_from_url_to_file_with_ftp(httpurl, httpheaders=geturls_headers, htt
  global geturls_download_sleep;
  if(sleep<0):
   sleep = geturls_download_sleep;
+ if(timeout<=0):
+  timeout = 10;
  if(not outfile=="-"):
   outpath = outpath.rstrip(os.path.sep);
   filepath = os.path.realpath(outpath+os.path.sep+outfile);
@@ -4580,6 +4658,8 @@ if(haveparamiko):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -4626,6 +4706,8 @@ if(haveparamiko):
   newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -4694,6 +4776,8 @@ if(haveparamiko):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   if(not outfile=="-"):
    outpath = outpath.rstrip(os.path.sep);
    filepath = os.path.realpath(outpath+os.path.sep+outfile);
@@ -4868,6 +4952,8 @@ if(havepysftp):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -4904,6 +4990,8 @@ if(havepysftp):
   newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   urlparts = urlparse.urlparse(httpurl);
   if(isinstance(httpheaders, list)):
    httpheaders = make_http_headers_from_list_to_dict(httpheaders);
@@ -4962,6 +5050,8 @@ if(havepysftp):
   global geturls_download_sleep;
   if(sleep<0):
    sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
   if(not outfile=="-"):
    outpath = outpath.rstrip(os.path.sep);
    filepath = os.path.realpath(outpath+os.path.sep+outfile);
