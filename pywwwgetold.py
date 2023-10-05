@@ -4222,29 +4222,29 @@ def download_from_url_file_with_ftp(httpurl, httpheaders=geturls_headers, httpus
   myhash.update(str(buffersize).encode('utf-8'));
   myhash.update(str(exec_time_start).encode('utf-8'));
  newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
-  if(sleep<0):
-   sleep = geturls_download_sleep;
-  if(timeout<=0):
-   timeout = 10;
-  pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
-  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
-   tmpfilename = f.name;
+ if(sleep<0):
+  sleep = geturls_download_sleep;
+ if(timeout<=0):
+  timeout = 10;
+ pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+ with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
+  tmpfilename = f.name;
+  try:
+   os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
+  except AttributeError:
    try:
-    os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
-   except AttributeError:
-    try:
-     os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
-    except ValueError:
-     pass;
+    os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
    except ValueError:
     pass;
-   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': pretmpfilename.get('Contentsize'), 'FilesizeAlt': {'IEC': get_readable_size(pretmpfilename.get('Contentsize'), 2, "IEC"), 'SI': get_readable_size(pretmpfilename.get('Contentsize'), 2, "SI")}, 'Headers': pretmpfilename.get('Headers'), 'Version': pretmpfilename.get('Version'), 'Method': pretmpfilename.get('Method'), 'HeadersSent': pretmpfilename.get('HeadersSent'), 'URL': pretmpfilename.get('URL'), 'Code': pretmpfilename.get('Code'), 'Reason': pretmpfilename.get('Reason')};
-   f.write(pretmpfilename['Content']);
-   f.close();
-  exec_time_end = time.time();
-  log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to download file.");
-  returnval.update({'Filesize': os.path.getsize(tmpfilename), 'FilesizeAlt': {'IEC': get_readable_size(os.path.getsize(tmpfilename), 2, "IEC"), 'SI': get_readable_size(os.path.getsize(tmpfilename), 2, "SI")}, 'DownloadTime': float(exec_time_start - exec_time_end), 'DownloadTimeReadable': hms_string(exec_time_start - exec_time_end)});
-  return returnval;
+  except ValueError:
+   pass;
+  returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': pretmpfilename.get('Contentsize'), 'FilesizeAlt': {'IEC': get_readable_size(pretmpfilename.get('Contentsize'), 2, "IEC"), 'SI': get_readable_size(pretmpfilename.get('Contentsize'), 2, "SI")}, 'Headers': pretmpfilename.get('Headers'), 'Version': pretmpfilename.get('Version'), 'Method': pretmpfilename.get('Method'), 'HeadersSent': pretmpfilename.get('HeadersSent'), 'URL': pretmpfilename.get('URL'), 'Code': pretmpfilename.get('Code'), 'Reason': pretmpfilename.get('Reason')};
+  f.write(pretmpfilename['Content']);
+  f.close();
+ exec_time_end = time.time();
+ log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to download file.");
+ returnval.update({'Filesize': os.path.getsize(tmpfilename), 'FilesizeAlt': {'IEC': get_readable_size(os.path.getsize(tmpfilename), 2, "IEC"), 'SI': get_readable_size(os.path.getsize(tmpfilename), 2, "SI")}, 'DownloadTime': float(exec_time_start - exec_time_end), 'DownloadTimeReadable': hms_string(exec_time_start - exec_time_end)});
+ return returnval;
 
 def download_from_url_to_file_with_ftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
  global geturls_download_sleep;
