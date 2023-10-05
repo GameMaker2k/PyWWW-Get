@@ -146,8 +146,12 @@ else:
  PyBitness = "32";
 
 compression_supported = "gzip, deflate";
-if(havebrotli):
+if(havebrotli and not havezstd):
  compression_supported = "gzip, deflate, br";
+elif(not havebrotli and havezstd):
+ compression_supported = "gzip, deflate, zstd";
+elif(havebrotli and havezstd):
+ compression_supported = "gzip, deflate, zstd, br";
 else:
  compression_supported = "gzip, deflate";
 
@@ -629,7 +633,7 @@ def get_httplib_support_list():
  return returnval;
 
 def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", buffersize=524288, sleep=-1, timeout=10):
- global geturls_download_sleep, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
+ global geturls_download_sleep, havezstd, havebrotli, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(timeout<=0):
@@ -703,7 +707,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  return returnval;
 
 def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
- global geturls_download_sleep, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
+ global geturls_download_sleep, havezstd, havebrotli, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(timeout<=0):
@@ -777,7 +781,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
  return returnval;
 
 def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
- global geturls_download_sleep, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
+ global geturls_download_sleep, havezstd, havebrotli, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(timeout<=0):
@@ -851,7 +855,7 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
  return returnval;
 
 def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
- global geturls_download_sleep, havebrotli;
+ global geturls_download_sleep, havezstd, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(timeout<=0):
@@ -959,22 +963,27 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuser
    returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
   except zlib.error:
    pass;
- if(httpheaderout.get("Content-Encoding")=="deflate"):
+ elif(httpheaderout.get("Content-Encoding")=="deflate"):
   try:
    returnval_content = zlib.decompress(returnval_content);
   except zlib.error:
    pass;
- if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+ elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
   try:
    returnval_content = brotli.decompress(returnval_content);
   except brotli.error:
+   pass;
+ elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+  try:
+   returnval_content = zstandard.decompress(returnval_content);
+  except zstandard.error:
    pass;
  returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
  geturls_text.close();
  return returnval;
 
 def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
- global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+ global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
  exec_time_start = time.time();
  myhash = hashlib.new("sha1");
  if(sys.version[0]=="2"):
@@ -1013,7 +1022,7 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  return returnval;
 
 def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
- global geturls_download_sleep;
+ global geturls_download_sleep, havezstd, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(timeout<=0):
@@ -1082,7 +1091,7 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, 
  return returnval;
 
 def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
- global geturls_download_sleep, havebrotli;
+ global geturls_download_sleep, havezstd, havebrotli, havezstd, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(timeout<=0):
@@ -1191,22 +1200,27 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuse
    returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
   except zlib.error:
    pass;
- if(httpheaderout.get("Content-Encoding")=="deflate"):
+ elif(httpheaderout.get("Content-Encoding")=="deflate"):
   try:
    returnval_content = zlib.decompress(returnval_content);
   except zlib.error:
    pass;
- if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+ elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
   try:
    returnval_content = brotli.decompress(returnval_content);
   except brotli.error:
+   pass;
+ elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+  try:
+   returnval_content = zstandard.decompress(returnval_content);
+  except zstandard.error:
    pass;
  returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
  geturls_text.close();
  return returnval;
 
 def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
- global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+ global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
  exec_time_start = time.time();
  myhash = hashlib.new("sha1");
  if(sys.version[0]=="2"):
@@ -1245,7 +1259,7 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  return returnval;
 
 def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
- global geturls_download_sleep;
+ global geturls_download_sleep, havezstd, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(timeout<=0):
@@ -1315,7 +1329,7 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers,
 
 if(havehttplib2):
  def download_from_url_with_httplib2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, havebrotli;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -1424,15 +1438,20 @@ if(havehttplib2):
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="deflate"):
+  elif(httpheaderout.get("Content-Encoding")=="deflate"):
    try:
     returnval_content = zlib.decompress(returnval_content);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    try:
     returnval_content = brotli.decompress(returnval_content);
    except brotli.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+   try:
+    returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
@@ -1445,7 +1464,7 @@ if(not havehttplib2):
 
 if(havehttplib2):
  def download_from_url_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
   if(sys.version[0]=="2"):
@@ -1490,7 +1509,7 @@ if(not havehttplib2):
 
 if(havehttplib2):
  def download_from_url_to_file_with_httplib2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -1577,7 +1596,7 @@ def download_from_url_to_file_with_request(httpurl, httpheaders=geturls_headers,
 
 if(haverequests):
  def download_from_url_with_requests(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, havebrotli;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -1678,15 +1697,20 @@ if(haverequests):
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="deflate"):
+  elif(httpheaderout.get("Content-Encoding")=="deflate"):
    try:
     returnval_content = zlib.decompress(returnval_content);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    try:
     returnval_content = brotli.decompress(returnval_content);
    except brotli.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+   try:
+    returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
@@ -1699,7 +1723,7 @@ if(not haverequests):
 
 if(haverequests):
  def download_from_url_file_with_requests(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
   if(sys.version[0]=="2"):
@@ -1744,7 +1768,7 @@ if(not haverequests):
 
 if(haverequests):
  def download_from_url_to_file_with_requests(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -1819,7 +1843,7 @@ if(not haverequests):
 
 if(havehttpx):
  def download_from_url_with_httpx(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, havebrotli;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -1922,15 +1946,20 @@ if(havehttpx):
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="deflate"):
+  elif(httpheaderout.get("Content-Encoding")=="deflate"):
    try:
     returnval_content = zlib.decompress(returnval_content);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    try:
     returnval_content = brotli.decompress(returnval_content);
    except brotli.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+   try:
+    returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
@@ -1943,7 +1972,7 @@ if(not havehttpx):
 
 if(havehttpx):
  def download_from_url_file_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
   if(sys.version[0]=="2"):
@@ -1988,7 +2017,7 @@ if(not havehttpx):
 
 if(havehttpx):
  def download_from_url_to_file_with_httpx(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -2063,7 +2092,7 @@ if(not havehttpx):
 
 if(havehttpx):
  def download_from_url_with_httpx2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, havebrotli;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -2166,15 +2195,20 @@ if(havehttpx):
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="deflate"):
+  elif(httpheaderout.get("Content-Encoding")=="deflate"):
    try:
     returnval_content = zlib.decompress(returnval_content);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    try:
     returnval_content = brotli.decompress(returnval_content);
    except brotli.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+   try:
+    returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
@@ -2187,7 +2221,7 @@ if(not havehttpx):
 
 if(havehttpx):
  def download_from_url_file_with_httpx2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
   if(sys.version[0]=="2"):
@@ -2232,7 +2266,7 @@ if(not havehttpx):
 
 if(havehttpx):
  def download_from_url_to_file_with_httpx2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -2307,7 +2341,7 @@ if(not havehttpx):
 
 if(havehttpcore):
  def download_from_url_with_httpcore(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, havebrotli;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -2407,15 +2441,20 @@ if(havehttpcore):
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="deflate"):
+  elif(httpheaderout.get("Content-Encoding")=="deflate"):
    try:
     returnval_content = zlib.decompress(returnval_content);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    try:
     returnval_content = brotli.decompress(returnval_content);
    except brotli.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+   try:
+    returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
@@ -2428,7 +2467,7 @@ if(not havehttpcore):
 
 if(havehttpcore):
  def download_from_url_file_with_httpcore(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
   if(sys.version[0]=="2"):
@@ -2473,7 +2512,7 @@ if(not havehttpcore):
 
 if(havehttpcore):
  def download_from_url_to_file_with_httpcore(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -2548,7 +2587,7 @@ if(not havehttpcore):
 
 if(havehttpcore):
  def download_from_url_with_httpcore2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, havebrotli;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -2648,15 +2687,20 @@ if(havehttpcore):
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="deflate"):
+  elif(httpheaderout.get("Content-Encoding")=="deflate"):
    try:
     returnval_content = zlib.decompress(returnval_content);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    try:
     returnval_content = brotli.decompress(returnval_content);
    except brotli.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+   try:
+    returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
@@ -2669,7 +2713,7 @@ if(not havehttpcore):
 
 if(havehttpcore):
  def download_from_url_file_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
   if(sys.version[0]=="2"):
@@ -2714,7 +2758,7 @@ if(not havehttpcore):
 
 if(havehttpcore):
  def download_from_url_to_file_with_httpcore2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -2819,7 +2863,7 @@ if(not haveurllib3):
 
 if(haveurllib3):
  def download_from_url_with_urllib3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, havebrotli;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -2927,15 +2971,20 @@ if(haveurllib3):
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="deflate"):
+  elif(httpheaderout.get("Content-Encoding")=="deflate"):
    try:
     returnval_content = zlib.decompress(returnval_content);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    try:
     returnval_content = brotli.decompress(returnval_content);
    except brotli.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+   try:
+    returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
@@ -2948,7 +2997,7 @@ if(not haveurllib3):
 
 if(haveurllib3):
  def download_from_url_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
   if(sys.version[0]=="2"):
@@ -2993,7 +3042,7 @@ if(not haveurllib3):
 
 if(haveurllib3):
  def download_from_url_to_file_with_urllib3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -3068,7 +3117,7 @@ if(not haveurllib3):
 
 if(havemechanize):
  def download_from_url_with_mechanize(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, havebrotli;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -3172,15 +3221,20 @@ if(havemechanize):
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="deflate"):
+  elif(httpheaderout.get("Content-Encoding")=="deflate"):
    try:
     returnval_content = zlib.decompress(returnval_content);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    try:
     returnval_content = brotli.decompress(returnval_content);
    except brotli.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+   try:
+    returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
@@ -3193,7 +3247,7 @@ if(not havemechanize):
 
 if(havemechanize):
  def download_from_url_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
   if(sys.version[0]=="2"):
@@ -3238,7 +3292,7 @@ if(not havemechanize):
 
 if(havemechanize):
  def download_from_url_to_file_with_mechanize(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -3313,7 +3367,7 @@ if(not havemechanize):
 
 if(havepycurl):
  def download_from_url_with_pycurl(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, havebrotli;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -3447,15 +3501,20 @@ if(havepycurl):
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="deflate"):
+  elif(httpheaderout.get("Content-Encoding")=="deflate"):
    try:
     returnval_content = zlib.decompress(returnval_content);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    try:
     returnval_content = brotli.decompress(returnval_content);
    except brotli.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+   try:
+    returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
@@ -3468,7 +3527,7 @@ if(not havepycurl):
 
 if(havepycurl):
  def download_from_url_file_with_pycurl(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
   if(sys.version[0]=="2"):
@@ -3513,7 +3572,7 @@ if(not havepycurl):
 
 if(havepycurl):
  def download_from_url_to_file_with_pycurl(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -3588,7 +3647,7 @@ if(not havepycurl):
 
 if(havepycurl):
  def download_from_url_with_pycurl2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, havebrotli;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -3725,15 +3784,20 @@ if(havepycurl):
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="deflate"):
+  elif(httpheaderout.get("Content-Encoding")=="deflate"):
    try:
     returnval_content = zlib.decompress(returnval_content);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    try:
     returnval_content = brotli.decompress(returnval_content);
    except brotli.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+   try:
+    returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
@@ -3746,7 +3810,7 @@ if(not havepycurl):
 
 if(havepycurl):
  def download_from_url_file_with_pycurl2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
   if(sys.version[0]=="2"):
@@ -3791,7 +3855,7 @@ if(not havepycurl):
 
 if(havepycurl):
  def download_from_url_to_file_with_pycurl2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -3866,7 +3930,7 @@ if(not havepycurl):
 
 if(havepycurl):
  def download_from_url_with_pycurl3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, havebrotli;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -4003,15 +4067,20 @@ if(havepycurl):
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="deflate"):
+  elif(httpheaderout.get("Content-Encoding")=="deflate"):
    try:
     returnval_content = zlib.decompress(returnval_content);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    try:
     returnval_content = brotli.decompress(returnval_content);
    except brotli.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+   try:
+    returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
@@ -4024,7 +4093,7 @@ if(not havepycurl):
 
 if(havepycurl):
  def download_from_url_file_with_pycurl3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
   if(sys.version[0]=="2"):
@@ -4069,7 +4138,7 @@ if(not havepycurl):
 
 if(havepycurl):
  def download_from_url_to_file_with_pycurl3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -4190,7 +4259,7 @@ def download_file_from_ftp_string(url):
  return ftpfile.read();
 
 def download_from_url_with_ftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
- global geturls_download_sleep, havebrotli;
+ global geturls_download_sleep, havezstd, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(timeout<=0):
@@ -4242,7 +4311,7 @@ def download_from_url_with_ftp(httpurl, httpheaders=geturls_headers, httpuserage
  return returnval;
 
 def download_from_url_file_with_ftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
- global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+ global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
  exec_time_start = time.time();
  myhash = hashlib.new("sha1");
  if(sys.version[0]=="2"):
@@ -4281,7 +4350,7 @@ def download_from_url_file_with_ftp(httpurl, httpheaders=geturls_headers, httpus
  return returnval;
 
 def download_from_url_to_file_with_ftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
- global geturls_download_sleep;
+ global geturls_download_sleep, havezstd, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(timeout<=0):
@@ -4445,7 +4514,7 @@ else:
 
 if(haveparamiko):
  def download_from_url_with_sftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, havebrotli;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -4502,7 +4571,7 @@ if(not haveparamiko):
 
 if(haveparamiko):
  def download_from_url_file_with_sftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
   if(sys.version[0]=="2"):
@@ -4546,7 +4615,7 @@ if(not haveparamiko):
 
 if(haveparamiko):
  def download_from_url_to_file_with_sftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -4722,7 +4791,7 @@ else:
 
 if(havepysftp):
  def download_from_url_with_pysftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, havebrotli;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):
@@ -4769,7 +4838,7 @@ if(not havepysftp):
 
 if(havepysftp):
  def download_from_url_file_with_pysftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
-  global geturls_download_sleep, tmpfileprefix, tmpfilesuffix;
+  global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
   myhash = hashlib.new("sha1");
   if(sys.version[0]=="2"):
@@ -4813,7 +4882,7 @@ if(not havepysftp):
 
 if(havepysftp):
  def download_from_url_to_file_with_pysftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
-  global geturls_download_sleep;
+  global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
   if(timeout<=0):

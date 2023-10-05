@@ -145,8 +145,12 @@ else:
  PyBitness = "32";
 
 compression_supported = "gzip, deflate";
-if(havebrotli):
+if(havebrotli and not havezstd):
  compression_supported = "gzip, deflate, br";
+elif(not havebrotli and havezstd):
+ compression_supported = "gzip, deflate, zstd";
+elif(havebrotli and havezstd):
+ compression_supported = "gzip, deflate, zstd, br";
 else:
  compression_supported = "gzip, deflate";
 
@@ -628,7 +632,7 @@ def get_httplib_support_list():
  return returnval;
 
 def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", buffersize=524288, sleep=-1, timeout=10):
- global geturls_download_sleep, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
+ global geturls_download_sleep, havezstd, havebrotli, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(timeout<=0):
@@ -1326,15 +1330,20 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="deflate"):
+  elif(httpheaderout.get("Content-Encoding")=="deflate"):
    try:
     returnval_content = zlib.decompress(returnval_content);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    try:
     returnval_content = brotli.decompress(returnval_content);
    except brotli.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+   try:
+    returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
     pass;
  elif(httplibuse=="requests"):
   log.info("Downloading URL "+httpurl);
@@ -1366,15 +1375,20 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="deflate"):
+  elif(httpheaderout.get("Content-Encoding")=="deflate"):
    try:
     returnval_content = zlib.decompress(returnval_content);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    try:
     returnval_content = brotli.decompress(returnval_content);
    except brotli.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+   try:
+    returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
     pass;
  elif(httplibuse=="pycurl" or httplibuse=="pycurl2" or httplibuse=="pycurl3"):
   log.info("Downloading URL "+httpurl);
@@ -1406,15 +1420,20 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="deflate"):
+  elif(httpheaderout.get("Content-Encoding")=="deflate"):
    try:
     returnval_content = zlib.decompress(returnval_content);
    except zlib.error:
     pass;
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+  elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
    try:
     returnval_content = brotli.decompress(returnval_content);
    except brotli.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+   try:
+    returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
     pass;
  elif(httplibuse=="ftp" or httplibuse=="sftp" or httplibuse=="pysftp"):
   pass;
@@ -1424,7 +1443,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  return returnval;
 
 def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
- global geturls_download_sleep, tmpfileprefix, tmpfilesuffix, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
+ global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  exec_time_start = time.time();
  myhash = hashlib.new("sha1");
  if(sys.version[0]=="2"):
@@ -1491,7 +1510,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
  return returnval;
 
 def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
- global geturls_download_sleep, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
+ global geturls_download_sleep, havezstd, havebrotli, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(timeout<=0):
