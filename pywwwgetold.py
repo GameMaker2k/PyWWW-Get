@@ -955,7 +955,7 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuser
     strbuf.write(databytes);
    strbuf.seek(0);
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-  returnval_content = gzstrbuf.read()[:];
+   returnval_content = gzstrbuf.read()[:];
  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
@@ -1321,7 +1321,7 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuse
     strbuf.write(databytes);
    strbuf.seek(0);
    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-  returnval_content = gzstrbuf.read()[:];
+   returnval_content = gzstrbuf.read()[:];
  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
@@ -1696,7 +1696,7 @@ if(havehttplib2):
      strbuf.write(databytes);
     strbuf.seek(0);
     gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.read()[:];
+    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    downloadsize = httpheaderout.get('Content-Length');
    if(downloadsize is not None):
@@ -2084,7 +2084,7 @@ if(haverequests):
      strbuf.write(databytes);
     strbuf.seek(0);
     gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.read()[:];
+    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    returnval_content = geturls_text.raw.read()[:];
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
@@ -2409,7 +2409,7 @@ if(havehttpx):
      strbuf.write(databytes);
     strbuf.seek(0);
     gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.read()[:];
+    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    downloadsize = httpheaderout.get('Content-Length');
    if(downloadsize is not None):
@@ -2775,7 +2775,7 @@ if(havehttpx):
      strbuf.write(databytes);
     strbuf.seek(0);
     gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.read()[:];
+    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    downloadsize = httpheaderout.get('Content-Length');
    if(downloadsize is not None):
@@ -3141,7 +3141,7 @@ if(havehttpcore):
      strbuf.write(databytes);
     strbuf.seek(0);
     gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.read()[:];
+    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    downloadsize = httpheaderout.get('Content-Length');
    if(downloadsize is not None):
@@ -3507,7 +3507,7 @@ if(havehttpcore):
      strbuf.write(databytes);
     strbuf.seek(0);
     gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.read()[:];
+    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    downloadsize = httpheaderout.get('Content-Length');
    if(downloadsize is not None):
@@ -3911,7 +3911,7 @@ if(haveurllib3):
      strbuf.write(databytes);
     strbuf.seek(0);
     gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.read()[:];
+    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    downloadsize = httpheaderout.get('Content-Length');
    if(downloadsize is not None):
@@ -4289,7 +4289,7 @@ if(havemechanize):
      strbuf.write(databytes);
     strbuf.seek(0);
     gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.read()[:];
+    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    downloadsize = httpheaderout.get('Content-Length');
    if(downloadsize is not None):
@@ -4693,7 +4693,7 @@ if(havepycurl):
      strbuf.write(databytes);
     strbuf.seek(0);
     gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.read()[:];
+    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    downloadsize = httpheaderout.get('Content-Length');
    if(downloadsize is not None):
@@ -5136,7 +5136,7 @@ if(havepycurl):
      strbuf.write(databytes);
     strbuf.seek(0);
     gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.read()[:];
+    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    downloadsize = httpheaderout.get('Content-Length');
    if(downloadsize is not None):
@@ -5582,7 +5582,7 @@ if(havepycurl):
      strbuf.write(databytes);
     strbuf.seek(0);
     gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-   returnval_content = gzstrbuf.read()[:];
+    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    downloadsize = httpheaderout.get('Content-Length');
    if(downloadsize is not None):
