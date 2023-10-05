@@ -1463,6 +1463,8 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
  if(not haveparamiko and httplibuse=="pysftp"):
   httplibuse = "ftp";
  pretmpfilename = download_from_url(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, httplibuse, buffersize, sleep, timeout);
+ if(not pretmpfilename):
+  return False;
  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
   tmpfilename = f.name;
   try:

@@ -991,6 +991,8 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  if(timeout<=0):
   timeout = 10;
  pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+ if(not pretmpfilename):
+  return False;
  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
   tmpfilename = f.name;
   try:
@@ -1221,6 +1223,8 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  if(timeout<=0):
   timeout = 10;
  pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+ if(not pretmpfilename):
+  return False;
  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
   tmpfilename = f.name;
   try:
@@ -1457,7 +1461,9 @@ if(havehttplib2):
    sleep = geturls_download_sleep;
   if(timeout<=0):
    timeout = 10;
-  pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  pretmpfilename = download_from_url_with_httplib2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  if(not pretmpfilename):
+   return False;
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
    try:
@@ -1709,7 +1715,9 @@ if(haverequests):
    sleep = geturls_download_sleep;
   if(timeout<=0):
    timeout = 10;
-  pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  pretmpfilename = download_from_url_with_requests(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  if(not pretmpfilename):
+   return False;
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
    try:
@@ -1948,7 +1956,9 @@ if(havehttpx):
    sleep = geturls_download_sleep;
   if(timeout<=0):
    timeout = 10;
-  pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  pretmpfilename = download_from_url_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  if(not pretmpfilename):
+   return False;
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
    try:
@@ -2187,7 +2197,9 @@ if(havehttpx):
    sleep = geturls_download_sleep;
   if(timeout<=0):
    timeout = 10;
-  pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  pretmpfilename = download_from_url_with_httpx2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  if(not pretmpfilename):
+   return False;
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
    try:
@@ -2426,7 +2438,9 @@ if(havehttpcore):
    sleep = geturls_download_sleep;
   if(timeout<=0):
    timeout = 10;
-  pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  pretmpfilename = download_from_url_with_httpcore(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  if(not pretmpfilename):
+   return False;
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
    try:
@@ -2665,7 +2679,9 @@ if(havehttpcore):
    sleep = geturls_download_sleep;
   if(timeout<=0):
    timeout = 10;
-  pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  pretmpfilename = download_from_url_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  if(not pretmpfilename):
+   return False;
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
    try:
@@ -2942,7 +2958,9 @@ if(haveurllib3):
    sleep = geturls_download_sleep;
   if(timeout<=0):
    timeout = 10;
-  pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  pretmpfilename = download_from_url_with_urllib3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  if(not pretmpfilename):
+   return False;
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
    try:
@@ -3185,7 +3203,9 @@ if(havemechanize):
    sleep = geturls_download_sleep;
   if(timeout<=0):
    timeout = 10;
-  pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  pretmpfilename = download_from_url_with_mechanize(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  if(not pretmpfilename):
+   return False;
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
    try:
@@ -3458,7 +3478,9 @@ if(havepycurl):
    sleep = geturls_download_sleep;
   if(timeout<=0):
    timeout = 10;
-  pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  pretmpfilename = download_from_url_with_pycurl(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  if(not pretmpfilename):
+   return False;
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
    try:
@@ -3734,7 +3756,9 @@ if(havepycurl):
    sleep = geturls_download_sleep;
   if(timeout<=0):
    timeout = 10;
-  pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  pretmpfilename = download_from_url_with_pycurl2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  if(not pretmpfilename):
+   return False;
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
    try:
@@ -4010,7 +4034,9 @@ if(havepycurl):
    sleep = geturls_download_sleep;
   if(timeout<=0):
    timeout = 10;
-  pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  pretmpfilename = download_from_url_with_pycurl3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  if(not pretmpfilename):
+   return False;
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
    try:
@@ -4226,7 +4252,9 @@ def download_from_url_file_with_ftp(httpurl, httpheaders=geturls_headers, httpus
   sleep = geturls_download_sleep;
  if(timeout<=0):
   timeout = 10;
- pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+ pretmpfilename = download_from_url_with_ftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+ if(not pretmpfilename):
+  return False;
  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
   tmpfilename = f.name;
   try:
@@ -4484,7 +4512,9 @@ if(haveparamiko):
    sleep = geturls_download_sleep;
   if(timeout<=0):
    timeout = 10;
-  pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  pretmpfilename = download_from_url_with_sftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  if(not pretmpfilename):
+   return False;
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
    try:
@@ -4749,7 +4779,9 @@ if(havepysftp):
    sleep = geturls_download_sleep;
   if(timeout<=0):
    timeout = 10;
-  pretmpfilename = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  pretmpfilename = download_from_url_with_pysftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  if(not pretmpfilename):
+   return False;
   with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
    tmpfilename = f.name;
    try:
