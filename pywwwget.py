@@ -737,6 +737,9 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   except socket.gaierror:
    log.info("Error With URL "+httpurl);
    return False;
+  except BlockingIOError:
+   log.info("Error With URL "+httpurl);
+   return False;
   geturls_text = httpconn.getresponse();
   httpcodeout = geturls_text.status;
   httpcodereason = geturls_text.reason;
@@ -770,6 +773,9 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   except socket.gaierror:
    log.info("Error With URL "+httpurl);
    return False;
+  except BlockingIOError:
+   log.info("Error With URL "+httpurl);
+   return False;
   geturls_text = httpconn.getresponse();
   httpcodeout = geturls_text.status;
   httpcodereason = geturls_text.reason;
@@ -801,6 +807,9 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    log.info("Error With URL "+httpurl);
    return False;
   except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except ValueError:
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status;
@@ -1028,6 +1037,9 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    log.info("Error With URL "+httpurl);
    return False;
   except socket.gaierror:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except ValueError:
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.getinfo(geturls_text.HTTP_CODE);
@@ -1262,6 +1274,9 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   except socket.gaierror:
    log.info("Error With URL "+httpurl);
    return False;
+  except BlockingIOError:
+   log.info("Error With URL "+httpurl);
+   return False;
   geturls_text = httpconn.getresponse();
   httpcodeout = geturls_text.status;
   httpcodereason = geturls_text.reason;
@@ -1285,6 +1300,9 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    log.info("Error With URL "+httpurl);
    return False;
   except socket.gaierror:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except BlockingIOError:
    log.info("Error With URL "+httpurl);
    return False;
   geturls_text = httpconn.getresponse();
@@ -1318,6 +1336,9 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    log.info("Error With URL "+httpurl);
    return False;
   except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except ValueError:
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status;
@@ -1545,6 +1566,9 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
    log.info("Error With URL "+httpurl);
    return False;
   except socket.gaierror:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except ValueError:
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.getinfo(geturls_text.HTTP_CODE);

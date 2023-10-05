@@ -1163,6 +1163,9 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuse
  except socket.gaierror:
   log.info("Error With URL "+httpurl);
   return False;
+ except BlockingIOError:
+  log.info("Error With URL "+httpurl);
+  return False;
  geturls_text = httpconn.getresponse();
  httpcodeout = geturls_text.status;
  httpcodereason = geturls_text.reason;
@@ -1279,6 +1282,9 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
   log.info("Error With URL "+httpurl);
   return False;
  except socket.gaierror:
+  log.info("Error With URL "+httpurl);
+  return False;
+ except BlockingIOError:
   log.info("Error With URL "+httpurl);
   return False;
  geturls_text = httpconn.getresponse();
@@ -1464,6 +1470,9 @@ if(havehttplib2):
   except socket.gaierror:
    log.info("Error With URL "+httpurl);
    return False;
+  except BlockingIOError:
+   log.info("Error With URL "+httpurl);
+   return False;
   geturls_text = httpconn.getresponse();
   httpcodeout = geturls_text.status;
   httpcodereason = geturls_text.reason;
@@ -1578,6 +1587,9 @@ if(havehttplib2):
    log.info("Error With URL "+httpurl);
    return False;
   except socket.gaierror:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except BlockingIOError:
    log.info("Error With URL "+httpurl);
    return False;
   geturls_text = httpconn.getresponse();
@@ -3308,6 +3320,9 @@ if(haveurllib3):
   except socket.timeout:
    log.info("Error With URL "+httpurl);
    return False;
+  except ValueError:
+   log.info("Error With URL "+httpurl);
+   return False;
   httpcodeout = geturls_text.status;
   httpcodereason = geturls_text.reason;
   if(geturls_text.version=="10"):
@@ -3421,6 +3436,9 @@ if(haveurllib3):
    log.info("Error With URL "+httpurl);
    return False;
   except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except ValueError:
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status;
@@ -3951,6 +3969,9 @@ if(havepycurl):
   except socket.gaierror:
    log.info("Error With URL "+httpurl);
    return False;
+  except ValueError:
+   log.info("Error With URL "+httpurl);
+   return False;
   httpcodeout = geturls_text.getinfo(geturls_text.HTTP_CODE);
   httpcodereason = http_status_to_reason(geturls_text.getinfo(geturls_text.HTTP_CODE));
   httpversionout = pyhttpverinfo[0];
@@ -4096,6 +4117,9 @@ if(havepycurl):
    log.info("Error With URL "+httpurl);
    return False;
   except socket.gaierror:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except ValueError:
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.getinfo(geturls_text.HTTP_CODE);
