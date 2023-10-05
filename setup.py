@@ -12,10 +12,10 @@
     Copyright 2016-2023 Game Maker 2k - https://github.com/GameMaker2k
     Copyright 2016-2023 Kazuki Przyborowski - https://github.com/KazukiPrzyborowski
 
-    $FileInfo: setup.py - Last Update: 10/5/2023 Ver. 2.0.0 RC 1 - Author: cooldude2k $
+    $FileInfo: setup.py - Last Update: 10/5/2023 Ver. 2.0.2 RC 1 - Author: cooldude2k $
 '''
 
-import re, os, sys, time, datetime, platform, pkg_resources;
+import re, os, sys, time, shutil, datetime, platform, pkg_resources;
 from setuptools import setup, find_packages;
 
 verinfofilename = os.path.realpath("."+os.path.sep+os.path.sep+"pywwwget.py");
