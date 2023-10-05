@@ -3593,8 +3593,6 @@ if(havemechanize):
     inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
   geturls_opener = mechanize.Browser();
-  socket_timeout = socket.timeout(timeout);
-  socket.setdefaulttimeout(timeout_seconds);
   if(isinstance(httpheaders, dict)):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
   time.sleep(sleep);
@@ -3709,8 +3707,6 @@ if(havemechanize):
     inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
    httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
   geturls_opener = mechanize.Browser();
-  socket_timeout = socket.timeout(timeout);
-  socket.setdefaulttimeout(timeout_seconds);
   if(isinstance(httpheaders, dict)):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
   time.sleep(sleep);

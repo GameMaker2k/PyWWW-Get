@@ -951,8 +951,6 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpheadersentout = httpheaders;
  elif(httplibuse=="mechanize"):
   geturls_opener = mechanize.Browser();
-  socket_timeout = socket.timeout(timeout);
-  socket.setdefaulttimeout(timeout_seconds);
   if(isinstance(httpheaders, dict)):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
   time.sleep(sleep);
@@ -1470,8 +1468,6 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httpheadersentout = httpheaders;
  elif(httplibuse=="mechanize"):
   geturls_opener = mechanize.Browser();
-  socket_timeout = socket.timeout(timeout);
-  socket.setdefaulttimeout(timeout_seconds);
   if(isinstance(httpheaders, dict)):
    httpheaders = make_http_headers_from_dict_to_list(httpheaders);
   time.sleep(sleep);
