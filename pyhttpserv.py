@@ -12,13 +12,40 @@
     Copyright 2016-2023 Game Maker 2k - https://github.com/GameMaker2k
     Copyright 2016-2023 Kazuki Przyborowski - https://github.com/KazukiPrzyborowski
 
-    $FileInfo: pyhttpserv.py - Last Update: 9/24/2023 Ver. 1.5.0 RC 1 - Author: cooldude2k $
+    $FileInfo: pyhttpserv.py - Last Update: 10/5/2023 Ver. 2.0.0 RC 1 - Author: cooldude2k $
 '''
 
-enablessl = False;
-sslkeypem = None;
-sslcertpem = None;
-servport = 8080;
+__program_name__ = "PyHTTPServer";
+__program_alt_name__ = "PyHTTPServer";
+__program_small_name__ = "httpserver";
+__project__ = __program_name__;
+__project_url__ = "https://github.com/GameMaker2k/PyWWW-Get";
+__version_info__ = (2, 0, 0, "RC 1", 1);
+__version_date_info__ = (2023, 10, 5, "RC 1", 1);
+__version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2);
+__revision__ = __version_info__[3];
+__revision_id__ = "$Id$";
+if(__version_info__[4] is not None):
+ __version_date_plusrc__ = __version_date__+"-"+str(__version_date_info__[4]);
+if(__version_info__[4] is None):
+ __version_date_plusrc__ = __version_date__;
+if(__version_info__[3] is not None):
+ __version__ = str(__version_info__[0])+"."+str(__version_info__[1])+"."+str(__version_info__[2])+" "+str(__version_info__[3]);
+if(__version_info__[3] is None):
+ __version__ = str(__version_info__[0])+"."+str(__version_info__[1])+"."+str(__version_info__[2]);
+
+parser = argparse.ArgumentParser(description="Simple HTTP Server in Python.", conflict_handler="resolve", add_help=True);
+parser.add_argument("-V", "--version", action="version", version=__program_name__+" "+__version__);
+parser.add_argument("-e", "--enablessl", action="store_true", help="Enable SSL");
+parser.add_argument("-k", "--sslkeypem", default=None, help="specify a custom user agent");
+parser.add_argument("-c", "--sslcertpem", default=None, help="specify a custom referer, use if the video access");
+parser.add_argument("-p", "--servport", type=int, default=8080, help="specify a file name for output");
+getargs = parser.parse_args();
+
+enablessl = getargs.enablessl;
+sslkeypem = getargs.sslkeypem;
+sslcertpem = getargs.sslcertpem;
+servport = int(getargs.servport);
 if(isinstance(servport, int)):
     if(servport<1 or servport>65535):
         servport = 8080;
