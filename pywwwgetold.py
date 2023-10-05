@@ -628,7 +628,7 @@ def get_httplib_support_list():
  returnval = get_httplib_support(None);
  return returnval;
 
-def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", sleep=-1, timeout=10):
+def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", buffersize=524288, sleep=-1, timeout=10):
  global geturls_download_sleep, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -663,41 +663,41 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  if(not havepysftp and httplibuse=="pysftp"):
   httplibuse = "ftp";
  if(httplibuse=="urllib" or httplibuse=="request"):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="request"):
-  returnval = download_from_url_with_request(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_request(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="request3"):
-  returnval = download_from_url_with_request3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_request3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="httplib"):
-  returnval = download_from_url_with_httplib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_httplib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="httplib2"):
-  returnval = download_from_url_with_httplib2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_httplib2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="urllib3" or httplibuse=="request3"):
-  returnval = download_from_url_with_urllib3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_urllib3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="requests"):
-  returnval = download_from_url_with_requests(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_requests(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="httpx"):
-  returnval = download_from_url_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="httpx2"):
-  returnval = download_from_url_with_httpx2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_httpx2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="httpcore"):
-  returnval = download_from_url_with_httpcore(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_httpcore(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="httpcore2"):
-  returnval = download_from_url_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="mechanize"):
-  returnval = download_from_url_with_mechanize(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_mechanize(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="pycurl"):
-  returnval = download_from_url_with_pycurl(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_pycurl(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="pycurl2"):
-  returnval = download_from_url_with_pycurl2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_pycurl2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="pycurl3"):
-  returnval = download_from_url_with_pycurl3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_pycurl3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="ftp"):
-  returnval = download_from_url_with_ftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_ftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="sftp"):
-  returnval = download_from_url_with_sftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_sftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="pysftp"):
-  returnval = download_from_url_with_pysftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout);
+  returnval = download_from_url_with_pysftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  else:
   returnval = False;
  return returnval;
@@ -850,7 +850,7 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
   returnval = False;
  return returnval;
 
-def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
  global geturls_download_sleep, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -933,13 +933,75 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuser
  httpheadersentout = fix_header_names(httpheadersentout);
  log.info("Downloading URL "+httpurl);
  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-  strbuf = BytesIO(geturls_text.read());
-  gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+  downloadsize = httpheaderout.get('Content-Length');
+  if(downloadsize is not None):
+   downloadsize = int(downloadsize);
+  if downloadsize is None: downloadsize = 0;
+  fulldatasize = 0;
+  prevdownsize = 0;
+  log.info("Downloading URL "+httpurl);
+  with BytesIO() as strbuf:
+   while True:
+    databytes = geturls_text.read(buffersize);
+    if not databytes: break;
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    strbuf.write(databytes);
+   strbuf.seek(0);
+   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
   returnval_content = gzstrbuf.read()[:];
  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-  returnval_content = geturls_text.read()[:];
+  downloadsize = httpheaderout.get('Content-Length');
+  if(downloadsize is not None):
+   downloadsize = int(downloadsize);
+  if downloadsize is None: downloadsize = 0;
+  fulldatasize = 0;
+  prevdownsize = 0;
+  log.info("Downloading URL "+httpurl);
+  with BytesIO() as strbuf:
+   while True:
+    databytes = geturls_text.read(buffersize);
+    if not databytes: break;
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    strbuf.write(databytes);
+   strbuf.seek(0);
+   returnval_content = strbuf.read();
  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-  returnval_content = geturls_text.read()[:];
+  downloadsize = httpheaderout.get('Content-Length');
+  if(downloadsize is not None):
+   downloadsize = int(downloadsize);
+  if downloadsize is None: downloadsize = 0;
+  fulldatasize = 0;
+  prevdownsize = 0;
+  log.info("Downloading URL "+httpurl);
+  with BytesIO() as strbuf:
+   while True:
+    databytes = geturls_text.read(buffersize);
+    if not databytes: break;
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    strbuf.write(databytes);
+   strbuf.seek(0);
+   returnval_content = strbuf.read();
   returnval_content = brotli.decompress(returnval_content);
  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
  geturls_text.close();
@@ -1046,7 +1108,7 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
  httpheadersentout = fix_header_names(httpheadersentout);
- downloadsize = int(httpheaderout.get('Content-Length'));
+ downloadsize = httpheaderout.get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
  if downloadsize is None: downloadsize = 0;
@@ -1153,7 +1215,7 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, 
   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code'], 'Reason': pretmpfilename['Reason']};
  return returnval;
 
-def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
  global geturls_download_sleep, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -1237,13 +1299,75 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuse
  httpheadersentout = fix_header_names(httpheadersentout);
  log.info("Downloading URL "+httpurl);
  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-  strbuf = BytesIO(geturls_text.read());
-  gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+  downloadsize = httpheaderout.get('Content-Length');
+  if(downloadsize is not None):
+   downloadsize = int(downloadsize);
+  if downloadsize is None: downloadsize = 0;
+  fulldatasize = 0;
+  prevdownsize = 0;
+  log.info("Downloading URL "+httpurl);
+  with BytesIO() as strbuf:
+   while True:
+    databytes = geturls_text.read(buffersize);
+    if not databytes: break;
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    strbuf.write(databytes);
+   strbuf.seek(0);
+   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
   returnval_content = gzstrbuf.read()[:];
  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-  returnval_content = geturls_text.read()[:];
+  downloadsize = httpheaderout.get('Content-Length');
+  if(downloadsize is not None):
+   downloadsize = int(downloadsize);
+  if downloadsize is None: downloadsize = 0;
+  fulldatasize = 0;
+  prevdownsize = 0;
+  log.info("Downloading URL "+httpurl);
+  with BytesIO() as strbuf:
+   while True:
+    databytes = geturls_text.read(buffersize);
+    if not databytes: break;
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    strbuf.write(databytes);
+   strbuf.seek(0);
+   returnval_content = strbuf.read();
  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-  returnval_content = geturls_text.read()[:];
+  downloadsize = httpheaderout.get('Content-Length');
+  if(downloadsize is not None):
+   downloadsize = int(downloadsize);
+  if downloadsize is None: downloadsize = 0;
+  fulldatasize = 0;
+  prevdownsize = 0;
+  log.info("Downloading URL "+httpurl);
+  with BytesIO() as strbuf:
+   while True:
+    databytes = geturls_text.read(buffersize);
+    if not databytes: break;
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    strbuf.write(databytes);
+   strbuf.seek(0);
+   returnval_content = strbuf.read();
   returnval_content = brotli.decompress(returnval_content);
  returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
  geturls_text.close();
@@ -1358,7 +1482,7 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
  httpheadersentout = fix_header_names(httpheadersentout);
- downloadsize = int(httpheaderout.get('Content-Length'));
+ downloadsize = httpheaderout.get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
  if downloadsize is None: downloadsize = 0;
@@ -1466,7 +1590,7 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers,
  return returnval;
 
 if(havehttplib2):
- def download_from_url_with_httplib2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+ def download_from_url_with_httplib2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -1550,21 +1674,83 @@ if(havehttplib2):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   strbuf = BytesIO(geturls_text.read());
-   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-   returnval_content = geturls_text.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   returnval_content = geturls_text.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
   return returnval;
 
 if(not havehttplib2):
- def download_from_url_with_httplib2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout)
+ def download_from_url_with_httplib2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
   return returnval;
 
 if(havehttplib2):
@@ -1669,7 +1855,7 @@ if(havehttplib2):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  downloadsize = int(httpheaderout.get('Content-Length'));
+  downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -1787,8 +1973,8 @@ if(not havehttplib2):
   returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep, timeout)
   return returnval;
 
-def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
- returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout)
+def download_from_url_with_request(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+ returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
  return returnval;
 
 def download_from_url_file_with_request(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
@@ -1800,7 +1986,7 @@ def download_from_url_to_file_with_request(httpurl, httpheaders=geturls_headers,
  return returnval;
 
 if(haverequests):
- def download_from_url_with_requests(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+ def download_from_url_with_requests(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -1876,8 +2062,28 @@ if(haverequests):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   strbuf = BytesIO(geturls_text.raw.read());
-   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.raw.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
    returnval_content = geturls_text.raw.read()[:];
@@ -1889,8 +2095,8 @@ if(haverequests):
   return returnval;
 
 if(not haverequests):
- def download_from_url_with_requests(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout)
+ def download_from_url_with_requests(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
   return returnval;
 
 if(haverequests):
@@ -1987,7 +2193,7 @@ if(haverequests):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  downloadsize = int(httpheaderout.get('Content-Length'));
+  downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -2106,7 +2312,7 @@ if(not haverequests):
   return returnval;
 
 if(havehttpx):
- def download_from_url_with_httpx(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+ def download_from_url_with_httpx(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -2181,21 +2387,83 @@ if(havehttpx):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   strbuf = BytesIO(geturls_text.read());
-   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-   returnval_content = geturls_text.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   returnval_content = geturls_text.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
   return returnval;
 
 if(not havehttpx):
- def download_from_url_with_httpx(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout)
+ def download_from_url_with_httpx(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
   return returnval;
 
 if(havehttpx):
@@ -2291,7 +2559,7 @@ if(havehttpx):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  downloadsize = int(httpheaderout.get('Content-Length'));
+  downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -2410,7 +2678,7 @@ if(not havehttpx):
   return returnval;
 
 if(havehttpx):
- def download_from_url_with_httpx2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+ def download_from_url_with_httpx2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -2485,21 +2753,83 @@ if(havehttpx):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   strbuf = BytesIO(geturls_text.read());
-   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-   returnval_content = geturls_text.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   returnval_content = geturls_text.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
   return returnval;
 
 if(not havehttpx):
- def download_from_url_with_httpx2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout)
+ def download_from_url_with_httpx2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
   return returnval;
 
 if(havehttpx):
@@ -2595,7 +2925,7 @@ if(havehttpx):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  downloadsize = int(httpheaderout.get('Content-Length'));
+  downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -2714,7 +3044,7 @@ if(not havehttpx):
   return returnval;
 
 if(havehttpcore):
- def download_from_url_with_httpcore(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+ def download_from_url_with_httpcore(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -2789,21 +3119,83 @@ if(havehttpcore):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   strbuf = BytesIO(geturls_text.read());
-   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-   returnval_content = geturls_text.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   returnval_content = geturls_text.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
   return returnval;
 
 if(not havehttpcore):
- def download_from_url_with_httpcore(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout)
+ def download_from_url_with_httpcore(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
   return returnval;
 
 if(havehttpcore):
@@ -2899,7 +3291,7 @@ if(havehttpcore):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  downloadsize = int(httpheaderout.get('Content-Length'));
+  downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -3018,7 +3410,7 @@ if(not havehttpcore):
   return returnval;
 
 if(havehttpcore):
- def download_from_url_with_httpcore2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+ def download_from_url_with_httpcore2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -3093,21 +3485,83 @@ if(havehttpcore):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   strbuf = BytesIO(geturls_text.read());
-   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-   returnval_content = geturls_text.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   returnval_content = geturls_text.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
   return returnval;
 
 if(not havehttpcore):
- def download_from_url_with_httpcore2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout)
+ def download_from_url_with_httpcore2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
   return returnval;
 
 if(havehttpcore):
@@ -3203,7 +3657,7 @@ if(havehttpcore):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  downloadsize = int(httpheaderout.get('Content-Length'));
+  downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -3322,13 +3776,13 @@ if(not havehttpx):
   return returnval;
 
 if(haveurllib3):
- def download_from_url_with_request3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
-  returnval = download_from_url_with_urllib3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout)
+ def download_from_url_with_request3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_urllib3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_with_request3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout)
+ def download_from_url_with_request3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
   return returnval;
 
 if(haveurllib3):
@@ -3352,7 +3806,7 @@ if(not haveurllib3):
   return returnval;
 
 if(haveurllib3):
- def download_from_url_with_urllib3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+ def download_from_url_with_urllib3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -3435,21 +3889,83 @@ if(haveurllib3):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   strbuf = BytesIO(geturls_text.read());
-   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-   returnval_content = geturls_text.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   returnval_content = geturls_text.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
   return returnval;
 
 if(not haveurllib3):
- def download_from_url_with_urllib3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout)
+ def download_from_url_with_urllib3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
   return returnval;
 
 if(haveurllib3):
@@ -3672,7 +4188,7 @@ if(not haveurllib3):
   return returnval;
 
 if(havemechanize):
- def download_from_url_with_mechanize(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+ def download_from_url_with_mechanize(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -3751,21 +4267,83 @@ if(havemechanize):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   strbuf = BytesIO(geturls_text.read());
-   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-   returnval_content = geturls_text.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   returnval_content = geturls_text.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = geturls_text.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
   return returnval;
 
 if(not havemechanize):
- def download_from_url_with_mechanize(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout)
+ def download_from_url_with_mechanize(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
   return returnval;
 
 if(havemechanize):
@@ -3865,7 +4443,7 @@ if(havemechanize):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  downloadsize = int(httpheaderout.get('Content-Length'));
+  downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -3984,7 +4562,7 @@ if(not havemechanize):
   return returnval;
 
 if(havepycurl):
- def download_from_url_with_pycurl(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+ def download_from_url_with_pycurl(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -4093,21 +4671,83 @@ if(havepycurl):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   strbuf = BytesIO(retrieved_body.read());
-   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = retrieved_body.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-   returnval_content = retrieved_body.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = retrieved_body.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   returnval_content = retrieved_body.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = retrieved_body.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
   return returnval;
 
 if(not havepycurl):
- def download_from_url_with_pycurl(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout)
+ def download_from_url_with_pycurl(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
   return returnval;
 
 if(havepycurl):
@@ -4243,7 +4883,7 @@ if(havepycurl):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheadersentout)));
   httpheadersentout = fix_header_names(httpheadersentout);
-  downloadsize = int(httpheaderout.get('Content-Length'));
+  downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -4362,7 +5002,7 @@ if(not havepycurl):
   return returnval;
 
 if(havepycurl):
- def download_from_url_with_pycurl2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+ def download_from_url_with_pycurl2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -4474,21 +5114,83 @@ if(havepycurl):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   strbuf = BytesIO(retrieved_body.read());
-   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = retrieved_body.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-   returnval_content = retrieved_body.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = retrieved_body.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   returnval_content = retrieved_body.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = retrieved_body.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
   return returnval;
 
 if(not havepycurl):
- def download_from_url_with_pycurl2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout)
+ def download_from_url_with_pycurl2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
   return returnval;
 
 if(havepycurl):
@@ -4627,7 +5329,7 @@ if(havepycurl):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheadersentout)));
   httpheadersentout = fix_header_names(httpheadersentout);
-  downloadsize = int(httpheaderout.get('Content-Length'));
+  downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -4746,7 +5448,7 @@ if(not havepycurl):
   return returnval;
 
 if(havepycurl):
- def download_from_url_with_pycurl3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+ def download_from_url_with_pycurl3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -4858,21 +5560,83 @@ if(havepycurl):
   httpheadersentout = fix_header_names(httpheadersentout);
   log.info("Downloading URL "+httpurl);
   if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   strbuf = BytesIO(retrieved_body.read());
-   gzstrbuf = gzip.GzipFile(fileobj=strbuf);
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = retrieved_body.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
    returnval_content = gzstrbuf.read()[:];
   if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-   returnval_content = retrieved_body.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = retrieved_body.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
   if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   returnval_content = retrieved_body.read()[:];
+   downloadsize = httpheaderout.get('Content-Length');
+   if(downloadsize is not None):
+    downloadsize = int(downloadsize);
+   if downloadsize is None: downloadsize = 0;
+   fulldatasize = 0;
+   prevdownsize = 0;
+   log.info("Downloading URL "+httpurl);
+   with BytesIO() as strbuf:
+    while True:
+     databytes = retrieved_body.read(buffersize);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     strbuf.write(databytes);
+    strbuf.seek(0);
+    returnval_content = strbuf.read();
    returnval_content = brotli.decompress(returnval_content);
   returnval = {'Type': "Content", 'Content': returnval_content, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
   geturls_text.close();
   return returnval;
 
 if(not havepycurl):
- def download_from_url_with_pycurl3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
-  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, sleep, timeout)
+ def download_from_url_with_pycurl3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
   return returnval;
 
 if(havepycurl):
@@ -5011,7 +5775,7 @@ if(havepycurl):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheadersentout)));
   httpheadersentout = fix_header_names(httpheadersentout);
-  downloadsize = int(httpheaderout.get('Content-Length'));
+  downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -5176,7 +5940,7 @@ def download_file_from_ftp_string(url):
  ftpfile = download_file_from_ftp_file(url);
  return ftpfile.read();
 
-def download_from_url_with_ftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+def download_from_url_with_ftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
  global geturls_download_sleep, havebrotli;
  if(sleep<0):
   sleep = geturls_download_sleep;
@@ -5448,7 +6212,7 @@ else:
   return False;
 
 if(haveparamiko):
- def download_from_url_with_sftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+ def download_from_url_with_sftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -5481,7 +6245,7 @@ if(haveparamiko):
   return returnval;
 
 if(not haveparamiko):
- def download_from_url_with_sftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+ def download_from_url_with_sftp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   return False;
 
 if(haveparamiko):
@@ -5742,7 +6506,7 @@ else:
   return False;
 
 if(havepysftp):
- def download_from_url_with_pysftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+ def download_from_url_with_pysftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havebrotli;
   if(sleep<0):
    sleep = geturls_download_sleep;
@@ -5765,7 +6529,7 @@ if(havepysftp):
   return returnval;
 
 if(not havepysftp):
- def download_from_url_with_pysftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, sleep=-1, timeout=10):
+ def download_from_url_with_pysftp(httpurl, httpheaders=geturls_headers, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   return False;
 
 if(havepysftp):
