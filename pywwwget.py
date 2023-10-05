@@ -16,7 +16,7 @@
 '''
 
 from __future__ import division, absolute_import, print_function;
-import re, os, sys, hashlib, shutil, platform, tempfile, urllib, gzip, time, argparse, cgi, subprocess, socket, email.utils, datetime, time;
+import re, os, sys, hashlib, shutil, platform, tempfile, urllib, zlib, time, argparse, cgi, subprocess, socket, email.utils, datetime, time;
 import logging as log;
 from ftplib import FTP, FTP_TLS;
 from base64 import b64encode;
@@ -1232,226 +1232,124 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  httpheadersentout = fix_header_names(httpheadersentout);
  log.info("Downloading URL "+httpurl);
  if(httplibuse=="urllib" or httplibuse=="request" or httplibuse=="request3" or httplibuse=="httplib" or httplibuse=="httplib2" or httplibuse=="urllib3" or httplibuse=="mechanize" or httplibuse=="httpx" or httplibuse=="httpx2" or httplibuse=="httpcore" or httplibuse=="httpcore2"):
-  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   downloadsize = httpheaderout.get('Content-Length');
-   if(downloadsize is not None):
-    downloadsize = int(downloadsize);
-   if downloadsize is None: downloadsize = 0;
-   fulldatasize = 0;
-   prevdownsize = 0;
-   log.info("Downloading URL "+httpurl);
-   with BytesIO() as strbuf:
-    while True:
-     databytes = geturls_text.read(buffersize);
-     if not databytes: break;
-     datasize = len(databytes);
-     fulldatasize = datasize + fulldatasize;
-     percentage = "";
-     if(downloadsize>0):
-      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-     downloaddiff = fulldatasize - prevdownsize;
-     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
-     prevdownsize = fulldatasize;
-     strbuf.write(databytes);
-    strbuf.seek(0);
-    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-    returnval_content = gzstrbuf.read()[:];
-  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-   downloadsize = httpheaderout.get('Content-Length');
-   if(downloadsize is not None):
-    downloadsize = int(downloadsize);
-   if downloadsize is None: downloadsize = 0;
-   fulldatasize = 0;
-   prevdownsize = 0;
-   log.info("Downloading URL "+httpurl);
-   with BytesIO() as strbuf:
-    while True:
-     databytes = geturls_text.read(buffersize);
-     if not databytes: break;
-     datasize = len(databytes);
-     fulldatasize = datasize + fulldatasize;
-     percentage = "";
-     if(downloadsize>0):
-      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-     downloaddiff = fulldatasize - prevdownsize;
-     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
-     prevdownsize = fulldatasize;
-     strbuf.write(databytes);
-    strbuf.seek(0);
-    returnval_content = strbuf.read();
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   downloadsize = httpheaderout.get('Content-Length');
-   if(downloadsize is not None):
-    downloadsize = int(downloadsize);
-   if downloadsize is None: downloadsize = 0;
-   fulldatasize = 0;
-   prevdownsize = 0;
-   log.info("Downloading URL "+httpurl);
-   with BytesIO() as strbuf:
-    while True:
-     databytes = geturls_text.read(buffersize);
-     if not databytes: break;
-     datasize = len(databytes);
-     fulldatasize = datasize + fulldatasize;
-     percentage = "";
-     if(downloadsize>0):
-      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-     downloaddiff = fulldatasize - prevdownsize;
-     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
-     prevdownsize = fulldatasize;
-     strbuf.write(databytes);
-    strbuf.seek(0);
-    returnval_content = strbuf.read();
-   returnval_content = brotli.decompress(returnval_content);
+  downloadsize = httpheaderout.get('Content-Length');
+  if(downloadsize is not None):
+   downloadsize = int(downloadsize);
+  if downloadsize is None: downloadsize = 0;
+  fulldatasize = 0;
+  prevdownsize = 0;
+  log.info("Downloading URL "+httpurl);
+  with BytesIO() as strbuf:
+   while True:
+    databytes = geturls_text.read(buffersize);
+    if not databytes: break;
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    strbuf.write(databytes);
+   strbuf.seek(0);
+   returnval_content = strbuf.read();
   geturls_text.close();
+  if(httpheaderout.get("Content-Encoding")=="gzip"):
+   try:
+    returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
+   except zlib.error:
+    pass;
+  if(httpheaderout.get("Content-Encoding")=="deflate"):
+   try:
+    returnval_content = zlib.decompress(returnval_content);
+   except zlib.error:
+    pass;
+  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+   try:
+    returnval_content = brotli.decompress(returnval_content);
+   except brotli.error:
+    pass;
  elif(httplibuse=="requests"):
   log.info("Downloading URL "+httpurl);
-  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   downloadsize = httpheaderout.get('Content-Length');
-   if(downloadsize is not None):
-    downloadsize = int(downloadsize);
-   if downloadsize is None: downloadsize = 0;
-   fulldatasize = 0;
-   prevdownsize = 0;
-   log.info("Downloading URL "+httpurl);
-   with BytesIO() as strbuf:
-    while True:
-     databytes = geturls_text.raw.read(buffersize);
-     if not databytes: break;
-     datasize = len(databytes);
-     fulldatasize = datasize + fulldatasize;
-     percentage = "";
-     if(downloadsize>0):
-      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-     downloaddiff = fulldatasize - prevdownsize;
-     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
-     prevdownsize = fulldatasize;
-     strbuf.write(databytes);
-    strbuf.seek(0);
-    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-    returnval_content = gzstrbuf.read()[:];
-  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-   downloadsize = httpheaderout.get('Content-Length');
-   if(downloadsize is not None):
-    downloadsize = int(downloadsize);
-   if downloadsize is None: downloadsize = 0;
-   fulldatasize = 0;
-   prevdownsize = 0;
-   log.info("Downloading URL "+httpurl);
-   with BytesIO() as strbuf:
-    while True:
-     databytes = geturls_text.raw.read(buffersize);
-     if not databytes: break;
-     datasize = len(databytes);
-     fulldatasize = datasize + fulldatasize;
-     percentage = "";
-     if(downloadsize>0):
-      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-     downloaddiff = fulldatasize - prevdownsize;
-     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
-     prevdownsize = fulldatasize;
-     strbuf.write(databytes);
-    strbuf.seek(0);
-    returnval_content = strbuf.read();
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   downloadsize = httpheaderout.get('Content-Length');
-   if(downloadsize is not None):
-    downloadsize = int(downloadsize);
-   if downloadsize is None: downloadsize = 0;
-   fulldatasize = 0;
-   prevdownsize = 0;
-   log.info("Downloading URL "+httpurl);
-   with BytesIO() as strbuf:
-    while True:
-     databytes = geturls_text.raw.read(buffersize);
-     if not databytes: break;
-     datasize = len(databytes);
-     fulldatasize = datasize + fulldatasize;
-     percentage = "";
-     if(downloadsize>0):
-      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-     downloaddiff = fulldatasize - prevdownsize;
-     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
-     prevdownsize = fulldatasize;
-     strbuf.write(databytes);
-    strbuf.seek(0);
-    returnval_content = strbuf.read();
-   returnval_content = brotli.decompress(returnval_content);
+  downloadsize = httpheaderout.get('Content-Length');
+  if(downloadsize is not None):
+   downloadsize = int(downloadsize);
+  if downloadsize is None: downloadsize = 0;
+  fulldatasize = 0;
+  prevdownsize = 0;
+  log.info("Downloading URL "+httpurl);
+  with BytesIO() as strbuf:
+   while True:
+    databytes = geturls_text.raw.read(buffersize);
+    if not databytes: break;
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    strbuf.write(databytes);
+   strbuf.seek(0);
+   returnval_content = strbuf.read();
   geturls_text.close();
+  if(httpheaderout.get("Content-Encoding")=="gzip"):
+   try:
+    returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
+   except zlib.error:
+    pass;
+  if(httpheaderout.get("Content-Encoding")=="deflate"):
+   try:
+    returnval_content = zlib.decompress(returnval_content);
+   except zlib.error:
+    pass;
+  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+   try:
+    returnval_content = brotli.decompress(returnval_content);
+   except brotli.error:
+    pass;
  elif(httplibuse=="pycurl" or httplibuse=="pycurl2" or httplibuse=="pycurl3"):
   log.info("Downloading URL "+httpurl);
-  if(httpheaderout.get("Content-Encoding")=="gzip" or httpheaderout.get("Content-Encoding")=="deflate"):
-   downloadsize = httpheaderout.get('Content-Length');
-   if(downloadsize is not None):
-    downloadsize = int(downloadsize);
-   if downloadsize is None: downloadsize = 0;
-   fulldatasize = 0;
-   prevdownsize = 0;
-   log.info("Downloading URL "+httpurl);
-   with BytesIO() as strbuf:
-    while True:
-     databytes = retrieved_body.read(buffersize);
-     if not databytes: break;
-     datasize = len(databytes);
-     fulldatasize = datasize + fulldatasize;
-     percentage = "";
-     if(downloadsize>0):
-      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-     downloaddiff = fulldatasize - prevdownsize;
-     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
-     prevdownsize = fulldatasize;
-     strbuf.write(databytes);
-    strbuf.seek(0);
-    gzstrbuf = gzip.GzipFile(fileobj=strbuf);
-    returnval_content = gzstrbuf.read()[:];
-  if(httpheaderout.get("Content-Encoding")!="gzip" and httpheaderout.get("Content-Encoding")!="deflate" and httpheaderout.get("Content-Encoding")!="br"):
-   downloadsize = httpheaderout.get('Content-Length');
-   if(downloadsize is not None):
-    downloadsize = int(downloadsize);
-   if downloadsize is None: downloadsize = 0;
-   fulldatasize = 0;
-   prevdownsize = 0;
-   log.info("Downloading URL "+httpurl);
-   with BytesIO() as strbuf:
-    while True:
-     databytes = retrieved_body.read(buffersize);
-     if not databytes: break;
-     datasize = len(databytes);
-     fulldatasize = datasize + fulldatasize;
-     percentage = "";
-     if(downloadsize>0):
-      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-     downloaddiff = fulldatasize - prevdownsize;
-     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
-     prevdownsize = fulldatasize;
-     strbuf.write(databytes);
-    strbuf.seek(0);
-    returnval_content = strbuf.read();
-  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
-   downloadsize = httpheaderout.get('Content-Length');
-   if(downloadsize is not None):
-    downloadsize = int(downloadsize);
-   if downloadsize is None: downloadsize = 0;
-   fulldatasize = 0;
-   prevdownsize = 0;
-   log.info("Downloading URL "+httpurl);
-   with BytesIO() as strbuf:
-    while True:
-     databytes = retrieved_body.read(buffersize);
-     if not databytes: break;
-     datasize = len(databytes);
-     fulldatasize = datasize + fulldatasize;
-     percentage = "";
-     if(downloadsize>0):
-      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
-     downloaddiff = fulldatasize - prevdownsize;
-     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
-     prevdownsize = fulldatasize;
-     strbuf.write(databytes);
-    strbuf.seek(0);
-    returnval_content = strbuf.read();
-   returnval_content = brotli.decompress(returnval_content);
+  downloadsize = httpheaderout.get('Content-Length');
+  if(downloadsize is not None):
+   downloadsize = int(downloadsize);
+  if downloadsize is None: downloadsize = 0;
+  fulldatasize = 0;
+  prevdownsize = 0;
+  log.info("Downloading URL "+httpurl);
+  with BytesIO() as strbuf:
+   while True:
+    databytes = retrieved_body.read(buffersize);
+    if not databytes: break;
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    strbuf.write(databytes);
+   strbuf.seek(0);
+   returnval_content = strbuf.read();
   geturls_text.close();
+  if(httpheaderout.get("Content-Encoding")=="gzip"):
+   try:
+    returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
+   except zlib.error:
+    pass;
+  if(httpheaderout.get("Content-Encoding")=="deflate"):
+   try:
+    returnval_content = zlib.decompress(returnval_content);
+   except zlib.error:
+    pass;
+  if(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+   try:
+    returnval_content = brotli.decompress(returnval_content);
+   except brotli.error:
+    pass;
  elif(httplibuse=="ftp" or httplibuse=="sftp" or httplibuse=="pysftp"):
   pass;
  else:
