@@ -2635,7 +2635,7 @@ if(havehttpcore):
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status;
-  httpcodereason = geturls_text.reason_phrase;
+  httpcodereason = http_status_to_reason(geturls_text.status);
   httpversionout = "1.1";
   httpmethodout = httpmethod;
   httpurlout = str(httpurl);
