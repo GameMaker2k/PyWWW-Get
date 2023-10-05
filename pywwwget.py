@@ -1587,14 +1587,14 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   if(not geturls_text):
    return False;
   geturls_text.seek(0, 2);
-  downloadsize = geturls_text.tell();
+  downloadsize = int(geturls_text.tell());
   geturls_text.seek(0, 0);
  elif(httplibuse=="sftp"):
   geturls_text = download_file_from_sftp_file(httpurl);
   if(not geturls_text):
    return False;
   geturls_text.seek(0, 2);
-  downloadsize = geturls_text.tell();
+  downloadsize = int(geturls_text.tell());
   geturls_text.seek(0, 0);
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -1606,7 +1606,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   if(not geturls_text):
    return False;
   geturls_text.seek(0, 2);
-  downloadsize = geturls_text.tell();
+  downloadsize = int(geturls_text.tell());
   geturls_text.seek(0, 0);
  else:
   returnval = False;
@@ -1633,7 +1633,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheadersentout)));
  httpheadersentout = fix_header_names(httpheadersentout);
  if(httplibuse=="urllib" or httplibuse=="request" or httplibuse=="request3" or httplibuse=="httplib" or httplibuse=="httplib2" or httplibuse=="urllib3" or httplibuse=="requests" or httplibuse=="mechanize" or httplibuse=="httpx" or httplibuse=="httpx2" or httplibuse=="httpcore" or httplibuse=="httpcore2"):
-  downloadsize = httpheaderout.get('Content-Length');
+  downloadsize = int(httpheaderout.get('Content-Length'));
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
  if downloadsize is None: downloadsize = 0;
@@ -1769,7 +1769,7 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
   if(not pretmpfilename):
    return False;
   tmpfilename = pretmpfilename['Filename'];
-  downloadsize = os.path.getsize(tmpfilename);
+  downloadsize = int(os.path.getsize(tmpfilename));
   fulldatasize = 0;
   log.info("Moving file "+tmpfilename+" to "+filepath);
   exec_time_start = time.time();
@@ -1791,7 +1791,7 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
  if(outfile=="-"):
   pretmpfilename = download_from_url_file(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, httplibuse, ranges, buffersize[0], sleep, timeout);
   tmpfilename = pretmpfilename['Filename'];
-  downloadsize = os.path.getsize(tmpfilename);
+  downloadsize = int(os.path.getsize(tmpfilename));
   fulldatasize = 0;
   prevdownsize = 0;
   exec_time_start = time.time();

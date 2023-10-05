@@ -1020,7 +1020,7 @@ def download_from_url_file_with_urllib(httpurl, httpheaders=geturls_headers, htt
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
  httpheadersentout = fix_header_names(httpheadersentout);
- downloadsize = httpheaderout.get('Content-Length');
+ downloadsize = int(httpheaderout.get('Content-Length'));
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
  if downloadsize is None: downloadsize = 0;
@@ -1077,7 +1077,7 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, 
   if(not pretmpfilename):
    return False;
   tmpfilename = pretmpfilename['Filename'];
-  downloadsize = os.path.getsize(tmpfilename);
+  downloadsize = int(os.path.getsize(tmpfilename));
   fulldatasize = 0;
   log.info("Moving file "+tmpfilename+" to "+filepath);
   exec_time_start = time.time();
@@ -1099,7 +1099,7 @@ def download_from_url_to_file_with_urllib(httpurl, httpheaders=geturls_headers, 
  if(outfile=="-"):
   pretmpfilename = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize[0], sleep, timeout);
   tmpfilename = pretmpfilename['Filename'];
-  downloadsize = os.path.getsize(tmpfilename);
+  downloadsize = int(os.path.getsize(tmpfilename));
   fulldatasize = 0;
   prevdownsize = 0;
   exec_time_start = time.time();
@@ -1332,7 +1332,7 @@ def download_from_url_file_with_httplib(httpurl, httpheaders=geturls_headers, ht
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
  httpheadersentout = fix_header_names(httpheadersentout);
- downloadsize = httpheaderout.get('Content-Length');
+ downloadsize = int(httpheaderout.get('Content-Length'));
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
  if downloadsize is None: downloadsize = 0;
@@ -1389,7 +1389,7 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers,
   if(not pretmpfilename):
    return False;
   tmpfilename = pretmpfilename['Filename'];
-  downloadsize = os.path.getsize(tmpfilename);
+  downloadsize = int(os.path.getsize(tmpfilename));
   fulldatasize = 0;
   log.info("Moving file "+tmpfilename+" to "+filepath);
   exec_time_start = time.time();
@@ -1411,7 +1411,7 @@ def download_from_url_to_file_with_httplib(httpurl, httpheaders=geturls_headers,
  if(outfile=="-"):
   pretmpfilename = download_from_url_file_with_httplib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize[0], sleep, timeout);
   tmpfilename = pretmpfilename['Filename'];
-  downloadsize = os.path.getsize(tmpfilename);
+  downloadsize = int(os.path.getsize(tmpfilename));
   fulldatasize = 0;
   prevdownsize = 0;
   exec_time_start = time.time();
@@ -1643,7 +1643,7 @@ if(havehttplib2):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  downloadsize = httpheaderout.get('Content-Length');
+  downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -1706,7 +1706,7 @@ if(havehttplib2):
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
@@ -1728,7 +1728,7 @@ if(havehttplib2):
   if(outfile=="-"):
    pretmpfilename = download_from_url_file_with_httplib2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize[0], sleep, timeout);
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    prevdownsize = 0;
    exec_time_start = time.time();
@@ -2024,7 +2024,7 @@ if(haverequests):
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
@@ -2046,7 +2046,7 @@ if(haverequests):
   if(outfile=="-"):
    pretmpfilename = download_from_url_file_with_requests(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize[0], sleep, timeout);
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    prevdownsize = 0;
    exec_time_start = time.time();
@@ -2328,7 +2328,7 @@ if(havehttpx):
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
@@ -2350,7 +2350,7 @@ if(havehttpx):
   if(outfile=="-"):
    pretmpfilename = download_from_url_file_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize[0], sleep, timeout);
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    prevdownsize = 0;
    exec_time_start = time.time();
@@ -2632,7 +2632,7 @@ if(havehttpx):
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
@@ -2654,7 +2654,7 @@ if(havehttpx):
   if(outfile=="-"):
    pretmpfilename = download_from_url_file_with_httpx2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize[0], sleep, timeout);
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    prevdownsize = 0;
    exec_time_start = time.time();
@@ -2936,7 +2936,7 @@ if(havehttpcore):
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
@@ -2958,7 +2958,7 @@ if(havehttpcore):
   if(outfile=="-"):
    pretmpfilename = download_from_url_file_with_httpcore(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize[0], sleep, timeout);
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    prevdownsize = 0;
    exec_time_start = time.time();
@@ -3240,7 +3240,7 @@ if(havehttpcore):
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
@@ -3262,7 +3262,7 @@ if(havehttpcore):
   if(outfile=="-"):
    pretmpfilename = download_from_url_file_with_httpcore2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize[0], sleep, timeout);
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    prevdownsize = 0;
    exec_time_start = time.time();
@@ -3590,7 +3590,7 @@ if(haveurllib3):
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
@@ -3612,7 +3612,7 @@ if(haveurllib3):
   if(outfile=="-"):
    pretmpfilename = download_from_url_file_with_urllib3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize[0], sleep, timeout);
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    prevdownsize = 0;
    exec_time_start = time.time();
@@ -3902,7 +3902,7 @@ if(havemechanize):
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
@@ -3924,7 +3924,7 @@ if(havemechanize):
   if(outfile=="-"):
    pretmpfilename = download_from_url_file_with_mechanize(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize[0], sleep, timeout);
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    prevdownsize = 0;
    exec_time_start = time.time();
@@ -4217,7 +4217,7 @@ if(havepycurl):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheadersentout)));
   httpheadersentout = fix_header_names(httpheadersentout);
-  downloadsize = httpheaderout.get('Content-Length');
+  downloadsize = int(httpheaderout.get('Content-Length'));
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
   if downloadsize is None: downloadsize = 0;
@@ -4280,7 +4280,7 @@ if(havepycurl):
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
@@ -4302,7 +4302,7 @@ if(havepycurl):
   if(outfile=="-"):
    pretmpfilename = download_from_url_file_with_pycurl(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize[0], sleep, timeout);
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    prevdownsize = 0;
    exec_time_start = time.time();
@@ -4460,7 +4460,7 @@ def download_from_url_file_with_ftp(httpurl, httpheaders=geturls_headers, httpus
  if(not geturls_text):
   return False;
  geturls_text.seek(0, 2);
- downloadsize = geturls_text.tell();
+ downloadsize = int(geturls_text.tell());
  geturls_text.seek(0, 0);
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
@@ -4509,7 +4509,7 @@ def download_from_url_to_file_with_ftp(httpurl, httpheaders=geturls_headers, htt
   if(not pretmpfilename):
    return False;
   tmpfilename = pretmpfilename['Filename'];
-  downloadsize = os.path.getsize(tmpfilename);
+  downloadsize = int(os.path.getsize(tmpfilename));
   fulldatasize = 0;
   log.info("Moving file "+tmpfilename+" to "+filepath);
   exec_time_start = time.time();
@@ -4522,7 +4522,7 @@ def download_from_url_to_file_with_ftp(httpurl, httpheaders=geturls_headers, htt
  if(outfile=="-"):
   pretmpfilename = download_from_url_file_with_ftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize[0], sleep, timeout);
   tmpfilename = pretmpfilename['Filename'];
-  downloadsize = os.path.getsize(tmpfilename);
+  downloadsize = int(os.path.getsize(tmpfilename));
   fulldatasize = 0;
   prevdownsize = 0;
   exec_time_start = time.time();
@@ -4737,7 +4737,7 @@ if(haveparamiko):
   if(not geturls_text):
    return False;
   geturls_text.seek(0, 2);
-  downloadsize = geturls_text.tell();
+  downloadsize = int(geturls_text.tell());
   geturls_text.seek(0, 0);
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -4791,7 +4791,7 @@ if(haveparamiko):
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
@@ -4804,7 +4804,7 @@ if(haveparamiko):
   if(outfile=="-"):
    pretmpfilename = download_from_url_file_with_sftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize[0], sleep, timeout);
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    prevdownsize = 0;
    exec_time_start = time.time();
@@ -5011,7 +5011,7 @@ if(havepysftp):
   if(not geturls_text):
    return False;
   geturls_text.seek(0, 2);
-  downloadsize = geturls_text.tell();
+  downloadsize = int(geturls_text.tell());
   geturls_text.seek(0, 0);
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -5065,7 +5065,7 @@ if(havepysftp):
    if(not pretmpfilename):
     return False;
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    log.info("Moving file "+tmpfilename+" to "+filepath);
    exec_time_start = time.time();
@@ -5078,7 +5078,7 @@ if(havepysftp):
   if(outfile=="-"):
    pretmpfilename = download_from_url_file_with_pysftp(httpurl, httpheaders, httpcookie, httpmethod, postdata, ranges, buffersize[0], sleep, timeout);
    tmpfilename = pretmpfilename['Filename'];
-   downloadsize = os.path.getsize(tmpfilename);
+   downloadsize = int(os.path.getsize(tmpfilename));
    fulldatasize = 0;
    prevdownsize = 0;
    exec_time_start = time.time();
