@@ -1867,7 +1867,10 @@ if(havehttpx):
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status_code;
-  httpcodereason = geturls_text.reason_phrase;
+  try:
+   httpcodereason = geturls_text.reason_phrase;
+  except:
+   httpcodereason = http_status_to_reason(geturls_text.status_code);
   httpversionout = geturls_text.http_version;
   httpmethodout = httpmethod;
   httpurlout = str(geturls_text.url);
@@ -2108,7 +2111,10 @@ if(havehttpx):
    log.info("Error With URL "+httpurl);
    return False;
   httpcodeout = geturls_text.status_code;
-  httpcodereason = geturls_text.reason_phrase;
+  try:
+   httpcodereason = geturls_text.reason_phrase;
+  except:
+   httpcodereason = http_status_to_reason(geturls_text.status_code);
   httpversionout = geturls_text.http_version;
   httpmethodout = httpmethod;
   httpurlout = str(geturls_text.url);
