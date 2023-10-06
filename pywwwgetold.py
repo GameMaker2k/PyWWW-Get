@@ -3436,7 +3436,7 @@ if(havepycurl):
     pycurlhead = retrieved_headers.read();
    if(sys.version[0]>="3"):
     pycurlhead = retrieved_headers.read().decode('UTF-8');
-   pyhttpverinfo = re.findall(r'^HTTP/([0-9.]+) (\d+) ([A-Za-z\s]+)$', pycurlhead.splitlines()[0])[0];
+   pyhttpverinfo = re.findall(r'^HTTP/([0-9.]+) (\d+)(?: ([A-Za-z\s]+))?$', pycurlhead.splitlines()[0].strip().rstrip('\r\n'))[0];
    pycurlheadersout = make_http_headers_from_pycurl_to_dict(pycurlhead);
    retrieved_body.seek(0);
   except socket.timeout:
@@ -3719,7 +3719,7 @@ if(havepycurl):
     pycurlhead = retrieved_headers.read();
    if(sys.version[0]>="3"):
     pycurlhead = retrieved_headers.read().decode('UTF-8');
-   pyhttpverinfo = re.findall(r'^HTTP/([0-9.]+) (\d+) ([A-Za-z\s]+)$', pycurlhead.splitlines()[0])[0];
+   pyhttpverinfo = re.findall(r'^HTTP/([0-9.]+) (\d+)(?: ([A-Za-z\s]+))?$', pycurlhead.splitlines()[0].strip())[0];
    pycurlheadersout = make_http_headers_from_pycurl_to_dict(pycurlhead);
    retrieved_body.seek(0);
   except socket.timeout:
@@ -4002,7 +4002,7 @@ if(havepycurl):
     pycurlhead = retrieved_headers.read();
    if(sys.version[0]>="3"):
     pycurlhead = retrieved_headers.read().decode('UTF-8');
-   pyhttpverinfo = re.findall(r'^HTTP/([0-9.]+) (\d+) ([A-Za-z\s]+)$', pycurlhead.splitlines()[0])[0];
+   pyhttpverinfo = re.findall(r'^HTTP/([0-9.]+) (\d+)(?: ([A-Za-z\s]+))?$', pycurlhead.splitlines()[0].strip().rstrip('\r\n'))[0];
    pycurlheadersout = make_http_headers_from_pycurl_to_dict(pycurlhead);
    retrieved_body.seek(0);
   except socket.timeout:
