@@ -602,8 +602,10 @@ def get_httplib_support(checkvalue=None):
   returnval.append("mechanize");
  if(havepycurl):
   returnval.append("pycurl");
-  returnval.append("pycurl2");
-  returnval.append("pycurl3");
+  if(hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+   returnval.append("pycurl2");
+  if(hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
+   returnval.append("pycurl3");
  if(haveparamiko):
   returnval.append("sftp");
  if(havepysftp):
@@ -657,8 +659,14 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httplibuse = "urllib";
  if(not havepycurl and httplibuse=="pycurl2"):
   httplibuse = "urllib";
+ if(havepycurl and httplibuse=="pycurl2" and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl";
  if(not havepycurl and httplibuse=="pycurl3"):
   httplibuse = "urllib";
+ if(havepycurl and httplibuse=="pycurl3" and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl2";
+ if(havepycurl and httplibuse=="pycurl3" and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl";
  if(not havehttplib2 and httplibuse=="httplib2"):
   httplibuse = "httplib";
  if(not haveparamiko and httplibuse=="sftp"):
@@ -1479,8 +1487,14 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httplibuse = "urllib";
  if(not havepycurl and httplibuse=="pycurl2"):
   httplibuse = "urllib";
+ if(havepycurl and httplibuse=="pycurl2" and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl";
  if(not havepycurl and httplibuse=="pycurl3"):
   httplibuse = "urllib";
+ if(havepycurl and httplibuse=="pycurl3" and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl2";
+ if(havepycurl and httplibuse=="pycurl3" and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl";
  if(not havehttplib2 and httplibuse=="httplib2"):
   httplibuse = "httplib";
  if(not haveparamiko and httplibuse=="sftp"):
@@ -1535,8 +1549,14 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
   httplibuse = "urllib";
  if(not havepycurl and httplibuse=="pycurl2"):
   httplibuse = "urllib";
+ if(havepycurl and httplibuse=="pycurl2" and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl";
  if(not havepycurl and httplibuse=="pycurl3"):
   httplibuse = "urllib";
+ if(havepycurl and httplibuse=="pycurl3" and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl2";
+ if(havepycurl and httplibuse=="pycurl3" and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl";
  if(not havehttplib2 and httplibuse=="httplib2"):
   httplibuse = "httplib";
  if(not haveparamiko and httplibuse=="sftp"):

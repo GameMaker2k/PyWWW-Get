@@ -123,7 +123,7 @@ __version_info__ = (2, 0, 2, "RC 1", 1);
 __version_date_info__ = (2023, 10, 5, "RC 1", 1);
 __version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2);
 __revision__ = __version_info__[3];
-__revision_id__ = "$Id$";
+__revision_id__ = "$Id: 346873973981d4271d1530c99011ffb8047a7d18 $";
 if(__version_info__[4] is not None):
  __version_date_plusrc__ = __version_date__+"-"+str(__version_date_info__[4]);
 if(__version_info__[4] is None):
@@ -603,8 +603,10 @@ def get_httplib_support(checkvalue=None):
   returnval.append("mechanize");
  if(havepycurl):
   returnval.append("pycurl");
-  returnval.append("pycurl2");
-  returnval.append("pycurl3");
+  if(hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+   returnval.append("pycurl2");
+  if(hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
+   returnval.append("pycurl3");
  if(haveparamiko):
   returnval.append("sftp");
  if(havepysftp):
@@ -658,8 +660,14 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httplibuse = "urllib";
  if(not havepycurl and httplibuse=="pycurl2"):
   httplibuse = "urllib";
+ if(havepycurl and httplibuse=="pycurl2" and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl";
  if(not havepycurl and httplibuse=="pycurl3"):
   httplibuse = "urllib";
+ if(havepycurl and httplibuse=="pycurl3" and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl2";
+ if(havepycurl and httplibuse=="pycurl3" and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl";
  if(not havehttplib2 and httplibuse=="httplib2"):
   httplibuse = "httplib";
  if(not haveparamiko and httplibuse=="sftp"):
@@ -732,8 +740,14 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   httplibuse = "urllib";
  if(not havepycurl and httplibuse=="pycurl2"):
   httplibuse = "urllib";
+ if(havepycurl and httplibuse=="pycurl2" and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl";
  if(not havepycurl and httplibuse=="pycurl3"):
   httplibuse = "urllib";
+ if(havepycurl and httplibuse=="pycurl3" and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl2";
+ if(havepycurl and httplibuse=="pycurl3" and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl";
  if(not havehttplib2 and httplibuse=="httplib2"):
   httplibuse = "httplib";
  if(not haveparamiko and httplibuse=="sftp"):
@@ -806,8 +820,14 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
   httplibuse = "urllib";
  if(not havepycurl and httplibuse=="pycurl2"):
   httplibuse = "urllib";
+ if(havepycurl and httplibuse=="pycurl2" and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl";
  if(not havepycurl and httplibuse=="pycurl3"):
   httplibuse = "urllib";
+ if(havepycurl and httplibuse=="pycurl3" and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl2";
+ if(havepycurl and httplibuse=="pycurl3" and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+  httplibuse = "pycurl";
  if(not havehttplib2 and httplibuse=="httplib2"):
   httplibuse = "httplib";
  if(not haveparamiko and httplibuse=="sftp"):
@@ -3645,7 +3665,7 @@ if(not havepycurl):
   returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep, timeout)
   return returnval;
 
-if(havepycurl):
+if(havepycurl and hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
  def download_from_url_with_pycurl2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
@@ -3808,7 +3828,12 @@ if(not havepycurl):
   returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
   return returnval;
 
-if(havepycurl):
+if(havepycurl and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+ def download_from_url_with_pycurl2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
+  return returnval;
+
+if(havepycurl and hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
  def download_from_url_file_with_pycurl2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
@@ -3853,7 +3878,12 @@ if(not havepycurl):
   returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize, sleep, timeout)
   return returnval;
 
-if(havepycurl):
+if(havepycurl and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+ def download_from_url_file_with_pycurl2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_file_with_pycurl(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize, sleep, timeout)
+  return returnval;
+
+if(havepycurl and hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
  def download_from_url_to_file_with_pycurl2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
   global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
@@ -3928,7 +3958,12 @@ if(not havepycurl):
   returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep, timeout)
   return returnval;
 
-if(havepycurl):
+if(havepycurl and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+ def download_from_url_to_file_with_pycurl2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
+  returnval = download_from_url_to_file_with_pycurl(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep, timeout)
+  return returnval;
+
+if(havepycurl and hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
  def download_from_url_with_pycurl3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
@@ -4091,7 +4126,17 @@ if(not havepycurl):
   returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
   return returnval;
 
-if(havepycurl):
+if(havepycurl and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+ def download_from_url_with_pycurl3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_pycurl2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
+  return returnval;
+
+if(havepycurl and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+ def download_from_url_with_pycurl3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_pycurl(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
+  return returnval;
+
+if(havepycurl and hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
  def download_from_url_file_with_pycurl3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
   global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
   exec_time_start = time.time();
@@ -4136,7 +4181,17 @@ if(not havepycurl):
   returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize, sleep, timeout)
   return returnval;
 
-if(havepycurl):
+if(havepycurl and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+ def download_from_url_file_with_pycurl3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_file_with_pycurl2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize, sleep, timeout)
+  return returnval;
+
+if(havepycurl and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+ def download_from_url_file_with_pycurl3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_file_with_pycurl(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize, sleep, timeout)
+  return returnval;
+
+if(havepycurl and hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
  def download_from_url_to_file_with_pycurl3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
   global geturls_download_sleep, havezstd, havebrotli;
   if(sleep<0):
@@ -4209,6 +4264,16 @@ if(havepycurl):
 if(not havepycurl):
  def download_from_url_to_file_with_pycurl3(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
   returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep, timeout)
+  return returnval;
+
+if(havepycurl and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0") and hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+ def download_from_url_to_file_with_pycurl2(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
+  returnval = download_from_url_to_file_with_pycurl2(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep, timeout)
+  return returnval;
+
+if(havepycurl and not hasattr(pycurl, "CURL_HTTP_VERSION_2_0") and not hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
+ def download_from_url_to_file_with_pycurl(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
+  returnval = download_from_url_to_file_with_pycurl(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep, timeout)
   return returnval;
 
 def download_file_from_ftp_file(url):
