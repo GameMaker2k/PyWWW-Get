@@ -1482,7 +1482,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   pass;
  else:
   returnval = False;
- returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
+ returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': httplibuse};
  return returnval;
 
 def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
@@ -1552,8 +1552,8 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
     pass;
   except ValueError:
    pass;
-  returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': pretmpfilename.get('Contentsize'), 'FilesizeAlt': {'IEC': get_readable_size(pretmpfilename.get('Contentsize'), 2, "IEC"), 'SI': get_readable_size(pretmpfilename.get('Contentsize'), 2, "SI")}, 'Headers': pretmpfilename.get('Headers'), 'Version': pretmpfilename.get('Version'), 'Method': pretmpfilename.get('Method'), 'HeadersSent': pretmpfilename.get('HeadersSent'), 'URL': pretmpfilename.get('URL'), 'Code': pretmpfilename.get('Code'), 'Reason': pretmpfilename.get('Reason')};
-  f.write(pretmpfilename['Content']);
+  returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': pretmpfilename.get('Contentsize'), 'FilesizeAlt': {'IEC': get_readable_size(pretmpfilename.get('Contentsize'), 2, "IEC"), 'SI': get_readable_size(pretmpfilename.get('Contentsize'), 2, "SI")}, 'Headers': pretmpfilename.get('Headers'), 'Version': pretmpfilename.get('Version'), 'Method': pretmpfilename.get('Method'), 'HeadersSent': pretmpfilename.get('HeadersSent'), 'URL': pretmpfilename.get('URL'), 'Code': pretmpfilename.get('Code'), 'Reason': pretmpfilename.get('Reason'), 'HTTPLib': pretmpfilename.get('HTTPLib')};
+  f.write(pretmpfilename.get('Content'));
   f.close();
  exec_time_end = time.time();
  log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to download file.");
@@ -1614,7 +1614,7 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
   pretmpfilename = download_from_url_file(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, httplibuse, ranges, buffersize[0], sleep, timeout);
   if(not pretmpfilename):
    return False;
-  tmpfilename = pretmpfilename['Filename'];
+  tmpfilename = pretmpfilename.get('Filename');
   downloadsize = int(os.path.getsize(tmpfilename));
   fulldatasize = 0;
   log.info("Moving file "+tmpfilename+" to "+filepath);
@@ -1633,10 +1633,10 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
   log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
   if(os.path.exists(tmpfilename)):
    os.remove(tmpfilename);
-  returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code'], 'Reason': pretmpfilename['Reason']};
+  returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename.get('DownloadTime'), 'DownloadTimeReadable': pretmpfilename.get('DownloadTimeReadable'), 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename.get('Headers'), 'Version': pretmpfilename.get('Version'), 'Method': pretmpfilename.get('Method'), 'Method': httpmethod, 'HeadersSent': pretmpfilename.get('HeadersSent'), 'URL': pretmpfilename.get('URL'), 'Code': pretmpfilename.get('Code'), 'Reason': pretmpfilename.get('Reason'), 'HTTPLib': pretmpfilename.get('HTTPLib')};
  if(outfile=="-"):
   pretmpfilename = download_from_url_file(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, httplibuse, ranges, buffersize[0], sleep, timeout);
-  tmpfilename = pretmpfilename['Filename'];
+  tmpfilename = pretmpfilename.get('Filename');
   downloadsize = int(os.path.getsize(tmpfilename));
   fulldatasize = 0;
   prevdownsize = 0;
@@ -1662,7 +1662,7 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
    os.remove(tmpfilename);
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
-  returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code'], 'Reason': pretmpfilename['Reason']};
+  returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename.get('DownloadTime'), 'DownloadTimeReadable': pretmpfilename.get('DownloadTimeReadable'), 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename.get('Headers'), 'Version': pretmpfilename.get('Version'), 'Method': pretmpfilename.get('Method'), 'Method': httpmethod, 'HeadersSent': pretmpfilename.get('HeadersSent'), 'URL': pretmpfilename.get('URL'), 'Code': pretmpfilename.get('Code'), 'Reason': pretmpfilename.get('Reason'), 'HTTPLib': httplibuse};
  return returnval;
 
 def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
