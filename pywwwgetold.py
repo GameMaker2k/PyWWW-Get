@@ -75,6 +75,12 @@ try:
  havehttpcore = True;
 except ImportError:
  havehttpcore = False;
+haveaiohttp = False;
+try:
+ import aiohttp;
+ haveaiohttp = True;
+except ImportError:
+ haveaiohttp = False;
 havebrotli = False;
 try:
  import brotli;
@@ -596,6 +602,8 @@ def get_httplib_support(checkvalue=None):
  returnval.append("request");
  if(haverequests):
   returnval.append("requests");
+ if(haveaiohttp):
+  returnval.append("aiohttp");
  if(havehttpx):
   returnval.append("httpx");
   returnval.append("httpx2");
@@ -635,7 +643,7 @@ def get_httplib_support_list():
  return returnval;
 
 def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", buffersize=524288, sleep=-1, timeout=10):
- global geturls_download_sleep, havezstd, havebrotli, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
+ global geturls_download_sleep, havezstd, havebrotli, haveaiohttp, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(timeout<=0):
@@ -645,6 +653,8 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  if(httplibuse=="httplib1"):
   httplibuse = "httplib";
  if(not haverequests and httplibuse=="requests"):
+  httplibuse = "urllib";
+ if(not haveaiohttp and httplibuse=="aiohttp"):
   httplibuse = "urllib";
  if(not havehttpx and httplibuse=="httpx"):
   httplibuse = "urllib";
@@ -688,6 +698,8 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   returnval = download_from_url_with_urllib3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="requests"):
   returnval = download_from_url_with_requests(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+ elif(httplibuse=="aiohttp"):
+  returnval = download_from_url_with_aiohttp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="httpx"):
   returnval = download_from_url_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
  elif(httplibuse=="httpx2"):
@@ -715,7 +727,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  return returnval;
 
 def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
- global geturls_download_sleep, havezstd, havebrotli, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
+ global geturls_download_sleep, havezstd, havebrotli, haveaiohttp, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(timeout<=0):
@@ -725,6 +737,8 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
  if(httplibuse=="httplib1"):
   httplibuse = "httplib";
  if(not haverequests and httplibuse=="requests"):
+  httplibuse = "urllib";
+ if(not haveaiohttp and httplibuse=="aiohttp"):
   httplibuse = "urllib";
  if(not havehttpx and httplibuse=="httpx"):
   httplibuse = "urllib";
@@ -768,6 +782,8 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   returnval = download_from_url_file_with_urllib3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize, sleep, timeout);
  elif(httplibuse=="requests"):
   returnval = download_from_url_file_with_requests(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize, sleep, timeout);
+ elif(httplibuse=="aiohttp"):
+  returnval = download_from_url_file_with_aiohttp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize, sleep, timeout);
  elif(httplibuse=="httpx"):
   returnval = download_from_url_file_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize, sleep, timeout);
  elif(httplibuse=="httpx2"):
@@ -795,7 +811,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
  return returnval;
 
 def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
- global geturls_download_sleep, havezstd, havebrotli, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
+ global geturls_download_sleep, havezstd, havebrotli, haveaiohttp, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(timeout<=0):
@@ -805,6 +821,8 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
  if(httplibuse=="httplib1"):
   httplibuse = "httplib";
  if(not haverequests and httplibuse=="requests"):
+  httplibuse = "urllib";
+ if(not haveaiohttp and httplibuse=="aiohttp"):
   httplibuse = "urllib";
  if(not havehttpx and httplibuse=="httpx"):
   httplibuse = "urllib";
@@ -848,6 +866,8 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
   returnval = download_from_url_to_file_with_urllib3(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, ranges, buffersize, sleep, timeout);
  elif(httplibuse=="requests"):
   returnval = download_from_url_to_file_with_requests(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, ranges, buffersize, sleep, timeout);
+ elif(httplibuse=="aiohttp"):
+  returnval = download_from_url_to_file_with_aiohttp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, ranges, buffersize, sleep, timeout);
  elif(httplibuse=="httpx"):
   returnval = download_from_url_to_file_with_httpx(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize, sleep, timeout);
  elif(httplibuse=="httpx2"):
@@ -1858,6 +1878,250 @@ if(haverequests):
 
 if(not haverequests):
  def download_from_url_to_file_with_requests(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
+  returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep, timeout)
+  return returnval;
+
+if(haveaiohttp):
+ def download_from_url_with_aiohttp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  global geturls_download_sleep, havezstd, havebrotli;
+  if(sleep<0):
+   sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
+  urlparts = urlparse.urlparse(httpurl);
+  if(isinstance(httpheaders, list)):
+   httpheaders = make_http_headers_from_list_to_dict(httpheaders);
+  httpheaders = fix_header_names(httpheaders);
+  if(httpuseragent is not None):
+   if('User-Agent' in httpheaders):
+    httpheaders['User-Agent'] = httpuseragent;
+   else:
+    httpuseragent.update({'User-Agent': httpuseragent});
+  if(httpreferer is not None):
+   if('Referer' in httpheaders):
+    httpheaders['Referer'] = httpreferer;
+   else:
+    httpuseragent.update({'Referer': httpreferer});
+  if(urlparts.username is not None or urlparts.password is not None):
+   if(sys.version[0]=="2"):
+    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password));
+   if(sys.version[0]>="3"):
+    inurlencode = b64encode(str(urlparts.username+":"+urlparts.password).encode()).decode("UTF-8");
+   httpheaders.update( { 'Authorization': "Basic "+inurlencode } );
+  time.sleep(sleep);
+  if(postdata is not None and not isinstance(postdata, dict)):
+   postdata = urlencode(postdata);
+  try:
+   reqsession = aiohttp.ClientSession(cookie_jar=httpcookie, headers=httpheaders, timeout=timeout, read_timeout=timeout, conn_timeout=timeout, read_bufsize=buffersize);
+   if(httpmethod=="GET"):
+    geturls_text = reqsession.get(httpurl);
+   elif(httpmethod=="POST"):
+    geturls_text = reqsession.post(httpurl, data=postdata);
+   else:
+    geturls_text = reqsession.get(httpurl);
+  except aiohttp.exceptions.ConnectTimeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except aiohttp.exceptions.ConnectError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  httpcodeout = geturls_text.status;
+  httpcodereason = geturls_text.reason;
+  httpversionout = geturls_text.version;
+  httpmethodout = geturls_text.method;
+  httpurlout = geturls_text.url;
+  httpheaderout = geturls_text.headers;
+  httpheadersentout = geturls_text.request_info.headers;
+  if(isinstance(httpheaderout, list)):
+   httpheaderout = dict(make_http_headers_from_list_to_dict(httpheaderout));
+  if(sys.version[0]=="2"):
+   try:
+    prehttpheaderout = httpheaderout;
+    httpheaderkeys = httpheaderout.keys();
+    imax = len(httpheaderkeys);
+    ic = 0;
+    httpheaderout = {};
+    while(ic < imax):
+     httpheaderout.update({httpheaderkeys[ic]: prehttpheaderout[httpheaderkeys[ic]]});
+     ic += 1;
+   except AttributeError:
+    pass;
+  httpheaderout = fix_header_names(httpheaderout);
+  if(isinstance(httpheadersentout, list)):
+   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
+  httpheadersentout = fix_header_names(httpheadersentout);
+  log.info("Downloading URL "+httpurl);
+  downloadsize = httpheaderout.get('Content-Length');
+  if(downloadsize is not None):
+   downloadsize = int(downloadsize);
+  if downloadsize is None: downloadsize = 0;
+  fulldatasize = 0;
+  prevdownsize = 0;
+  log.info("Downloading URL "+httpurl);
+  with BytesIO() as strbuf:
+   while True:
+    databytes = geturls_text.read(buffersize);
+    if not databytes: break;
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    strbuf.write(databytes);
+   strbuf.seek(0);
+   returnval_content = strbuf.read();
+  if(httpheaderout.get("Content-Encoding")=="gzip"):
+   try:
+    returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
+   except zlib.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="deflate"):
+   try:
+    returnval_content = zlib.decompress(returnval_content);
+   except zlib.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+   try:
+    returnval_content = brotli.decompress(returnval_content);
+   except brotli.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+   try:
+    returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason};
+  geturls_text.close();
+  return returnval;
+
+if(not haveaiohttp):
+ def download_from_url_with_aiohttp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout)
+  return returnval;
+
+if(haveaiohttp):
+ def download_from_url_file_with_aiohttp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
+  global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix;
+  exec_time_start = time.time();
+  myhash = hashlib.new("sha1");
+  if(sys.version[0]=="2"):
+   myhash.update(httpurl);
+   myhash.update(str(buffersize));
+   myhash.update(str(exec_time_start));
+  if(sys.version[0]>="3"):
+   myhash.update(httpurl.encode('utf-8'));
+   myhash.update(str(buffersize).encode('utf-8'));
+   myhash.update(str(exec_time_start).encode('utf-8'));
+  newtmpfilesuffix = tmpfilesuffix + str(myhash.hexdigest());
+  if(sleep<0):
+   sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
+  pretmpfilename = download_from_url_with_aiohttp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, sleep, timeout);
+  if(not pretmpfilename):
+   return False;
+  with tempfile.NamedTemporaryFile('wb+', prefix=tmpfileprefix, suffix=newtmpfilesuffix, delete=False) as f:
+   tmpfilename = f.name;
+   try:
+    os.utime(tmpfilename, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
+   except AttributeError:
+    try:
+     os.utime(tmpfilename, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
+    except ValueError:
+     pass;
+   except ValueError:
+    pass;
+   returnval = {'Type': "File", 'Filename': tmpfilename, 'Filesize': pretmpfilename.get('Contentsize'), 'FilesizeAlt': {'IEC': get_readable_size(pretmpfilename.get('Contentsize'), 2, "IEC"), 'SI': get_readable_size(pretmpfilename.get('Contentsize'), 2, "SI")}, 'Headers': pretmpfilename.get('Headers'), 'Version': pretmpfilename.get('Version'), 'Method': pretmpfilename.get('Method'), 'HeadersSent': pretmpfilename.get('HeadersSent'), 'URL': pretmpfilename.get('URL'), 'Code': pretmpfilename.get('Code'), 'Reason': pretmpfilename.get('Reason')};
+   f.write(pretmpfilename['Content']);
+   f.close();
+  exec_time_end = time.time();
+  log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to download file.");
+  returnval.update({'Filesize': os.path.getsize(tmpfilename), 'FilesizeAlt': {'IEC': get_readable_size(os.path.getsize(tmpfilename), 2, "IEC"), 'SI': get_readable_size(os.path.getsize(tmpfilename), 2, "SI")}, 'DownloadTime': float(exec_time_start - exec_time_end), 'DownloadTimeReadable': hms_string(exec_time_start - exec_time_end)});
+  return returnval;
+
+if(not haveaiohttp):
+ def download_from_url_file_with_aiohttp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize, sleep, timeout)
+  return returnval;
+
+if(haveaiohttp):
+ def download_from_url_to_file_with_aiohttp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
+  global geturls_download_sleep, havezstd, havebrotli;
+  if(sleep<0):
+   sleep = geturls_download_sleep;
+  if(timeout<=0):
+   timeout = 10;
+  if(not outfile=="-"):
+   outpath = outpath.rstrip(os.path.sep);
+   filepath = os.path.realpath(outpath+os.path.sep+outfile);
+   if(not os.path.exists(outpath)):
+    os.makedirs(outpath);
+   if(os.path.exists(outpath) and os.path.isfile(outpath)):
+    return False;
+   if(os.path.exists(filepath) and os.path.isdir(filepath)):
+    return False;
+   pretmpfilename = download_from_url_file_with_aiohttp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize[0], sleep, timeout);
+   if(not pretmpfilename):
+    return False;
+   tmpfilename = pretmpfilename['Filename'];
+   downloadsize = int(os.path.getsize(tmpfilename));
+   fulldatasize = 0;
+   log.info("Moving file "+tmpfilename+" to "+filepath);
+   exec_time_start = time.time();
+   shutil.move(tmpfilename, filepath);
+   try:
+    os.utime(filepath, (time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple()), time.mktime(email.utils.parsedate_to_datetime(pretmpfilename.get('Headers').get('Last-Modified')).timetuple())));
+   except AttributeError:
+    try:
+     os.utime(filepath, (time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple()), time.mktime(datetime.datetime.strptime(pretmpfilename.get('Headers').get('Last-Modified'), "%a, %d %b %Y %H:%M:%S %Z").timetuple())));
+    except ValueError:
+     pass;
+   except ValueError:
+    pass;
+   exec_time_end = time.time();
+   log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to move file.");
+   if(os.path.exists(tmpfilename)):
+    os.remove(tmpfilename);
+   returnval = {'Type': "File", 'Filename': filepath, 'Filesize': downloadsize, 'FilesizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code'], 'Reason': pretmpfilename['Reason']};
+  if(outfile=="-"):
+   pretmpfilename = download_from_url_file_with_aiohttp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, ranges, buffersize[0], sleep, timeout);
+   tmpfilename = pretmpfilename['Filename'];
+   downloadsize = int(os.path.getsize(tmpfilename));
+   fulldatasize = 0;
+   prevdownsize = 0;
+   exec_time_start = time.time();
+   with open(tmpfilename, 'rb') as ft:
+    f = BytesIO();
+    while True:
+     databytes = ft.read(buffersize[1]);
+     if not databytes: break;
+     datasize = len(databytes);
+     fulldatasize = datasize + fulldatasize;
+     percentage = "";
+     if(downloadsize>0):
+      percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+     downloaddiff = fulldatasize - prevdownsize;
+     log.info("Copying "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Copied "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+     prevdownsize = fulldatasize;
+     f.write(databytes);
+    f.seek(0);
+    fdata = f.getvalue();
+    f.close();
+    ft.close();
+    os.remove(tmpfilename);
+    exec_time_end = time.time();
+    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
+   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename['DownloadTime'], 'DownloadTimeReadable': pretmpfilename['DownloadTimeReadable'], 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename['Headers'], 'Version': pretmpfilename['Version'], 'Method': pretmpfilename['Method'], 'Method': httpmethod, 'HeadersSent': pretmpfilename['HeadersSent'], 'URL': pretmpfilename['URL'], 'Code': pretmpfilename['Code'], 'Reason': pretmpfilename['Reason']};
+  return returnval;
+
+if(not haveaiohttp):
+ def download_from_url_to_file_with_aiohttp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
   returnval = download_from_url_to_file_with_urllib(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, buffersize, outfile, outpath, sleep, timeout)
   return returnval;
 

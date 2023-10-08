@@ -74,6 +74,12 @@ try:
  havehttpcore = True;
 except ImportError:
  havehttpcore = False;
+haveaiohttp = False;
+try:
+ import aiohttp;
+ haveaiohttp = True;
+except ImportError:
+ haveaiohttp = False;
 havebrotli = False;
 try:
  import brotli;
@@ -595,6 +601,8 @@ def get_httplib_support(checkvalue=None):
  returnval.append("request");
  if(haverequests):
   returnval.append("requests");
+ if(haveaiohttp):
+  returnval.append("aiohttp");
  if(havehttpx):
   returnval.append("httpx");
   returnval.append("httpx2");
@@ -634,7 +642,7 @@ def get_httplib_support_list():
  return returnval;
 
 def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", buffersize=524288, sleep=-1, timeout=10):
- global geturls_download_sleep, havezstd, havebrotli, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
+ global geturls_download_sleep, havezstd, havebrotli, haveaiohttp, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(timeout<=0):
@@ -644,6 +652,8 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  if(httplibuse=="httplib1"):
   httplibuse = "httplib";
  if(not haverequests and httplibuse=="requests"):
+  httplibuse = "urllib";
+ if(not haveaiohttp and httplibuse=="aiohttp"):
   httplibuse = "urllib";
  if(not havehttpx and httplibuse=="httpx"):
   httplibuse = "urllib";
@@ -870,6 +880,31 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpurlout = geturls_text.url;
   httpheaderout = geturls_text.headers;
   httpheadersentout = geturls_text.request.headers;
+ elif(httplibuse=="aiohttp"):
+  try:
+   reqsession = aiohttp.ClientSession(cookie_jar=httpcookie, headers=httpheaders, timeout=timeout, read_timeout=timeout, conn_timeout=timeout, read_bufsize=buffersize);
+   if(httpmethod=="GET"):
+    geturls_text = reqsession.get(httpurl);
+   elif(httpmethod=="POST"):
+    geturls_text = reqsession.post(httpurl, data=postdata);
+   else:
+    geturls_text = reqsession.get(httpurl);
+  except aiohttp.exceptions.ConnectTimeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except aiohttp.exceptions.ConnectError:
+   log.info("Error With URL "+httpurl);
+   return False;
+  except socket.timeout:
+   log.info("Error With URL "+httpurl);
+   return False;
+  httpcodeout = geturls_text.status;
+  httpcodereason = geturls_text.reason;
+  httpversionout = geturls_text.version;
+  httpmethodout = geturls_text.method;
+  httpurlout = geturls_text.url;
+  httpheaderout = geturls_text.headers;
+  httpheadersentout = geturls_text.request_info.headers;
  elif(httplibuse=="httpx"):
   try:
    if(httpmethod=="GET"):
@@ -1309,7 +1344,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheadersentout)));
  httpheadersentout = fix_header_names(httpheadersentout);
  log.info("Downloading URL "+httpurl);
- if(httplibuse=="urllib" or httplibuse=="request" or httplibuse=="request3" or httplibuse=="httplib" or httplibuse=="httplib2" or httplibuse=="urllib3" or httplibuse=="mechanize" or httplibuse=="httpx" or httplibuse=="httpx2" or httplibuse=="httpcore" or httplibuse=="httpcore2"):
+ if(httplibuse=="urllib" or httplibuse=="request" or httplibuse=="request3" or httplibuse=="aiohttp" or httplibuse=="httplib" or httplibuse=="httplib2" or httplibuse=="urllib3" or httplibuse=="mechanize" or httplibuse=="httpx" or httplibuse=="httpx2" or httplibuse=="httpcore" or httplibuse=="httpcore2"):
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -1451,7 +1486,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  return returnval;
 
 def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
- global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
+ global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix, haveaiohttp, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  exec_time_start = time.time();
  myhash = hashlib.new("sha1");
  if(sys.version[0]=="2"):
@@ -1472,6 +1507,8 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
  if(httplibuse=="httplib1"):
   httplibuse = "httplib";
  if(not haverequests and httplibuse=="requests"):
+  httplibuse = "urllib";
+ if(not haveaiohttp and httplibuse=="aiohttp"):
   httplibuse = "urllib";
  if(not havehttpx and httplibuse=="httpx"):
   httplibuse = "urllib";
@@ -1524,7 +1561,7 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
  return returnval;
 
 def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
- global geturls_download_sleep, havezstd, havebrotli, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
+ global geturls_download_sleep, havezstd, havebrotli, haveaiohttp, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
   sleep = geturls_download_sleep;
  if(timeout<=0):
@@ -1534,6 +1571,8 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
  if(httplibuse=="httplib1"):
   httplibuse = "httplib";
  if(not haverequests and httplibuse=="requests"):
+  httplibuse = "urllib";
+ if(not haveaiohttp and httplibuse=="aiohttp"):
   httplibuse = "urllib";
  if(not havehttpx and httplibuse=="httpx"):
   httplibuse = "urllib";
@@ -1654,6 +1693,10 @@ def download_from_url_with_requests(httpurl, httpheaders=geturls_headers, httpus
   returnval = download_from_url(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, "requests", buffersize, sleep, timeout);
   return returnval;
 
+def download_from_url_with_aiohttp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, "aiohttp", buffersize, sleep, timeout);
+  return returnval;
+
 def download_from_url_with_httpx(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
   returnval = download_from_url(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, "httpx", buffersize, sleep, timeout);
   return returnval;
@@ -1726,6 +1769,10 @@ def download_from_url_file_with_requests(httpurl, httpheaders=geturls_headers, h
   returnval = download_from_url_file(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, "requests", ranges, buffersize, sleep, timeout);
   return returnval;
 
+def download_from_url_file_with_aiohttp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
+  returnval = download_from_url_file(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, "aiohttp", ranges, buffersize, sleep, timeout);
+  return returnval;
+
 def download_from_url_file_with_httpx(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
   returnval = download_from_url_file(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, "httpx", ranges, buffersize, sleep, timeout);
   return returnval;
@@ -1796,6 +1843,10 @@ def download_from_url_to_file_with_urllib3(httpurl, httpheaders=geturls_headers,
 
 def download_from_url_to_file_with_requests(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
   returnval = download_from_url_to_file(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, "requests", outfile, outpath, ranges, buffersize, sleep, timeout);
+  return returnval;
+
+def download_from_url_to_file_with_aiohttp(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
+  returnval = download_from_url_to_file(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, "aiohttp", outfile, outpath, ranges, buffersize, sleep, timeout);
   return returnval;
 
 def download_from_url_to_file_with_httpx(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
