@@ -2261,7 +2261,9 @@ if(havehttpx):
   prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
   with BytesIO() as strbuf:
-   for databytes in geturls_text.iter_content(chunk_size=buffersize):
+   while True:
+    databytes = geturls_text.read();
+    if not databytes: break;
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
     percentage = "";
@@ -2271,6 +2273,7 @@ if(havehttpx):
     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
     prevdownsize = fulldatasize;
     strbuf.write(databytes);
+    break;
    strbuf.seek(0);
    returnval_content = strbuf.read();
   geturls_text.close();
@@ -2518,7 +2521,9 @@ if(havehttpx):
   prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
   with BytesIO() as strbuf:
-   for databytes in geturls_text.iter_content(chunk_size=buffersize):
+   while True:
+    databytes = geturls_text.read();
+    if not databytes: break;
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
     percentage = "";
@@ -2528,6 +2533,7 @@ if(havehttpx):
     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
     prevdownsize = fulldatasize;
     strbuf.write(databytes);
+    break;
    strbuf.seek(0);
    returnval_content = strbuf.read();
   geturls_text.close();
@@ -2772,7 +2778,9 @@ if(havehttpcore):
   prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
   with BytesIO() as strbuf:
-   for databytes in geturls_text.iter_content(chunk_size=buffersize):
+   while True:
+    databytes = geturls_text.read();
+    if not databytes: break;
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
     percentage = "";
@@ -2782,6 +2790,7 @@ if(havehttpcore):
     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
     prevdownsize = fulldatasize;
     strbuf.write(databytes);
+    break;
    strbuf.seek(0);
    returnval_content = strbuf.read();
   geturls_text.close();
@@ -3026,7 +3035,9 @@ if(havehttpcore):
   prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
   with BytesIO() as strbuf:
-   for databytes in geturls_text.iter_content(chunk_size=buffersize):
+   while True:
+    databytes = geturls_text.read();
+    if not databytes: break;
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
     percentage = "";
@@ -3036,6 +3047,7 @@ if(havehttpcore):
     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
     prevdownsize = fulldatasize;
     strbuf.write(databytes);
+    break;
    strbuf.seek(0);
    returnval_content = strbuf.read();
   geturls_text.close();

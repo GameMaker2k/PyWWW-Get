@@ -1413,7 +1413,9 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
   with BytesIO() as strbuf:
-   for databytes in geturls_text.iter_content(chunk_size=buffersize):
+   while True:
+    databytes = geturls_text.read();
+    if not databytes: break;
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
     percentage = "";
@@ -1423,6 +1425,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
     log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
     prevdownsize = fulldatasize;
     strbuf.write(databytes);
+    break;
    strbuf.seek(0);
    returnval_content = strbuf.read();
   geturls_text.close();
