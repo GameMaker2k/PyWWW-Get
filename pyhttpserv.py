@@ -108,6 +108,7 @@ class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
     def compress_content(self, content):
         """Compress content using gzip or deflate depending on Accept-Encoding header."""
         accept_encoding = self.headers.get('Accept-Encoding', '');
+        accept_encoding = None;
         if 'gzip' in accept_encoding:
             self.send_header('Content-Encoding', 'gzip');
             compressed_content = gzip.compress(content.encode('utf-8'));
@@ -118,10 +119,30 @@ class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
             compressed_content = zlib.compress(content.encode('utf-8'));
             self.send_header('Content-Length', len(compressed_content));
             return compressed_content;
+        elif 'br' in accept_encoding:
+            self.send_header('Content-Encoding', 'br');
+            compressed_content = brotli.compress(content.encode('utf-8'));
+            self.send_header('Content-Length', len(compressed_content));
+            return compressed_content;
+        elif 'zstd' in accept_encoding:
+            self.send_header('Content-Encoding', 'zstd');
+            compressed_content = zstandard.compress(content.encode('utf-8'));
+            self.send_header('Content-Length', len(compressed_content));
+            return compressed_content;
+        elif 'lzma' in accept_encoding:
+            self.send_header('Content-Encoding', 'lzma');
+            compressed_content = lzma.compress(content.encode('utf-8'));
+            self.send_header('Content-Length', len(compressed_content));
+            return compressed_content;
+        elif 'xz' in accept_encoding:
+            self.send_header('Content-Encoding', 'xz');
+            compressed_content = lzma.compress(content.encode('utf-8'));
+            self.send_header('Content-Length', len(compressed_content));
+            return compressed_content;
         else:
             self.send_header('Content-Length', len(content));
             return content.encode('utf-8');
-        return content.encode()
+        return content.encode();
     def display_info(self):
         # Setting headers for the response
         self.send_response(200);
