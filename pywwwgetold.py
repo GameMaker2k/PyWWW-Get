@@ -164,6 +164,7 @@ if(havezstd):
  compression_supported_list.append('zstd');
 if(havelzma):
  compression_supported_list.append('lzma');
+ compression_supported_list.append('xz');
 compression_supported = ', '.join(compression_supported_list);
 
 geturls_cj = cookielib.CookieJar();
