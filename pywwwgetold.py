@@ -2260,7 +2260,7 @@ if(havehttpx):
   fulldatasize = 0;
   prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
-  with BytesIO() as strbuf
+  with BytesIO() as strbuf:
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
@@ -2517,7 +2517,7 @@ if(havehttpx):
   fulldatasize = 0;
   prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
-  with BytesIO() as strbuf
+  with BytesIO() as strbuf:
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
@@ -2771,7 +2771,7 @@ if(havehttpcore):
   fulldatasize = 0;
   prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
-  with BytesIO() as strbuf
+  with BytesIO() as strbuf:
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
@@ -3025,7 +3025,7 @@ if(havehttpcore):
   fulldatasize = 0;
   prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
-  with BytesIO() as strbuf
+  with BytesIO() as strbuf:
    for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
