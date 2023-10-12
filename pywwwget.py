@@ -1576,6 +1576,24 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
  returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': httplibuse};
  return returnval;
 
+def download_from_url_from_list(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", buffersize=524288, sleep=-1, timeout=10):
+ if(isinstance(httpurl, list)):
+  pass;
+ elif(isinstance(httpurl, tuple)):
+  pass;
+ elif(isinstance(httpurl, dict)):
+  httpurl = httpurl.values();
+ else:
+  httpurl = [httpurl];
+ listsize = len(httpurl);
+ listcount = 0;
+ returnval = [];
+ while(listcount<listsize):
+  ouputval = download_from_url(httpurl[listcount], httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, httplibuse, buffersize, sleep, timeout);
+  returnval.append(ouputval);
+  listcount += 1;
+ return returnval;
+
 def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
  global geturls_download_sleep, havezstd, havebrotli, tmpfileprefix, tmpfilesuffix, haveaiohttp, haverequests, havemechanize, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  exec_time_start = time.time();
@@ -1649,6 +1667,24 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
  exec_time_end = time.time();
  log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to download file.");
  returnval.update({'Filesize': os.path.getsize(tmpfilename), 'FilesizeAlt': {'IEC': get_readable_size(os.path.getsize(tmpfilename), 2, "IEC"), 'SI': get_readable_size(os.path.getsize(tmpfilename), 2, "SI")}, 'DownloadTime': float(exec_time_start - exec_time_end), 'DownloadTimeReadable': hms_string(exec_time_start - exec_time_end)});
+ return returnval;
+
+def download_from_url_file_with_list(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
+ if(isinstance(httpurl, list)):
+  pass;
+ elif(isinstance(httpurl, tuple)):
+  pass;
+ elif(isinstance(httpurl, dict)):
+  httpurl = httpurl.values();
+ else:
+  httpurl = [httpurl];
+ listsize = len(httpurl);
+ listcount = 0;
+ returnval = [];
+ while(listcount<listsize):
+  ouputval = download_from_url_file(httpurl[listcount], httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, httplibuse, ranges, buffersize, sleep, timeout);
+  returnval.append(ouputval);
+  listcount += 1;
  return returnval;
 
 def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
@@ -1754,6 +1790,24 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
    exec_time_end = time.time();
    log.info("It took "+hms_string(exec_time_start - exec_time_end)+" to copy file.");
   returnval = {'Type': "Content", 'Content': fdata, 'Contentsize': downloadsize, 'ContentsizeAlt': {'IEC': get_readable_size(downloadsize, 2, "IEC"), 'SI': get_readable_size(downloadsize, 2, "SI")}, 'DownloadTime': pretmpfilename.get('DownloadTime'), 'DownloadTimeReadable': pretmpfilename.get('DownloadTimeReadable'), 'MoveFileTime': float(exec_time_start - exec_time_end), 'MoveFileTimeReadable': hms_string(exec_time_start - exec_time_end), 'Headers': pretmpfilename.get('Headers'), 'Version': pretmpfilename.get('Version'), 'Method': pretmpfilename.get('Method'), 'Method': httpmethod, 'HeadersSent': pretmpfilename.get('HeadersSent'), 'URL': pretmpfilename.get('URL'), 'Code': pretmpfilename.get('Code'), 'Reason': pretmpfilename.get('Reason'), 'HTTPLib': httplibuse};
+ return returnval;
+
+def download_from_url_to_file_with_list(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
+ if(isinstance(httpurl, list)):
+  pass;
+ elif(isinstance(httpurl, tuple)):
+  pass;
+ elif(isinstance(httpurl, dict)):
+  httpurl = httpurl.values();
+ else:
+  httpurl = [httpurl];
+ listsize = len(httpurl);
+ listcount = 0;
+ returnval = [];
+ while(listcount<listsize):
+  ouputval = download_from_url_to_file(httpurl[listcount], httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, httplibuse, outfile, outpath, ranges, buffersize, sleep, timeout);
+  returnval.append(ouputval);
+  listcount += 1;
  return returnval;
 
 def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):

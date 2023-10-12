@@ -732,6 +732,24 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   returnval = False;
  return returnval;
 
+def download_from_url_from_list(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", buffersize=524288, sleep=-1, timeout=10):
+ if(isinstance(httpurl, list)):
+  pass;
+ elif(isinstance(httpurl, tuple)):
+  pass;
+ elif(isinstance(httpurl, dict)):
+  httpurl = httpurl.values();
+ else:
+  httpurl = [httpurl];
+ listsize = len(httpurl);
+ listcount = 0;
+ returnval = [];
+ while(listcount<listsize):
+  ouputval = download_from_url(httpurl[listcount], httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, httplibuse, buffersize, sleep, timeout);
+  returnval.append(ouputval);
+  listcount += 1;
+ return returnval;
+
 def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
  global geturls_download_sleep, havezstd, havebrotli, haveaiohttp, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
@@ -816,6 +834,24 @@ def download_from_url_file(httpurl, httpheaders=geturls_headers, httpuseragent=N
   returnval = False;
  return returnval;
 
+def download_from_url_file_with_list(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", ranges=[None, None], buffersize=524288, sleep=-1, timeout=10):
+ if(isinstance(httpurl, list)):
+  pass;
+ elif(isinstance(httpurl, tuple)):
+  pass;
+ elif(isinstance(httpurl, dict)):
+  httpurl = httpurl.values();
+ else:
+  httpurl = [httpurl];
+ listsize = len(httpurl);
+ listcount = 0;
+ returnval = [];
+ while(listcount<listsize):
+  ouputval = download_from_url_file(httpurl[listcount], httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, httplibuse, ranges, buffersize, sleep, timeout);
+  returnval.append(ouputval);
+  listcount += 1;
+ return returnval;
+
 def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
  global geturls_download_sleep, havezstd, havebrotli, haveaiohttp, haverequests, havemechanize, havepycurl, havehttplib2, haveurllib3, havehttpx, havehttpcore, haveparamiko, havepysftp;
  if(sleep<0):
@@ -898,6 +934,24 @@ def download_from_url_to_file(httpurl, httpheaders=geturls_headers, httpuseragen
   returnval = download_from_url_to_file_with_pysftp(httpurl, httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, outfile, outpath, ranges, buffersize, sleep, timeout);
  else:
   returnval = False;
+ return returnval;
+
+def download_from_url_to_file_with_list(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, httplibuse="urllib", outfile="-", outpath=os.getcwd(), ranges=[None, None], buffersize=[524288, 524288], sleep=-1, timeout=10):
+ if(isinstance(httpurl, list)):
+  pass;
+ elif(isinstance(httpurl, tuple)):
+  pass;
+ elif(isinstance(httpurl, dict)):
+  httpurl = httpurl.values();
+ else:
+  httpurl = [httpurl];
+ listsize = len(httpurl);
+ listcount = 0;
+ returnval = [];
+ while(listcount<listsize):
+  ouputval = download_from_url_to_file(httpurl[listcount], httpheaders, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, httplibuse, outfile, outpath, ranges, buffersize, sleep, timeout);
+  returnval.append(ouputval);
+  listcount += 1;
  return returnval;
 
 def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, buffersize=524288, sleep=-1, timeout=10):
