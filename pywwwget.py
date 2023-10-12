@@ -156,7 +156,7 @@ elif(PyBitness=="64bit" or PyBitness=="64"):
 else:
  PyBitness = "32";
 
-compression_supported_list = ['gzip', 'deflate', 'bzip2'];
+compression_supported_list = ['identity', 'gzip', 'deflate', 'bzip2'];
 if(havebrotli):
  compression_supported_list.append('br');
 if(havezstd):
