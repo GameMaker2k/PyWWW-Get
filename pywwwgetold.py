@@ -1022,7 +1022,7 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuser
    returnval_content = zstandard.decompress(returnval_content);
   except zstandard.error:
    pass;
- elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+ elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
   try:
    returnval_content = lzma.decompress(returnval_content);
   except zstandard.error:
@@ -1268,7 +1268,7 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuse
    returnval_content = zstandard.decompress(returnval_content);
   except zstandard.error:
    pass;
- elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+ elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
   try:
    returnval_content = lzma.decompress(returnval_content);
   except zstandard.error:
@@ -1515,7 +1515,7 @@ if(havehttplib2):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
-  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
    try:
     returnval_content = lzma.decompress(returnval_content);
    except zstandard.error:
@@ -1783,7 +1783,7 @@ if(haverequests):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
-  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
    try:
     returnval_content = lzma.decompress(returnval_content);
    except zstandard.error:
@@ -2036,7 +2036,7 @@ if(haveaiohttp):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
-  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
    try:
     returnval_content = lzma.decompress(returnval_content);
    except zstandard.error:
@@ -2293,7 +2293,7 @@ if(havehttpx):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
-  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
    try:
     returnval_content = lzma.decompress(returnval_content);
    except zstandard.error:
@@ -2550,7 +2550,7 @@ if(havehttpx):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
-  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
    try:
     returnval_content = lzma.decompress(returnval_content);
    except zstandard.error:
@@ -2804,7 +2804,7 @@ if(havehttpcore):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
-  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
    try:
     returnval_content = lzma.decompress(returnval_content);
    except zstandard.error:
@@ -3058,7 +3058,7 @@ if(havehttpcore):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
-  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
    try:
     returnval_content = lzma.decompress(returnval_content);
    except zstandard.error:
@@ -3351,7 +3351,7 @@ if(haveurllib3):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
-  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
    try:
     returnval_content = lzma.decompress(returnval_content);
    except zstandard.error:
@@ -3610,7 +3610,7 @@ if(havemechanize):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
-  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
    try:
     returnval_content = lzma.decompress(returnval_content);
    except zstandard.error:
@@ -3899,7 +3899,7 @@ if(havepycurl):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
-  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
    try:
     returnval_content = lzma.decompress(returnval_content);
    except zstandard.error:
@@ -4191,7 +4191,7 @@ if(havepycurl and hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
-  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
    try:
     returnval_content = lzma.decompress(returnval_content);
    except zstandard.error:
@@ -4498,7 +4498,7 @@ if(havepycurl and hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
-  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
    try:
     returnval_content = lzma.decompress(returnval_content);
    except zstandard.error:

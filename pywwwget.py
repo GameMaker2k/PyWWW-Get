@@ -1393,7 +1393,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
-  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
    try:
     returnval_content = lzma.decompress(returnval_content);
    except zstandard.error:
@@ -1445,7 +1445,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
-  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
    try:
     returnval_content = lzma.decompress(returnval_content);
    except zstandard.error:
@@ -1500,7 +1500,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
-  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
    try:
     returnval_content = lzma.decompress(returnval_content);
    except zstandard.error:
@@ -1555,7 +1555,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
-  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  elif((httpheaderout.get("Content-Encoding")=="lzma" or httpheaderout.get("Content-Encoding")=="xz") and havelzma):
    try:
     returnval_content = lzma.decompress(returnval_content);
    except zstandard.error:
