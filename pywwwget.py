@@ -1344,7 +1344,7 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheadersentout)));
  httpheadersentout = fix_header_names(httpheadersentout);
  log.info("Downloading URL "+httpurl);
- if(httplibuse=="urllib" or httplibuse=="request" or httplibuse=="request3" or httplibuse=="aiohttp" or httplibuse=="httplib" or httplibuse=="httplib2" or httplibuse=="urllib3" or httplibuse=="mechanize" or httplibuse=="httpx" or httplibuse=="httpx2" or httplibuse=="httpcore" or httplibuse=="httpcore2"):
+ if(httplibuse=="urllib" or httplibuse=="request" or httplibuse=="request3" or httplibuse=="aiohttp" or httplibuse=="httplib" or httplibuse=="httplib2" or httplibuse=="urllib3" or httplibuse=="mechanize"):
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -1356,6 +1356,48 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
    while True:
     databytes = geturls_text.read(buffersize);
     if not databytes: break;
+    datasize = len(databytes);
+    fulldatasize = datasize + fulldatasize;
+    percentage = "";
+    if(downloadsize>0):
+     percentage = str("{0:.2f}".format(float(float(fulldatasize / downloadsize) * 100))).rstrip('0').rstrip('.')+"%";
+    downloaddiff = fulldatasize - prevdownsize;
+    log.info("Downloading "+get_readable_size(fulldatasize, 2, "SI")['ReadableWithSuffix']+" / "+get_readable_size(downloadsize, 2, "SI")['ReadableWithSuffix']+" "+str(percentage)+" / Downloaded "+get_readable_size(downloaddiff, 2, "IEC")['ReadableWithSuffix']);
+    prevdownsize = fulldatasize;
+    strbuf.write(databytes);
+   strbuf.seek(0);
+   returnval_content = strbuf.read();
+  geturls_text.close();
+  if(httpheaderout.get("Content-Encoding")=="gzip"):
+   try:
+    returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
+   except zlib.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="deflate"):
+   try:
+    returnval_content = zlib.decompress(returnval_content);
+   except zlib.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="br" and havebrotli):
+   try:
+    returnval_content = brotli.decompress(returnval_content);
+   except brotli.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
+   try:
+    returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+ elif(httplibuse=="httpx" or httplibuse=="httpx2" or httplibuse=="httpcore" or httplibuse=="httpcore2"):
+  downloadsize = httpheaderout.get('Content-Length');
+  if(downloadsize is not None):
+   downloadsize = int(downloadsize);
+  if downloadsize is None: downloadsize = 0;
+  fulldatasize = 0;
+  prevdownsize = 0;
+  log.info("Downloading URL "+httpurl);
+  with BytesIO() as strbuf
+   for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
     percentage = "";

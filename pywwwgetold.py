@@ -129,7 +129,7 @@ __version_info__ = (2, 0, 2, "RC 1", 1);
 __version_date_info__ = (2023, 10, 5, "RC 1", 1);
 __version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2);
 __revision__ = __version_info__[3];
-__revision_id__ = "$Id: 346873973981d4271d1530c99011ffb8047a7d18 $";
+__revision_id__ = "$Id$";
 if(__version_info__[4] is not None):
  __version_date_plusrc__ = __version_date__+"-"+str(__version_date_info__[4]);
 if(__version_info__[4] is None):
@@ -975,7 +975,6 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuser
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
  httpheadersentout = fix_header_names(httpheadersentout);
- log.info("Downloading URL "+httpurl);
  downloadsize = httpheaderout.get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
@@ -1212,7 +1211,6 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuse
  if(isinstance(httpheadersentout, list)):
   httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
  httpheadersentout = fix_header_names(httpheadersentout);
- log.info("Downloading URL "+httpurl);
  downloadsize = httpheaderout.get('Content-Length');
  if(downloadsize is not None):
   downloadsize = int(downloadsize);
@@ -1450,7 +1448,6 @@ if(havehttplib2):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  log.info("Downloading URL "+httpurl);
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -1709,7 +1706,6 @@ if(haverequests):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  log.info("Downloading URL "+httpurl);
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -1953,7 +1949,6 @@ if(haveaiohttp):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  log.info("Downloading URL "+httpurl);
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -2202,7 +2197,6 @@ if(havehttpx):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  log.info("Downloading URL "+httpurl);
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -2210,10 +2204,8 @@ if(havehttpx):
   fulldatasize = 0;
   prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
-  with BytesIO() as strbuf:
-   while True:
-    databytes = geturls_text.read(buffersize);
-    if not databytes: break;
+  with BytesIO() as strbuf
+   for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
     percentage = "";
@@ -2225,6 +2217,7 @@ if(havehttpx):
     strbuf.write(databytes);
    strbuf.seek(0);
    returnval_content = strbuf.read();
+  geturls_text.close();
   if(httpheaderout.get("Content-Encoding")=="gzip"):
    try:
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
@@ -2451,7 +2444,6 @@ if(havehttpx):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  log.info("Downloading URL "+httpurl);
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -2459,10 +2451,8 @@ if(havehttpx):
   fulldatasize = 0;
   prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
-  with BytesIO() as strbuf:
-   while True:
-    databytes = geturls_text.read(buffersize);
-    if not databytes: break;
+  with BytesIO() as strbuf
+   for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
     percentage = "";
@@ -2474,6 +2464,7 @@ if(havehttpx):
     strbuf.write(databytes);
    strbuf.seek(0);
    returnval_content = strbuf.read();
+  geturls_text.close();
   if(httpheaderout.get("Content-Encoding")=="gzip"):
    try:
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
@@ -2697,7 +2688,6 @@ if(havehttpcore):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  log.info("Downloading URL "+httpurl);
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -2705,10 +2695,8 @@ if(havehttpcore):
   fulldatasize = 0;
   prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
-  with BytesIO() as strbuf:
-   while True:
-    databytes = geturls_text.read(buffersize);
-    if not databytes: break;
+  with BytesIO() as strbuf
+   for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
     percentage = "";
@@ -2720,6 +2708,7 @@ if(havehttpcore):
     strbuf.write(databytes);
    strbuf.seek(0);
    returnval_content = strbuf.read();
+  geturls_text.close();
   if(httpheaderout.get("Content-Encoding")=="gzip"):
    try:
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
@@ -2943,7 +2932,6 @@ if(havehttpcore):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  log.info("Downloading URL "+httpurl);
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -2951,10 +2939,8 @@ if(havehttpcore):
   fulldatasize = 0;
   prevdownsize = 0;
   log.info("Downloading URL "+httpurl);
-  with BytesIO() as strbuf:
-   while True:
-    databytes = geturls_text.read(buffersize);
-    if not databytes: break;
+  with BytesIO() as strbuf
+   for databytes in geturls_text.iter_content(chunk_size=buffersize):
     datasize = len(databytes);
     fulldatasize = datasize + fulldatasize;
     percentage = "";
@@ -2966,6 +2952,7 @@ if(havehttpcore):
     strbuf.write(databytes);
    strbuf.seek(0);
    returnval_content = strbuf.read();
+  geturls_text.close();
   if(httpheaderout.get("Content-Encoding")=="gzip"):
    try:
     returnval_content = zlib.decompress(returnval_content, 16+zlib.MAX_WBITS);
@@ -3227,7 +3214,6 @@ if(haveurllib3):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  log.info("Downloading URL "+httpurl);
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -3477,7 +3463,6 @@ if(havemechanize):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_list_to_dict(httpheadersentout));
   httpheadersentout = fix_header_names(httpheadersentout);
-  log.info("Downloading URL "+httpurl);
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -3757,7 +3742,6 @@ if(havepycurl):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheadersentout)));
   httpheadersentout = fix_header_names(httpheadersentout);
-  log.info("Downloading URL "+httpurl);
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -4040,7 +4024,6 @@ if(havepycurl and hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheadersentout)));
   httpheadersentout = fix_header_names(httpheadersentout);
-  log.info("Downloading URL "+httpurl);
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
@@ -4338,7 +4321,6 @@ if(havepycurl and hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
   if(isinstance(httpheadersentout, list)):
    httpheadersentout = dict(make_http_headers_from_pycurl_to_dict("\r\n".join(httpheadersentout)));
   httpheadersentout = fix_header_names(httpheadersentout);
-  log.info("Downloading URL "+httpurl);
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
    downloadsize = int(downloadsize);
