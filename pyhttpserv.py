@@ -15,6 +15,27 @@
     $FileInfo: pyhttpserv.py - Last Update: 10/5/2023 Ver. 2.0.2 RC 1 - Author: cooldude2k $
 '''
 
+import os, argparse, gzip, zlib, bz2;
+
+havebrotli = False;
+try:
+ import brotli;
+ havebrotli = True;
+except ImportError:
+ havebrotli = False;
+havezstd = False;
+try:
+ import zstandard;
+ havezstd = True;
+except ImportError:
+ havezstd = False;
+havelzma = False;
+try:
+ import lzma;
+ havelzma = True;
+except ImportError:
+ havelzma = False;
+
 __program_name__ = "PyHTTPServer";
 __program_alt_name__ = "PyHTTPServer";
 __program_small_name__ = "httpserver";
@@ -84,6 +105,23 @@ if(enablessl and
     import ssl;
 # HTTP/HTTPS Server Class
 class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
+    def compress_content(self, content):
+        """Compress content using gzip or deflate depending on Accept-Encoding header."""
+        accept_encoding = self.headers.get('Accept-Encoding', '');
+        if 'gzip' in accept_encoding:
+            self.send_header('Content-Encoding', 'gzip');
+            compressed_content = gzip.compress(content.encode('utf-8'));
+            self.send_header('Content-Length', len(compressed_content));
+            return compressed_content;
+        elif 'deflate' in accept_encoding:
+            self.send_header('Content-Encoding', 'deflate');
+            compressed_content = zlib.compress(content.encode('utf-8'));
+            self.send_header('Content-Length', len(compressed_content));
+            return compressed_content;
+        else:
+            self.send_header('Content-Length', len(content));
+            return content.encode('utf-8');
+        return content.encode()
     def display_info(self):
         # Setting headers for the response
         self.send_response(200);
@@ -112,7 +150,7 @@ class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
                 for key, values in params.items():
                     response += '{}: {}\n'.format(key, ', '.join(values));
         # Sending the response
-        self.wfile.write(response.encode('utf-8'));
+        self.wfile.write(self.compress_content(response));
     # Get Method
     def do_GET(self):
         self.display_info();
@@ -140,7 +178,7 @@ class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
         self.send_header('Content-type', 'text/plain');
         self.send_header('Set-Cookie', 'sample_cookie=sample_value; Path=/;');
         self.end_headers();
-        self.wfile.write(response.encode('utf-8'));
+        self.wfile.write(self.compress_content(response));
 # Start Server Forever
 if __name__ == "__main__":
     server_address = ('', int(servport));
