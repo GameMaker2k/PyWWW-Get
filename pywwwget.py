@@ -16,7 +16,7 @@
 '''
 
 from __future__ import division, absolute_import, print_function;
-import re, os, sys, hashlib, shutil, platform, tempfile, urllib, zlib, time, argparse, cgi, subprocess, socket, email.utils, datetime, time;
+import re, os, sys, hashlib, shutil, platform, tempfile, urllib, zlib, bz2, time, argparse, cgi, subprocess, socket, email.utils, datetime, time;
 import logging as log;
 from ftplib import FTP, FTP_TLS;
 from base64 import b64encode;
@@ -92,6 +92,12 @@ try:
  havezstd = True;
 except ImportError:
  havezstd = False;
+havelzma = False;
+try:
+ import lzma;
+ havelzma = True;
+except ImportError:
+ havelzma = False;
 if(sys.version[0]=="2"):
  try:
   from io import StringIO, BytesIO;
@@ -150,15 +156,14 @@ elif(PyBitness=="64bit" or PyBitness=="64"):
 else:
  PyBitness = "32";
 
-compression_supported = "gzip, deflate";
-if(havebrotli and not havezstd):
- compression_supported = "gzip, deflate, br";
-elif(not havebrotli and havezstd):
- compression_supported = "gzip, deflate, zstd";
-elif(havebrotli and havezstd):
- compression_supported = "gzip, deflate, zstd, br";
-else:
- compression_supported = "gzip, deflate";
+compression_supported_list = ['gzip', 'deflate', 'bzip2'];
+if(havebrotli):
+ compression_supported_list.append('br');
+if(havezstd):
+ compression_supported_list.append('zstd');
+if(havelzma):
+ compression_supported_list.append('lzma');
+compression_supported = ', '.join(compression_supported_list);
 
 geturls_cj = cookielib.CookieJar();
 windowsNT4_ua_string = "Windows NT 4.0";
@@ -1388,6 +1393,16 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
+  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+   try:
+    returnval_content = lzma.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+   try:
+    returnval_content = bz2.decompress(returnval_content);
+   except zstandard.error:
+    pass;
  elif(httplibuse=="httpx" or httplibuse=="httpx2" or httplibuse=="httpcore" or httplibuse=="httpcore2"):
   downloadsize = httpheaderout.get('Content-Length');
   if(downloadsize is not None):
@@ -1428,6 +1443,16 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
    try:
     returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+   try:
+    returnval_content = lzma.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+   try:
+    returnval_content = bz2.decompress(returnval_content);
    except zstandard.error:
     pass;
  elif(httplibuse=="requests"):
@@ -1475,6 +1500,16 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
+  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+   try:
+    returnval_content = lzma.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+   try:
+    returnval_content = bz2.decompress(returnval_content);
+   except zstandard.error:
+    pass;
  elif(httplibuse=="pycurl" or httplibuse=="pycurl2" or httplibuse=="pycurl3"):
   log.info("Downloading URL "+httpurl);
   downloadsize = httpheaderout.get('Content-Length');
@@ -1518,6 +1553,16 @@ def download_from_url(httpurl, httpheaders=geturls_headers, httpuseragent=None, 
   elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
    try:
     returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+   try:
+    returnval_content = lzma.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+   try:
+    returnval_content = bz2.decompress(returnval_content);
    except zstandard.error:
     pass;
  elif(httplibuse=="ftp" or httplibuse=="sftp" or httplibuse=="pysftp"):

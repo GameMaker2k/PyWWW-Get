@@ -93,6 +93,12 @@ try:
  havezstd = True;
 except ImportError:
  havezstd = False;
+havelzma = False;
+try:
+ import lzma;
+ havelzma = True;
+except ImportError:
+ havelzma = False;
 if(sys.version[0]=="2"):
  try:
   from io import StringIO, BytesIO;
@@ -151,15 +157,14 @@ elif(PyBitness=="64bit" or PyBitness=="64"):
 else:
  PyBitness = "32";
 
-compression_supported = "gzip, deflate";
-if(havebrotli and not havezstd):
- compression_supported = "gzip, deflate, br";
-elif(not havebrotli and havezstd):
- compression_supported = "gzip, deflate, zstd";
-elif(havebrotli and havezstd):
- compression_supported = "gzip, deflate, zstd, br";
-else:
- compression_supported = "gzip, deflate";
+compression_supported_list = ['gzip', 'deflate', 'bzip2'];
+if(havebrotli):
+ compression_supported_list.append('br');
+if(havezstd):
+ compression_supported_list.append('zstd');
+if(havelzma):
+ compression_supported_list.append('lzma');
+compression_supported = ', '.join(compression_supported_list);
 
 geturls_cj = cookielib.CookieJar();
 windowsNT4_ua_string = "Windows NT 4.0";
@@ -1017,6 +1022,16 @@ def download_from_url_with_urllib(httpurl, httpheaders=geturls_headers, httpuser
    returnval_content = zstandard.decompress(returnval_content);
   except zstandard.error:
    pass;
+ elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  try:
+   returnval_content = lzma.decompress(returnval_content);
+  except zstandard.error:
+   pass;
+ elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+  try:
+   returnval_content = bz2.decompress(returnval_content);
+  except zstandard.error:
+   pass;
  returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': "urllib"};
  geturls_text.close();
  return returnval;
@@ -1251,6 +1266,16 @@ def download_from_url_with_httplib(httpurl, httpheaders=geturls_headers, httpuse
  elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
   try:
    returnval_content = zstandard.decompress(returnval_content);
+  except zstandard.error:
+   pass;
+ elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+  try:
+   returnval_content = lzma.decompress(returnval_content);
+  except zstandard.error:
+   pass;
+ elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+  try:
+   returnval_content = bz2.decompress(returnval_content);
   except zstandard.error:
    pass;
  returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': "httplib"};
@@ -1488,6 +1513,16 @@ if(havehttplib2):
   elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
    try:
     returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+   try:
+    returnval_content = lzma.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+   try:
+    returnval_content = bz2.decompress(returnval_content);
    except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': "httplib2"};
@@ -1748,6 +1783,16 @@ if(haverequests):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
+  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+   try:
+    returnval_content = lzma.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+   try:
+    returnval_content = bz2.decompress(returnval_content);
+   except zstandard.error:
+    pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': "requests"};
   geturls_text.close();
   return returnval;
@@ -1989,6 +2034,16 @@ if(haveaiohttp):
   elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
    try:
     returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+   try:
+    returnval_content = lzma.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+   try:
+    returnval_content = bz2.decompress(returnval_content);
    except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': "aiohttp"};
@@ -2238,6 +2293,16 @@ if(havehttpx):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
+  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+   try:
+    returnval_content = lzma.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+   try:
+    returnval_content = bz2.decompress(returnval_content);
+   except zstandard.error:
+    pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': "httpx"};
   geturls_text.close();
   return returnval;
@@ -2485,6 +2550,16 @@ if(havehttpx):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
+  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+   try:
+    returnval_content = lzma.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+   try:
+    returnval_content = bz2.decompress(returnval_content);
+   except zstandard.error:
+    pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': "httpx2"};
   geturls_text.close();
   return returnval;
@@ -2729,6 +2804,16 @@ if(havehttpcore):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
+  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+   try:
+    returnval_content = lzma.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+   try:
+    returnval_content = bz2.decompress(returnval_content);
+   except zstandard.error:
+    pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': "httpcore"};
   geturls_text.close();
   return returnval;
@@ -2971,6 +3056,16 @@ if(havehttpcore):
   elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
    try:
     returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+   try:
+    returnval_content = lzma.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+   try:
+    returnval_content = bz2.decompress(returnval_content);
    except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': "httpcore2"};
@@ -3256,6 +3351,16 @@ if(haveurllib3):
     returnval_content = zstandard.decompress(returnval_content);
    except zstandard.error:
     pass;
+  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+   try:
+    returnval_content = lzma.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+   try:
+    returnval_content = bz2.decompress(returnval_content);
+   except zstandard.error:
+    pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': "urllib3"};
   geturls_text.close();
   return returnval;
@@ -3503,6 +3608,16 @@ if(havemechanize):
   elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
    try:
     returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+   try:
+    returnval_content = lzma.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+   try:
+    returnval_content = bz2.decompress(returnval_content);
    except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': "mechanize"};
@@ -3782,6 +3897,16 @@ if(havepycurl):
   elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
    try:
     returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+   try:
+    returnval_content = lzma.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+   try:
+    returnval_content = bz2.decompress(returnval_content);
    except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': "pycurl"};
@@ -4064,6 +4189,16 @@ if(havepycurl and hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
   elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
    try:
     returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+   try:
+    returnval_content = lzma.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+   try:
+    returnval_content = bz2.decompress(returnval_content);
    except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': "pycurl2"};
@@ -4361,6 +4496,16 @@ if(havepycurl and hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
   elif(httpheaderout.get("Content-Encoding")=="zstd" and havezstd):
    try:
     returnval_content = zstandard.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="lzma" and havelzma):
+   try:
+    returnval_content = lzma.decompress(returnval_content);
+   except zstandard.error:
+    pass;
+  elif(httpheaderout.get("Content-Encoding")=="bzip2"):
+   try:
+    returnval_content = bz2.decompress(returnval_content);
    except zstandard.error:
     pass;
   returnval = {'Type': "Content", 'Content': returnval_content, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': "pycurl3"};
