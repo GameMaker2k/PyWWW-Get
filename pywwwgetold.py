@@ -16,10 +16,14 @@
 '''
 
 from __future__ import division, absolute_import, print_function;
-import re, os, sys, hashlib, shutil, platform, tempfile, urllib, zlib, time, argparse, cgi, subprocess, socket, email.utils, datetime, time;
+import re, os, sys, hashlib, shutil, platform, tempfile, urllib, zlib, time, argparse, subprocess, socket, email.utils, datetime, time;
 import logging as log;
 from ftplib import FTP, FTP_TLS;
 from base64 import b64encode;
+try:
+ from cgi import parse_qsl;
+except ImportError:
+ from urlparse import parse_qsl;
 haverequests = False;
 try:
  import requests;
@@ -265,7 +269,7 @@ def verbose_printout_return(dbgtxt, outtype="log", dbgenable=True, dgblevel=20):
 def add_url_param(url, **params):
  n=3;
  parts = list(urlparse.urlsplit(url));
- d = dict(cgi.parse_qsl(parts[n])); # use cgi.parse_qs for list values
+ d = dict(parse_qsl(parts[n])); # use cgi.parse_qs for list values
  d.update(params);
  parts[n]=urlencode(d);
  return urlparse.urlunsplit(parts);
