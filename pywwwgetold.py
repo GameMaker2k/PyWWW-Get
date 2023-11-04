@@ -24,6 +24,8 @@ try:
  from cgi import parse_qsl;
 except ImportError:
  from urlparse import parse_qsl;
+except DeprecationWarning:
+ from urlparse import parse_qsl;
 haverequests = False;
 try:
  import requests;
