@@ -23,11 +23,15 @@ from base64 import b64encode;
 try:
  from cgi import parse_qsl;
 except ImportError:
- from urlparse import parse_qsl;
-except ModuleNotFoundError:
- from urlparse import parse_qsl;
+ try:
+  from urlparse import parse_qsl;
+ except ImportError:
+  from urllib.parse import parse_qsl;
 except (DeprecationWarning, TypeError):
- from urlparse import parse_qsl;
+ try:
+  from urlparse import parse_qsl;
+ except ImportError:
+  from urllib.parse import parse_qsl;
 haverequests = False;
 try:
  import requests;
