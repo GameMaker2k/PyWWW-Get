@@ -24,6 +24,8 @@ try:
  from cgi import parse_qsl;
 except ImportError:
  from urlparse import parse_qsl;
+except ModuleNotFoundError:
+ from urlparse import parse_qsl;
 except (DeprecationWarning, TypeError):
  from urlparse import parse_qsl;
 haverequests = False;
