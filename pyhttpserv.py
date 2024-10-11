@@ -15,11 +15,11 @@
     $FileInfo: pyhttpserv.py - Last Update: 10/5/2023 Ver. 2.0.2 RC 1 - Author: cooldude2k $
 '''
 
-import argparse
-import bz2
-import gzip
 import os
+import argparse
+import gzip
 import zlib
+import bz2
 
 havebrotli = False
 try:
@@ -47,28 +47,26 @@ __project__ = __program_name__
 __project_url__ = "https://github.com/GameMaker2k/PyWWW-Get"
 __version_info__ = (2, 0, 2, "RC 1", 1)
 __version_date_info__ = (2023, 10, 5, "RC 1", 1)
-__version_date__ = str(__version_date_info__[0]) + "." + str(__version_date_info__[
-    1]).zfill(2) + "." + str(__version_date_info__[2]).zfill(2)
+__version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[
+    1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2)
 __revision__ = __version_info__[3]
 __revision_id__ = "$Id$"
-if (__version_info__[4] is not None):
+if(__version_info__[4] is not None):
     __version_date_plusrc__ = __version_date__ + \
-        "-" + str(__version_date_info__[4])
-if (__version_info__[4] is None):
+        "-"+str(__version_date_info__[4])
+if(__version_info__[4] is None):
     __version_date_plusrc__ = __version_date__
-if (__version_info__[3] is not None):
-    __version__ = str(__version_info__[0]) + "." + str(__version_info__[1]) + "." + str(
-        __version_info__[2]) + " " + str(__version_info__[3])
-if (__version_info__[3] is None):
-    __version__ = str(__version_info__[
-        0]) + "." + str(__version_info__[1]) + "." + str(__version_info__[2])
+if(__version_info__[3] is not None):
+    __version__ = str(__version_info__[0])+"."+str(__version_info__[1])+"."+str(
+        __version_info__[2])+" "+str(__version_info__[3])
+if(__version_info__[3] is None):
+    __version__ = str(
+        __version_info__[0])+"."+str(__version_info__[1])+"."+str(__version_info__[2])
 
 parser = argparse.ArgumentParser(
-    description="Simple HTTP Server in Python.",
-    conflict_handler="resolve",
-    add_help=True)
+    description="Simple HTTP Server in Python.", conflict_handler="resolve", add_help=True)
 parser.add_argument("-V", "--version", action="version",
-                    version=__program_name__ + " " + __version__)
+                    version=__program_name__+" "+__version__)
 parser.add_argument("-e", "--enablessl",
                     action="store_true", help="Enable SSL")
 parser.add_argument("-k", "--sslkeypem", default=None,
@@ -83,44 +81,41 @@ enablessl = getargs.enablessl
 sslkeypem = getargs.sslkeypem
 sslcertpem = getargs.sslcertpem
 servport = int(getargs.servport)
-if (isinstance(servport, int)):
-    if (servport < 1 or servport > 65535):
+if(isinstance(servport, int)):
+    if(servport < 1 or servport > 65535):
         servport = 8080
-elif (isinstance(servport, str)):
-    if (servport.isnumeric()):
+elif(isinstance(servport, str)):
+    if(servport.isnumeric()):
         servport = int(servport)
-        if (servport < 1 or servport > 65535):
+        if(servport < 1 or servport > 65535):
             servport = 8080
     else:
         servport = 8080
 else:
     servport = 8080
-if (enablessl):
-    if (sslkeypem is not None and
+if(enablessl):
+    if(sslkeypem is not None and
        (not os.path.exists(sslkeypem) or not os.path.isfile(sslkeypem))):
         sslkeypem = None
         enablessl = False
-    if (sslcertpem is not None and
+    if(sslcertpem is not None and
        (not os.path.exists(sslkeypem) or not os.path.isfile(sslkeypem))):
         sslcertpem = None
         enablessl = False
 pyoldver = True
 try:
     from BaseHTTPServer import HTTPServer
-    from Cookie import SimpleCookie
     from SimpleHTTPServer import SimpleHTTPRequestHandler
     from urlparse import parse_qs
+    from Cookie import SimpleCookie
 except ImportError:
-    from http.cookies import SimpleCookie
-    from http.server import HTTPServer, SimpleHTTPRequestHandler
+    from http.server import SimpleHTTPRequestHandler, HTTPServer
     from urllib.parse import parse_qs
+    from http.cookies import SimpleCookie
     pyoldver = False
-if (
-    enablessl and (
-        sslkeypem is not None and (
-            os.path.exists(sslkeypem) and os.path.isfile(sslkeypem))) and (
-                sslcertpem is not None and (
-                    os.path.exists(sslkeypem) and os.path.isfile(sslkeypem)))):
+if(enablessl and
+   (sslkeypem is not None and (os.path.exists(sslkeypem) and os.path.isfile(sslkeypem))) and
+   (sslcertpem is not None and (os.path.exists(sslkeypem) and os.path.isfile(sslkeypem)))):
     import ssl
 # HTTP/HTTPS Server Class
 
@@ -231,14 +226,11 @@ class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     server_address = ('', int(servport))
     httpd = HTTPServer(server_address, CustomHTTPRequestHandler)
-    if (enablessl and sslkeypem is not None and sslcertpem is not None):
-        httpd.socket = ssl.wrap_socket(
-            httpd.socket,
-            keyfile=sslkeypem,
-            certfile=sslcertpem,
-            server_side=True)
-    if (enablessl):
-        print("Server started at https://localhost:" + str(servport))
+    if(enablessl and sslkeypem is not None and sslcertpem is not None):
+        httpd.socket = ssl.wrap_socket(httpd.socket,
+                                       keyfile=sslkeypem, certfile=sslcertpem, server_side=True)
+    if(enablessl):
+        print("Server started at https://localhost:"+str(servport))
     else:
-        print("Server started at http://localhost:" + str(servport))
+        print("Server started at http://localhost:"+str(servport))
     httpd.serve_forever()
