@@ -64,6 +64,14 @@ try:
 except ImportError:
     pass
 
+# Add the mechanize import check
+havemechanize = False
+try:
+    import mechanize
+    havemechanize = True
+except ImportError:
+    pass
+
 # Requests support
 haverequests = False
 try:
@@ -136,17 +144,6 @@ if(__version_info__[3] is not None):
 if(__version_info__[3] is None):
     __version__ = str(
         __version_info__[0])+"."+str(__version_info__[1])+"."+str(__version_info__[2])
-
-__use_pysftp__ = False
-if(not havepysftp):
-    __use_pysftp__ = False
-__use_http_lib__ = "httpx"
-if(__use_http_lib__ == "httpx" and haverequests and not havehttpx):
-    __use_http_lib__ = "requests"
-if(__use_http_lib__ == "requests" and havehttpx and not haverequests):
-    __use_http_lib__ = "httpx"
-if((__use_http_lib__ == "httpx" or __use_http_lib__ == "requests") and not havehttpx and not haverequests):
-    __use_http_lib__ = "urllib"
 
 PyBitness = platform.architecture()
 if(PyBitness == "32bit" or PyBitness == "32"):
@@ -308,12 +305,18 @@ class RawIteratorWrapper:
 def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
     if headers is None:
         headers = {}
-    # Parse the URL to extract username and password if present
     urlparts = urlparse(url)
     username = urlparts.username
     password = urlparts.password
-    # Rebuild the URL without the username and password
-    netloc = urlparts.hostname
+
+    # Rebuild URL without username and password
+    netloc = urlparts.hostname or ''
+    if urlparts.port:
+        netloc += ':' + str(urlparts.port)
+    rebuilt_url = urlunparse((urlparts.scheme, netloc, urlparts.path,
+                              urlparts.params, urlparts.query, urlparts.fragment))
+
+    # Handle SFTP/FTP
     if urlparts.scheme == "sftp":
         if __use_pysftp__:
             return download_file_from_pysftp_file(url)
@@ -321,52 +324,67 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
             return download_file_from_sftp_file(url)
     elif urlparts.scheme == "ftp" or urlparts.scheme == "ftps":
         return download_file_from_ftp_file(url)
-    if urlparts.port:
-        netloc += ':' + str(urlparts.port)
-    rebuilt_url = urlunparse((urlparts.scheme, netloc, urlparts.path,
-                             urlparts.params, urlparts.query, urlparts.fragment))
+
     # Create a temporary file object
     httpfile = BytesIO()
+
+    # 1) Requests branch
     if usehttp == 'requests' and haverequests:
-        # Use the requests library if selected and available
         if username and password:
-            response = requests.get(rebuilt_url, headers=headers, auth=(
-                username, password), stream=True)
+            response = requests.get(
+                rebuilt_url, headers=headers, auth=(username, password), stream=True
+            )
         else:
             response = requests.get(rebuilt_url, headers=headers, stream=True)
         response.raw.decode_content = True
         shutil.copyfileobj(response.raw, httpfile)
+
+    # 2) HTTPX branch
     elif usehttp == 'httpx' and havehttpx:
-        # Use httpx if selected and available
         with httpx.Client(follow_redirects=True) as client:
             if username and password:
                 response = client.get(
-                    rebuilt_url, headers=headers, auth=(username, password))
+                    rebuilt_url, headers=headers, auth=(username, password)
+                )
             else:
                 response = client.get(rebuilt_url, headers=headers)
             raw_wrapper = RawIteratorWrapper(response.iter_bytes())
             shutil.copyfileobj(raw_wrapper, httpfile)
-    else:
-        # Use urllib as a fallback
-        # Build a Request object for urllib
-        request = Request(rebuilt_url, headers=headers)
-        # Create an opener object for handling URLs
+
+    # 3) Mechanize branch
+    elif usehttp == 'mechanize' and havemechanize:
+        # Create a mechanize browser
+        br = mechanize.Browser()
+        # Optional: configure mechanize (disable robots.txt, handle redirects, etc.)
+        br.set_handle_robots(False)
+        # If you need custom headers, add them as a list of (header_name, header_value)
+        if headers:
+            br.addheaders = list(headers.items())
+
+        # If you need to handle basic auth:
         if username and password:
-            # Create a password manager
+            # Mechanize has its own password manager; this is one way to do it:
+            br.add_password(rebuilt_url, username, password)
+
+        # Open the URL and copy the response to httpfile
+        response = br.open(rebuilt_url)
+        shutil.copyfileobj(response, httpfile)
+
+    # 4) Fallback to urllib
+    else:
+        request = Request(rebuilt_url, headers=headers)
+        if username and password:
             password_mgr = HTTPPasswordMgrWithDefaultRealm()
-            # Add the username and password
             password_mgr.add_password(None, rebuilt_url, username, password)
-            # Create an authentication handler using the password manager
             auth_handler = HTTPBasicAuthHandler(password_mgr)
-            # Build the opener with the authentication handler
             opener = build_opener(auth_handler)
         else:
             opener = build_opener()
         response = opener.open(request)
         shutil.copyfileobj(response, httpfile)
-    # Reset file pointer to the start
+
+    # Reset file pointer to the start before returning
     httpfile.seek(0, 0)
-    # Return the temporary file object
     return httpfile
 
 
