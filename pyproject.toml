@@ -1,0 +1,11 @@
+[project]
+    name = "PyWWW-Get"
+    version = "2.1.2"
+    readme = "README.md"
+    license = { text = "BSD-3-Clause" }
+    keywords = []
+    description = "Python libary/module to download files."
+    authors = [
+        { name = "Kazuki Przyborowski", email = "kazuki.przyborowski@gmail.com" },
+    ]
+    
