@@ -124,7 +124,6 @@ class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
     def compress_content(self, content):
         """Compress content using gzip or deflate depending on Accept-Encoding header."""
         accept_encoding = self.headers.get('Accept-Encoding', '')
-        accept_encoding = None
         if 'gzip' in accept_encoding:
             self.send_header('Content-Encoding', 'gzip')
             compressed_content = gzip.compress(content.encode('utf-8'))
