@@ -1,6 +1,6 @@
 [project]
     name = "PyWWW-Get"
-    version = "2.1.4"
+    version = "2.1.6"
     readme = "README.md"
     license = { text = "BSD-3-Clause" }
     keywords = []
