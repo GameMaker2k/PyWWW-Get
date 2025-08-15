@@ -5985,7 +5985,7 @@ else:
 if(haveparamiko):
     def upload_file_to_sftp_string(sftpstring, url):
         sftpfileo = BytesIO(sftpstring)
-        sftpfile = upload_file_to_sftp_files(ftpfileo, url)
+        sftpfile = upload_file_to_sftp_files(sftpfileo, url)
         sftpfileo.close()
         return sftpfile
 else:
@@ -6271,7 +6271,7 @@ else:
 if(havepysftp):
     def upload_file_to_pysftp_string(sftpstring, url):
         sftpfileo = BytesIO(sftpstring)
-        sftpfile = upload_file_to_pysftp_files(ftpfileo, url)
+        sftpfile = upload_file_to_pysftp_file(sftpfileo, url)
         sftpfileo.close()
         return sftpfile
 else:

@@ -332,10 +332,10 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
     if usehttp == 'requests' and haverequests:
         if username and password:
             response = requests.get(
-                rebuilt_url, headers=headers, auth=(username, password), stream=True
+                rebuilt_url, headers=headers, auth=(username, password), timeout=(5, 30)), stream=True
             )
         else:
-            response = requests.get(rebuilt_url, headers=headers, stream=True)
+            response = requests.get(rebuilt_url, headers=headers, timeout=(5, 30)), stream=True)
         response.raw.decode_content = True
         shutil.copyfileobj(response.raw, httpfile)
 
@@ -505,7 +505,7 @@ else:
 if(haveparamiko):
     def upload_file_to_sftp_string(sftpstring, url):
         sftpfileo = BytesIO(sftpstring)
-        sftpfile = upload_file_to_sftp_files(ftpfileo, url)
+        sftpfile = upload_file_to_sftp_files(sftpfileo, url)
         sftpfileo.close()
         return sftpfile
 else:
@@ -618,7 +618,7 @@ else:
 if(havepysftp):
     def upload_file_to_pysftp_string(sftpstring, url):
         sftpfileo = BytesIO(sftpstring)
-        sftpfile = upload_file_to_pysftp_files(ftpfileo, url)
+        sftpfile = upload_file_to_pysftp_file(sftpfileo, url)
         sftpfileo.close()
         return sftpfile
 else:
