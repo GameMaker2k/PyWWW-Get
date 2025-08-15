@@ -13,7 +13,7 @@
     Copyright 2015-2024 Game Maker 2k - https://github.com/GameMaker2k
     Copyright 2015-2024 Kazuki Przyborowski - https://github.com/KazukiPrzyborowski
 
-    $FileInfo: pywwwget.py - Last Update: 10/22/2024 Ver. 2.1.2 RC 1 - Author: cooldude2k $
+    $FileInfo: pywwwget.py - Last Update: 8/14/2025 Ver. 2.1.4 RC 1 - Author: cooldude2k $
 '''
 
 from __future__ import absolute_import, division, print_function, unicode_literals, generators, with_statement, nested_scopes
@@ -22,12 +22,6 @@ import socket
 import shutil
 import logging
 import platform
-
-from .versioninfo import (__program_alt_name__, __program_name__, __project__,
-                          __project_release_url__, __project_url__,
-                          __revision__, __revision_id__, __version__,
-                          __version_date__, __version_date_info__,
-                          __version_date_plusrc__, __version_info__)
 
 # FTP Support
 ftpssl = True
@@ -127,8 +121,8 @@ __program_alt_name__ = "PyWWWGet"
 __program_small_name__ = "wwwget"
 __project__ = __program_name__
 __project_url__ = "https://github.com/GameMaker2k/PyWWW-Get"
-__version_info__ = (2, 1, 2, "RC 1", 1)
-__version_date_info__ = (2024, 10, 22, "RC 1", 1)
+__version_info__ = (2, 1, 4, "RC 1", 1)
+__version_date_info__ = (2025, 8, 14, "RC 1", 1)
 __version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[
     1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2)
 __revision__ = __version_info__[3]
