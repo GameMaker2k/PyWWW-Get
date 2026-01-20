@@ -158,7 +158,7 @@ except NameError:
 __program_name__ = "PyWWW-Get (clean)"
 __project__ = __program_name__
 __project_url__ = "https://github.com/GameMaker2k/PyWWW-Get"
-__version__ = "clean-1.5"
+__version__ = "clean-1.6"
 
 __use_http_lib__ = "httpx" if havehttpx else ("requests" if haverequests else "urllib")
 __use_pysftp__ = False  # can toggle
@@ -713,8 +713,8 @@ def _parse_net_url(url):
 def recv_to_fileobj(fileobj, host, port, proto="tcp", path_text=None, **kwargs):
     """
     Receive bytes into fileobj.
-    - TCP: accept one connection, optionally consume a PATH line, optionally emit OFFSET for resume, then stream until FIN.
-    - UDP raw: receive until DONE frame (best effort).
+    - TCP: accept one connection, optional PATH line, optional OFFSET resume handshake, then stream until FIN or DONE token.
+    - UDP raw: receive until DONE frame (best effort) or end_timeout silence.
     - UDP seq: reliable with ACK/DONE, explicit RESUME handshake.
     """
     proto = (proto or "tcp").lower()
@@ -728,14 +728,17 @@ def recv_to_fileobj(fileobj, host, port, proto="tcp", path_text=None, **kwargs):
             pass
         srv.bind((host or "", port))
         srv.listen(1)
-        # If port=0, reveal chosen port
+
         chosen_port = srv.getsockname()[1]
         if kwargs.get("print_url"):
             path = path_text or "/"
             bind_host = host or "0.0.0.0"
             for u in _listen_urls("tcp", bind_host, chosen_port, path, ""):
-                sys.stdout.write("Listening: %s\n" % u)
-            sys.stdout.flush()
+                sys.stdout.write("Listening: %s\\n" % u)
+            try:
+                sys.stdout.flush()
+            except Exception:
+                pass
 
         idle_to = kwargs.get("idle_timeout", None)
         acc_to = kwargs.get("accept_timeout", None)
@@ -746,27 +749,233 @@ def recv_to_fileobj(fileobj, host, port, proto="tcp", path_text=None, **kwargs):
             elif acc_to is not None and float(acc_to) > 0:
                 srv.settimeout(float(acc_to))
             elif to is not None and float(to) > 0:
-                # If user explicitly provided timeout, use it for accept as a fallback.
                 srv.settimeout(float(to))
             else:
-                # Block forever (legacy behavior)
                 srv.settimeout(None)
         except Exception:
             pass
-    addr = (host, int(port))
-    # naive: send chunks then DONE
-    chunk = int(kwargs.get("chunk", 1200))
-    while True:
-        data = fileobj.read(chunk)
-        if not data:
-            break
-        sock.sendto(_to_bytes(data), addr)
-    sock.sendto(b"DONE", addr)
-    try:
-        sock.close()
-    except Exception:
-        pass
-    return True
+
+        try:
+            conn, _addr = srv.accept()
+        except socket.timeout:
+            try:
+                srv.close()
+            except Exception:
+                pass
+            return False
+        except KeyboardInterrupt:
+            try:
+                srv.close()
+            except Exception:
+                pass
+            raise
+        except Exception:
+            try:
+                srv.close()
+            except Exception:
+                pass
+            return False
+
+        # Connection read timeout (separate from accept)
+        try:
+            if to is not None and float(to) > 0:
+                conn.settimeout(float(to))
+        except Exception:
+            pass
+
+        # Optional: consume "PATH ..." line (best effort)
+        try:
+            conn.settimeout(0.25)
+            if hasattr(socket, "MSG_PEEK"):
+                peek = conn.recv(5, socket.MSG_PEEK)
+            else:
+                peek = b""
+        except Exception:
+            peek = b""
+        try:
+            if to is not None and float(to) > 0:
+                conn.settimeout(float(to))
+            else:
+                conn.settimeout(None)
+        except Exception:
+            pass
+
+        if peek == b"PATH ":
+            line = b""
+            while True:
+                b = conn.recv(1)
+                if not b:
+                    break
+                line += b
+                if line.endswith(b"\\n") or len(line) > 4096:
+                    break
+
+        # Resume handshake: receiver tells sender where to start
+        if kwargs.get("resume"):
+            try:
+                cur = fileobj.tell()
+            except Exception:
+                cur = 0
+            msg = ("OFFSET %d\\n" % int(cur)).encode("utf-8")
+            try:
+                conn.sendall(msg)
+            except Exception:
+                pass
+
+        # DONE marker mode
+        done = bool(kwargs.get("done"))
+        tok = kwargs.get("done_token") or "\\nDONE\\n"
+        tokb = _to_bytes(tok)
+        tlen = len(tokb)
+        tail = b""
+
+        while True:
+            try:
+                chunk = conn.recv(65536)
+            except socket.timeout:
+                continue
+            except Exception:
+                break
+            if not chunk:
+                break
+            chunk = _to_bytes(chunk)
+
+            if not done:
+                fileobj.write(chunk)
+                continue
+
+            buf = tail + chunk
+            if tlen and buf.endswith(tokb):
+                if len(buf) > tlen:
+                    fileobj.write(buf[:-tlen])
+                tail = b""
+                break
+
+            if tlen and len(buf) > tlen:
+                fileobj.write(buf[:-tlen])
+                tail = buf[-tlen:]
+            else:
+                tail = buf
+
+        if done and tail:
+            fileobj.write(tail)
+
+        try:
+            conn.close()
+        except Exception:
+            pass
+        try:
+            srv.close()
+        except Exception:
+            pass
+        try:
+            fileobj.seek(0, 0)
+        except Exception:
+            pass
+        return True
+
+    # UDP modes
+    mode = (kwargs.get("mode") or "seq").lower()
+    if mode == "raw":
+        return _udp_raw_recv(fileobj, host, port, **kwargs)
+    return _udp_seq_recv(fileobj, host, port, **kwargs)
+
+def send_from_fileobj(fileobj, host, port, proto="tcp", path_text=None, **kwargs):
+    """
+    Send bytes from fileobj to a listening receiver.
+    - TCP: connect, optionally send PATH line, optional resume OFFSET handshake, then stream; optional DONE token.
+    - UDP raw: send chunks then DONE.
+    - UDP seq: reliable with ACK/DONE and optional RESUME handshake.
+    """
+    proto = (proto or "tcp").lower()
+    port = int(port)
+
+    if proto == "tcp":
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            to = kwargs.get("timeout", None)
+            if to is not None and float(to) > 0:
+                sock.settimeout(float(to))
+        except Exception:
+            pass
+
+        try:
+            sock.connect((host, port))
+        except Exception:
+            try:
+                sock.close()
+            except Exception:
+                pass
+            return False
+
+        if path_text:
+            try:
+                line = ("PATH %s\\n" % (path_text or "/")).encode("utf-8")
+                sock.sendall(line)
+            except Exception:
+                pass
+
+        if kwargs.get("resume"):
+            try:
+                buf = b""
+                while not buf.endswith(b"\\n") and len(buf) < 128:
+                    b = sock.recv(1)
+                    if not b:
+                        break
+                    buf += b
+                if buf.startswith(b"OFFSET "):
+                    off = int(buf.split()[1])
+                    try:
+                        fileobj.seek(off, 0)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+        try:
+            while True:
+                data = fileobj.read(65536)
+                if not data:
+                    break
+                sock.sendall(_to_bytes(data))
+            if kwargs.get("done"):
+                tok = kwargs.get("done_token") or "\\nDONE\\n"
+                sock.sendall(_to_bytes(tok))
+        except Exception:
+            try:
+                sock.close()
+            except Exception:
+                pass
+            return False
+
+        try:
+            sock.shutdown(socket.SHUT_WR)
+        except Exception:
+            pass
+        try:
+            sock.close()
+        except Exception:
+            pass
+        return True
+
+    mode = (kwargs.get("mode") or "seq").lower()
+    if mode == "raw":
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        addr = (host, int(port))
+        chunk = int(kwargs.get("chunk", 1200))
+        while True:
+            data = fileobj.read(chunk)
+            if not data:
+                break
+            sock.sendto(_to_bytes(data), addr)
+        sock.sendto(b"DONE", addr)
+        try:
+            sock.close()
+        except Exception:
+            pass
+        return True
+
+    return _udp_seq_send(fileobj, host, port, **kwargs)
 
 def _udp_raw_recv(fileobj, host, port, **kwargs):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
