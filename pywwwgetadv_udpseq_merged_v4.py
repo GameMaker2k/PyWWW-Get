@@ -28,6 +28,11 @@ import logging
 import platform
 import tempfile
 import struct
+try:
+    import io
+except Exception:
+    io = None
+
 
 try:
     from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -2488,7 +2493,7 @@ def send_from_fileobj(fileobj, host, port=3124, proto="tcp", timeout=None,
                       chunk_size=65536,
                       use_ssl=False, ssl_verify=True, ssl_ca_file=None,
                       ssl_certfile=None, ssl_keyfile=None, server_hostname=None,
-                      auth_user=None, auth_pass=None, auth_scope=u"",
+                      auth_user=None, auth_pass=None, expect_scope=u"",
                       on_progress=None, rate_limit_bps=None, want_sha=True,
                       enforce_path=True, path_text=u""):
     """
@@ -2750,359 +2755,6 @@ def send_from_fileobj(fileobj, host, port=3124, proto="tcp", timeout=None,
         except Exception: pass
     return total
 
-
-def recv_to_fileobj(fileobj, host="", port=3124, proto="tcp", timeout=None,
-                    max_bytes=None, chunk_size=65536, backlog=1,
-                    use_ssl=False, ssl_verify=True, ssl_ca_file=None,
-                    ssl_certfile=None, ssl_keyfile=None,
-                    require_auth=False, expected_user=None, expected_pass=None,
-                    total_timeout=None, expect_scope=None,
-                    on_progress=None, rate_limit_bps=None,
-                    enforce_path=True, wait_seconds=None):
-    """
-    Receive bytes into fileobj over TCP/UDP.
-
-    Path enforcement:
-      - UDP: expects 'PATH <...>\\n' control frame first (if enforce_path).
-      - TCP: reads first line 'PATH <...>\\n' before auth/payload (if enforce_path).
-
-    UDP control frames understood: PATH, LEN, HASH, DONE (+ AF1 auth blob).
-
-    wait_seconds (TCP only): overall accept window to wait for a client
-      (mirrors the HTTP server behavior). None = previous behavior (single accept
-      with 'timeout' as the accept timeout).
-    """
-    proto = (proto or "tcp").lower()
-    port = int(port)
-    total = 0
-
-    start_ts = time.time()
-    def _time_left():
-        if total_timeout is None:
-            return None
-        left = total_timeout - (time.time() - start_ts)
-        return 0.0 if left <= 0 else left
-
-    def _set_effective_timeout(socklike, base_timeout):
-        left = _time_left()
-        if left == 0.0:
-            return False
-        eff = base_timeout
-        if left is not None:
-            eff = left if eff is None else min(eff, left)
-        if eff is not None:
-            try:
-                socklike.settimeout(eff)
-            except Exception:
-                pass
-        return True
-
-    if proto not in ("tcp", "udp"):
-        raise ValueError("proto must be 'tcp' or 'udp'")
-
-    # ---------------- UDP server ----------------
-    if proto == "udp":
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        authed_addr = None
-        expected_len = None
-        expected_sha = None
-        path_checked = (not enforce_path)
-
-        try:
-            sock.bind(("", port))
-            if timeout is None:
-                try: sock.settimeout(10.0)
-                except Exception: pass
-
-            recvd_so_far = 0
-            last_cb_ts = monotonic()
-            rl_ts = last_cb_ts
-            rl_bytes = 0
-
-            while True:
-                if _time_left() == 0.0:
-                    if expected_len is not None and total < expected_len:
-                        raise RuntimeError("UDP receive aborted by total_timeout before full payload received")
-                    break
-                if (max_bytes is not None) and (total >= max_bytes):
-                    break
-
-                if not _set_effective_timeout(sock, timeout):
-                    if expected_len is not None and total < expected_len:
-                        raise RuntimeError("UDP receive timed out before full payload received")
-                    if expected_len is None and total > 0:
-                        raise RuntimeError("UDP receive timed out with unknown length; partial data")
-                    if expected_len is None and total == 0:
-                        raise RuntimeError("UDP receive: no packets received before timeout (is the sender running?)")
-                    break
-
-                try:
-                    data, addr = sock.recvfrom(chunk_size)
-                except socket.timeout:
-                    if expected_len is not None and total < expected_len:
-                        raise RuntimeError("UDP receive idle-timeout before full payload received")
-                    if expected_len is None and total > 0:
-                        raise RuntimeError("UDP receive idle-timeout with unknown length; partial data")
-                    if expected_len is None and total == 0:
-                        raise RuntimeError("UDP receive: no packets received before timeout (is the sender running?)")
-                    break
-
-                if not data:
-                    continue
-
-                # (0) PATH first (strict)
-                if not path_checked and data.startswith(b"PATH "):
-                    got_path = _unquote_path_from_wire(data[5:].strip())
-                    if _to_text(got_path) != _to_text(expect_scope or u""):
-                        raise RuntimeError("UDP path mismatch: got %r expected %r"
-                                           % (got_path, expect_scope))
-                    path_checked = True
-                    continue
-                if enforce_path and not path_checked:
-                    if not data.startswith(b"PATH "):
-                        continue  # ignore until PATH arrives
-
-                # (0b) Control frames
-                if data.startswith(b"LEN ") and expected_len is None:
-                    try:
-                        parts = data.strip().split()
-                        n = int(parts[1])
-                        expected_len = (None if n < 0 else n)
-                        if len(parts) >= 3:
-                            expected_sha = parts[2].decode("ascii")
-                    except Exception:
-                        expected_len = None; expected_sha = None
-                    continue
-
-                if data.startswith(b"HASH "):
-                    try:
-                        expected_sha = data.strip().split()[1].decode("ascii")
-                    except Exception:
-                        expected_sha = None
-                    continue
-
-                if data == b"DONE\n":
-                    # Treat DONE as end-of-transfer. If we know the expected length,
-                    # ignore early DONE until we have all bytes (reduces truncation risk).
-                    if expected_len is None or total_received >= expected_len:
-                        break
-                    else:
-                        continue
-                # (1) Auth (if required)
-                if authed_addr is None and require_auth:
-                    ok = False
-                    v_ok, v_user, v_scope, _r, v_len, v_sha = verify_auth_blob_v1(
-                        data, expected_user=expected_user, secret=expected_pass,
-                        max_skew=600, expect_scope=expect_scope
-                    )
-                    if v_ok:
-                        ok = True
-                        if expected_len is None:
-                            expected_len = v_len
-                        if expected_sha is None:
-                            expected_sha = v_sha
-                    else:
-                        user, pw = _parse_auth_blob_legacy(data)
-                        ok = (user is not None and
-                              (expected_user is None or user == _to_bytes(expected_user)) and
-                              (expected_pass is None or pw == _to_bytes(expected_pass)))
-                    try:
-                        sock.sendto((_OK if ok else _NO), addr)
-                    except Exception:
-                        pass
-                    if ok:
-                        authed_addr = addr
-                    continue
-
-                if require_auth and addr != authed_addr:
-                    continue
-
-                # (2) Payload
-                fileobj.write(data)
-                try: fileobj.flush()
-                except Exception: pass
-                total += len(data)
-                recvd_so_far += len(data)
-
-                if rate_limit_bps:
-                    sleep_s, rl_ts, rl_bytes = _pace_rate(rl_ts, rl_bytes, rate_limit_bps, len(data))
-                    if sleep_s > 0.0:
-                        time.sleep(min(sleep_s, 0.25))
-
-                if on_progress and (monotonic() - last_cb_ts) >= 0.1:
-                    try: on_progress(recvd_so_far, expected_len)
-                    except Exception: pass
-                    last_cb_ts = monotonic()
-
-                if expected_len is not None and total >= expected_len:
-                    break
-
-            # Post-conditions
-            if expected_len is not None and total != expected_len:
-                raise RuntimeError("UDP receive incomplete: got %d of %s bytes" % (total, expected_len))
-
-            if expected_sha:
-                import hashlib
-                try:
-                    cur = fileobj.tell(); fileobj.seek(0)
-                except Exception:
-                    cur = None
-                h = hashlib.sha256(); _HSZ = 1024 * 1024
-                while True:
-                    blk = fileobj.read(_HSZ)
-                    if not blk: break
-                    h.update(_to_bytes(blk))
-                got = h.hexdigest()
-                if cur is not None:
-                    try: fileobj.seek(cur)
-                    except Exception: pass
-                if got != expected_sha:
-                    raise RuntimeError("UDP checksum mismatch: got %s expected %s" % (got, expected_sha))
-
-        finally:
-            try: sock.close()
-            except Exception: pass
-        return total
-
-    # ---------------- TCP server (one-shot with optional wait window) ----------------
-    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        try: srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        except Exception: pass
-        srv.bind((host or "", port))
-        srv.listen(int(backlog) if backlog else 1)
-
-        bytes_written = 0
-        started = time.time()
-
-        # per-accept wait
-        per_accept = float(timeout) if timeout is not None else 1.0
-        try: srv.settimeout(per_accept)
-        except Exception: pass
-
-        while True:
-            if bytes_written > 0:
-                break
-            if wait_seconds is not None and (time.time() - started) >= wait_seconds:
-                break
-
-            try:
-                conn, _peer = srv.accept()
-            except socket.timeout:
-                continue
-            except Exception:
-                break
-
-            # TLS
-            if use_ssl:
-                if not _ssl_available():
-                    try: conn.close()
-                    except Exception: pass
-                    break
-                if not ssl_certfile:
-                    try: conn.close()
-                    except Exception: pass
-                    raise ValueError("TLS server requires ssl_certfile (and usually ssl_keyfile).")
-                conn = _ssl_wrap_socket(conn, server_side=True, server_hostname=None,
-                                        verify=ssl_verify, ca_file=ssl_ca_file,
-                                        certfile=ssl_certfile, keyfile=ssl_keyfile)
-
-            recvd_so_far = 0
-            last_cb_ts = monotonic()
-            rl_ts = last_cb_ts
-            rl_bytes = 0
-
-            try:
-                # (0) PATH line (if enforced)
-                if enforce_path:
-                    line = _recv_line(conn, maxlen=4096, timeout=timeout)
-                    if not line or not line.startswith(b"PATH "):
-                        try: conn.close()
-                        except Exception: pass
-                        continue
-                    got_path = _unquote_path_from_wire(line[5:].strip())
-                    if _to_text(got_path) != _to_text(expect_scope or u""):
-                        try: conn.close()
-                        except Exception: pass
-                        raise RuntimeError("TCP path mismatch: got %r expected %r"
-                                           % (got_path, expect_scope))
-
-                # (1) Auth preface
-                if require_auth:
-                    if not _set_effective_timeout(conn, timeout):
-                        try: conn.close()
-                        except Exception: pass
-                        continue
-                    try:
-                        preface = conn.recv(2048)
-                    except socket.timeout:
-                        try: conn.sendall(_NO)
-                        except Exception: pass
-                        try: conn.close()
-                        except Exception: pass
-                        continue
-
-                    ok = False
-                    v_ok, v_user, v_scope, _r, v_len, v_sha = verify_auth_blob_v1(
-                        preface or b"", expected_user=expected_user, secret=expected_pass,
-                        max_skew=600, expect_scope=expect_scope
-                    )
-                    if v_ok:
-                        ok = True
-                    else:
-                        user, pw = _parse_auth_blob_legacy(preface or b"")
-                        ok = (user is not None and
-                              (expected_user is None or user == _to_bytes(expected_user)) and
-                              (expected_pass is None or pw == _to_bytes(expected_pass)))
-                    try: conn.sendall(_OK if ok else _NO)
-                    except Exception: pass
-                    if not ok:
-                        try: conn.close()
-                        except Exception: pass
-                        continue
-
-                # (2) Payload loop
-                while True:
-                    if _time_left() == 0.0: break
-                    if (max_bytes is not None) and (bytes_written >= max_bytes): break
-
-                    if not _set_effective_timeout(conn, timeout):
-                        break
-                    try:
-                        data = conn.recv(chunk_size)
-                    except socket.timeout:
-                        break
-                    if not data:
-                        break
-
-                    fileobj.write(data)
-                    try: fileobj.flush()
-                    except Exception: pass
-                    total += len(data)
-                    bytes_written += len(data)
-                    recvd_so_far += len(data)
-
-                    if rate_limit_bps:
-                        sleep_s, rl_ts, rl_bytes = _pace_rate(rl_ts, rl_bytes, rate_limit_bps, len(data))
-                        if sleep_s > 0.0:
-                            time.sleep(min(sleep_s, 0.25))
-
-                    if on_progress and (monotonic() - last_cb_ts) >= 0.1:
-                        try: on_progress(recvd_so_far, max_bytes)
-                        except Exception: pass
-                        last_cb_ts = monotonic()
-
-            finally:
-                try: conn.shutdown(socket.SHUT_RD)
-                except Exception: pass
-                try: conn.close()
-                except Exception: pass
-
-        return total
-
-    finally:
-        try: srv.close()
-        except Exception: pass
 
 def run_tcp_file_server(fileobj, url, on_progress=None):
     """
@@ -3944,7 +3596,7 @@ def recv_to_fileobj(fileobj, host="", port=0, proto="tcp", timeout=None,
                     require_auth=False, expected_user=None, expected_pass=None,
                     total_timeout=None, expect_scope=None,
                     on_progress=None, rate_limit_bps=None,
-                    enforce_path=True, wait_seconds=None):
+                    enforce_path=True, wait_seconds=None, **_kwargs):
     """
     Receive bytes into fileobj over TCP/UDP.
 
@@ -4876,7 +4528,7 @@ def send_via_url(fileobj, url, send_from_fileobj_func=send_from_fileobj):
         server_hostname=o["server_hostname"],
         auth_user=(o["user"] if use_auth else None),
         auth_pass=(o["pw"]   if use_auth else None),
-        auth_scope=o["path"],
+        expect_scope=o["path"],
         want_sha=o["want_sha"],
         enforce_path=o["enforce_path"],
         path_text=o["path"],
@@ -4915,7 +4567,7 @@ def recv_via_url(fileobj, url, recv_to_fileobj_func=recv_to_fileobj):
         require_auth=require_auth,
         expected_user=(o["user"] if require_auth else None),
         expected_pass=(o["pw"]   if require_auth else None),
-        auth_scope=o["path"],
+        expect_scope=o["path"],
         want_sha=o["want_sha"],
         enforce_path=o["enforce_path"],
         expected_path=o["path"],
