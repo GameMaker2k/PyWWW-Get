@@ -2204,10 +2204,12 @@ def download_file_from_internet_file(url, headers=geturls_headers_pywwwget_pytho
         else:
             return download_file_from_sftp_file(url)
     elif(urlparts.scheme == "tcp" or urlparts.scheme == "udp"):
-    outfile = MkTempFile()
-    returnval = recv_via_url(outfile, url, recv_to_fileobj)
-    if(not returnval):
-        return False
+        outfile = MkTempFile()
+        returnval = recv_via_url(outfile, url, recv_to_fileobj)
+        if(not returnval):
+            return False
+        outfile.seek(0, 0)
+        return outfile
     # Optional autosave (works for UDP seq meta and TCP/UDP in general)
     try:
         parts, o = _parse_net_url(url)
@@ -2237,9 +2239,8 @@ def download_file_from_internet_file(url, headers=geturls_headers_pywwwget_pytho
                 pass
         except Exception:
             pass
-    outfile.seek(0, 0)
-    return outfile
-
+        outfile.seek(0, 0)
+        return outfile
     else:
         return False
     return False

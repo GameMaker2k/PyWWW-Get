@@ -2208,41 +2208,41 @@ def download_file_from_internet_file(url, headers=geturls_headers_pywwwget_pytho
         else:
             return download_file_from_sftp_file(url)
     elif(urlparts.scheme == "tcp" or urlparts.scheme == "udp"):
-    outfile = MkTempFile()
-    returnval = recv_via_url(outfile, url, recv_to_fileobj)
-    if(not returnval):
-        return False
-    # Optional autosave (works for UDP seq meta and TCP/UDP in general)
-    try:
-        parts, o = _parse_net_url(url)
-    except Exception:
-        parts, o = (None, {})
-    if o and o.get("save"):
-        # prefer meta filename if available
-        fname = None
+        outfile = MkTempFile()
+        returnval = recv_via_url(outfile, url, recv_to_fileobj)
+        if(not returnval):
+            return False
+        # Optional autosave (works for UDP seq meta and TCP/UDP in general)
         try:
-            meta = getattr(outfile, "_pywwwget_meta", None)
-            if meta and isinstance(meta, dict):
-                fname = meta.get("filename") or None
+            parts, o = _parse_net_url(url)
         except Exception:
+            parts, o = (None, {})
+        if o and o.get("save"):
+            # prefer meta filename if available
             fname = None
-        if not fname:
             try:
-                fname = _guess_filename(url) or None
+                meta = getattr(outfile, "_pywwwget_meta", None)
+                if meta and isinstance(meta, dict):
+                    fname = meta.get("filename") or None
             except Exception:
                 fname = None
-        out_path = _choose_output_path(fname, overwrite=bool(o.get("overwrite")), save_dir=o.get("save_dir"))
-        try:
-            _autosave_fileobj(outfile, out_path)
+            if not fname:
+                try:
+                    fname = _guess_filename(url) or None
+                except Exception:
+                    fname = None
+            out_path = _choose_output_path(fname, overwrite=bool(o.get("overwrite")), save_dir=o.get("save_dir"))
             try:
-                sys.stdout.write("Saved: %s\n" % out_path)
-                sys.stdout.flush()
+                _autosave_fileobj(outfile, out_path)
+                try:
+                    sys.stdout.write("Saved: %s\n" % out_path)
+                    sys.stdout.flush()
+                except Exception:
+                    pass
             except Exception:
                 pass
-        except Exception:
-            pass
-    outfile.seek(0, 0)
-    return outfile
+        outfile.seek(0, 0)
+        return outfile
 
     else:
         return False
@@ -4678,28 +4678,28 @@ def _udpseq_recv_to_fileobj(fileobj, host, port,
         # if host isn't bindable, bind on all interfaces
         sock.bind(("0.0.0.0", int(port)))
 
-# If port=0 was used, the OS will pick a free port. Capture actual bound addr/port.
-try:
-    bound_host, bound_port = sock.getsockname()[0], sock.getsockname()[1]
-except Exception:
-    bound_host, bound_port = (host, int(port))
-
-if print_url:
-    for u in _format_listen_urls("udp", bound_host if bound_host else host, bound_port, url_path, url_query):
-        try:
-            sys.stdout.write("Listening: %s\n" % u)
-        except Exception:
-            # Python 2 fallback
-            try:
-                print("Listening: %s" % u)
-            except Exception:
-                pass
+    # If port=0 was used, the OS will pick a free port. Capture actual bound addr/port.
     try:
-        sys.stdout.flush()
+        bound_host, bound_port = sock.getsockname()[0], sock.getsockname()[1]
     except Exception:
-        pass
-
-
+        bound_host, bound_port = (host, int(port))
+    
+    if print_url:
+        for u in _format_listen_urls("udp", bound_host if bound_host else host, bound_port, url_path, url_query):
+            try:
+                sys.stdout.write("Listening: %s\n" % u)
+            except Exception:
+                # Python 2 fallback
+                try:
+                    print("Listening: %s" % u)
+                except Exception:
+                    pass
+        try:
+            sys.stdout.flush()
+        except Exception:
+            pass
+    
+    
     expected = 0
     received = {}  # seq -> payload
     done_seen = False
