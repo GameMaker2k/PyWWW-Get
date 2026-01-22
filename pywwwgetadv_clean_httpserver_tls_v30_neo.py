@@ -2852,7 +2852,7 @@ def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__
             total_timeout=options.get("total_timeout"), window=options.get("window"), 
             retries=options.get("retries"), chunk=options.get("chunk"),
             print_url=options.get("print_url"), resume_offset=resume_off, 
-            path_text=path_text, **options
+            path_text=path_text
         )
         
         if not ok:
