@@ -466,20 +466,15 @@ class MkTempFile(object):
 
 def detect_cwd(ftp, file_dir):
     """
-    Test whether CWD into file_dir works.
-    Returns True if it does, False if not (so absolute paths should be used).
+    Test whether cwd into file_dir works. Returns True if it does,
+    False if not (so absolute paths should be used).
     """
-    if not file_dir or file_dir in ("/", "", "."):
-        return False  # nothing to CWD into
-    
+    if not file_dir:
+        return False  # nothing to cwd into
     try:
-        # Save current directory
-        orig_pwd = ftp.pwd()
         ftp.cwd(file_dir)
-        # Restore original directory
-        ftp.cwd(orig_pwd)
         return True
-    except Exception:
+    except all_errors:
         return False
 
 def _ftp_login(ftp, user, pw):
