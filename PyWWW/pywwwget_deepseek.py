@@ -1,0 +1,3370 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+pywwwgetadv_clean.py - Optimized and Bug-Fixed Version
+
+Optimizations:
+1. Fixed broken imports and missing variables
+2. Added missing functions and variables
+3. Improved error handling
+4. Fixed indentation issues
+5. Added missing imports
+6. Optimized performance
+7. Fixed NameError exceptions
+
+Key fixes:
+- Added missing __all__ and imports
+- Fixed _udp_seq_send and _udp_seq_recv definitions
+- Fixed _serve_file_over_http indentation
+- Added missing variables (tls_on, expect_sidecar, etc.)
+- Fixed broken return statements
+- Fixed HTTP server implementation
+"""
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+import os
+import io
+import sys
+import socket
+import shutil
+import time
+import struct
+import hashlib
+import tempfile
+import gzip
+import ssl
+import mimetypes
+import base64
+import threading
+import errno
+import random
+import fcntl
+try:
+    import select
+except ImportError:
+    select = None
+
+try:
+    from io import BytesIO
+    from io import UnsupportedOperation
+except ImportError:
+    try:
+        from cStringIO import StringIO as BytesIO  # py2 fallback
+    except ImportError:
+        from StringIO import StringIO as BytesIO
+    UnsupportedOperation = None
+
+# Python 2/3 compatibility imports
+try:
+    from urllib.parse import urlparse, urlunparse, parse_qs, unquote
+    from urllib.request import Request, build_opener, HTTPBasicAuthHandler
+    from urllib.error import URLError, HTTPError
+    from urllib.request import HTTPPasswordMgrWithDefaultRealm
+    from http.client import HTTPException
+except ImportError:
+    from urlparse import urlparse, urlunparse, parse_qs  # type: ignore
+    from urllib2 import Request, build_opener, HTTPBasicAuthHandler, URLError, HTTPError  # type: ignore
+    from urllib2 import HTTPPasswordMgrWithDefaultRealm  # type: ignore
+    from httplib import HTTPException  # type: ignore
+    try:
+        from urllib import unquote  # py2
+    except ImportError:
+        def unquote(x):  # very small fallback
+            return x
+
+# HTTP server imports
+try:
+    # Python 3
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+    import socketserver as _socketserver
+    from http import HTTPStatus
+except ImportError:
+    # Python 2
+    from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer  # type: ignore
+    import SocketServer as _socketserver  # type: ignore
+    HTTPStatus = type('HTTPStatus', (), {'OK': 200, 'NOT_FOUND': 404, 'UNAUTHORIZED': 401})
+
+# Optional dependencies with better error handling
+haverequests = False
+try:
+    import requests  # noqa
+    haverequests = True
+except ImportError:
+    pass
+
+havehttpx = False
+try:
+    import httpx  # noqa
+    havehttpx = True
+except ImportError:
+    pass
+
+havemechanize = False
+try:
+    import mechanize  # noqa
+    havemechanize = True
+except ImportError:
+    pass
+
+haveparamiko = False
+try:
+    import paramiko  # noqa
+    haveparamiko = True
+except ImportError:
+    pass
+
+havepysftp = False
+try:
+    import pysftp  # noqa
+    havepysftp = True
+except ImportError:
+    pass
+
+# FTP imports with SSL support detection
+ftpssl = True
+try:
+    from ftplib import FTP, FTP_TLS, all_errors
+    from ftplib import error_perm, error_reply, error_temp, error_proto
+except ImportError:
+    try:
+        from ftplib import FTP, all_errors, error_perm, error_reply, error_temp, error_proto
+        ftpssl = False
+    except ImportError:
+        ftpssl = False
+        FTP = None
+        all_errors = Exception
+
+# Python 2/3 string compatibility
+try:
+    basestring
+except NameError:
+    basestring = str
+
+# Module metadata
+__program_name__ = "PyWWW-Get"
+__project__ = __program_name__
+__project_url__ = "https://github.com/GameMaker2k/PyWWW-Get"
+__version__ = "optimized-v1.0"
+__author__ = "Optimized Version"
+__license__ = "MIT"
+
+__use_http_lib__ = "httpx" if havehttpx else ("requests" if haverequests else "urllib")
+__use_pysftp__ = False  # can toggle
+
+__use_inmem__ = True
+__use_memfd__ = True
+__use_spoolfile__ = False
+__use_spooldir__ = tempfile.gettempdir()
+
+BYTES_PER_KiB = 1024
+BYTES_PER_MiB = 1024 * BYTES_PER_KiB
+
+DEFAULT_SPOOL_MAX = 4 * BYTES_PER_MiB      # 4 MiB per spooled temp file
+__spoolfile_size__ = DEFAULT_SPOOL_MAX
+
+DEFAULT_BUFFER_MAX = 256 * BYTES_PER_KiB   # 256 KiB copy buffer
+__filebuff_size__ = DEFAULT_BUFFER_MAX
+
+# ---- Py2/Py3 type helpers ----
+try:
+    text_type = unicode  # noqa: F821  (Py2)
+except NameError:
+    text_type = str      # Py3
+
+binary_types = (bytes, bytearray)
+try:
+    binary_types = (bytes, bytearray, memoryview)  # Py3 has memoryview; Py2 does too, but keep safe
+except NameError:
+    pass
+
+# --------------------------
+# Constants
+# --------------------------
+
+UDP_MAGIC = b"PWG2"
+UDP_VERSION = 1
+UDP_HEADER_FORMAT = "!4sBBIQ"  # magic, ver, flags, seq(u32), total(u64)
+UDP_HEADER_LEN = struct.calcsize(UDP_HEADER_FORMAT)
+
+# UDP flags
+UF_DATA = 0x01
+UF_ACK = 0x02
+UF_DONE = 0x04
+UF_RESUME = 0x08
+UF_META = 0x10
+
+TCP_MAGIC = b"PWG4"
+TCP_HEADER_LEN = 16  # 4 (magic) + 8 (size) + 4 (flags)
+
+DEFAULT_TIMEOUT = 30.0
+DEFAULT_CHUNK_SIZE = 65536
+DEFAULT_UDP_CHUNK = 1200
+DEFAULT_WINDOW_SIZE = 32
+DEFAULT_RETRIES = 20
+
+# --------------------------
+# Utility Functions
+# --------------------------
+
+def _to_bytes(x, encoding='utf-8'):
+    """Convert input to bytes, handling None and various types."""
+    if x is None:
+        return b""
+    if isinstance(x, bytes):
+        return x
+    if isinstance(x, bytearray):
+        return bytes(x)
+    try:
+        return str(x).encode(encoding)
+    except (UnicodeEncodeError, AttributeError):
+        try:
+            return bytes(x)
+        except Exception:
+            return str(x).encode(encoding, errors='replace')
+
+def _to_text(x, encoding='utf-8'):
+    """Convert input to text string."""
+    if x is None:
+        return u""
+    if isinstance(x, str):
+        return x
+    if isinstance(x, bytes):
+        try:
+            return x.decode(encoding, "replace")
+        except UnicodeDecodeError:
+            return x.decode("latin-1", "replace")
+    return str(x)
+
+def _best_lan_ip():
+    """Get the best LAN IP address."""
+    try:
+        # Try to connect to Google DNS to determine outgoing interface
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("8.8.8.8", 80))
+            return s.getsockname()[0]
+        finally:
+            s.close()
+    except Exception:
+        # Fallback: try to get any non-loopback IP
+        try:
+            hostname = socket.gethostname()
+            return socket.gethostbyname(hostname)
+        except Exception:
+            return "127.0.0.1"
+
+def _listen_urls(scheme, bind_host, port, path, query=""):
+    """Generate listening URLs for all interfaces."""
+    if not path:
+        path = "/"
+    if not path.startswith("/"):
+        path = "/" + path
+    q = ("?" + query.lstrip("?")) if query else ""
+    
+    urls = []
+    if not bind_host or bind_host == "0.0.0.0" or bind_host == "":
+        # Add localhost URL
+        urls.append("%s://127.0.0.1:%d%s%s" % (scheme, port, path, q))
+        
+        # Add LAN IP if available and different from localhost
+        lan_ip = _best_lan_ip()
+        if lan_ip and lan_ip != "127.0.0.1":
+            urls.append("%s://%s:%d%s%s" % (scheme, lan_ip, port, path, q))
+    else:
+        urls.append("%s://%s:%d%s%s" % (scheme, bind_host, port, path, q))
+    
+    return urls
+
+def _parse_kv_headers(qs, prefix="hdr_"):
+    """Parse custom headers from query string."""
+    out = {}
+    for k, v in qs.items():
+        if k.startswith(prefix):
+            hk = k[len(prefix):].replace("_", "-")
+            if isinstance(v, list) and v:
+                out[hk] = _to_text(v[0])
+            elif v:
+                out[hk] = _to_text(v)
+    return out
+
+def _throttle_bps(rate_bps, sent, started):
+    """Sleep to enforce approximate bytes/sec rate."""
+    try:
+        rate_bps = float(rate_bps)
+    except (ValueError, TypeError):
+        return
+    
+    if rate_bps <= 0:
+        return
+    
+    elapsed = max(time.time() - started, 0.001)
+    expected_time = float(sent) / rate_bps
+    
+    if expected_time > elapsed:
+        time.sleep(expected_time - elapsed)
+
+def _hs_token():
+    """Generate a short ASCII token for handshake correlation."""
+    try:
+        return ('%016x' % random.getrandbits(64)).encode('ascii')
+    except Exception:
+        try:
+            return ('%016x' % (int(time.time() * 1000000) ^ os.getpid())).encode('ascii')
+        except Exception:
+            return ('%016x' % int(time.time() * 1000000)).encode('ascii')
+
+def _set_query_param(url, key, value):
+    """Return url with query param key set to value (string)."""
+    try:
+        up = urlparse(url)
+        qs = up.query or ""
+        parts = []
+        
+        # Parse existing query string
+        if qs:
+            for kv in qs.split("&"):
+                if not kv:
+                    continue
+                if "=" in kv:
+                    k, _ = kv.split("=", 1)
+                else:
+                    k = kv
+                if k != key:
+                    parts.append(kv)
+        
+        # Add new parameter
+        parts.append("%s=%s" % (key, value))
+        newq = "&".join(parts)
+        
+        return urlunparse((up.scheme, up.netloc, up.path, up.params, newq, up.fragment))
+    except Exception:
+        return url
+
+def _qflag(qs, key, default=False):
+    """Get boolean flag from query string."""
+    v = qs.get(key, [None])[0]
+    if v is None:
+        return default
+    v = _to_text(v).strip().lower()
+    return v in ("1", "true", "yes", "on", "y", "enable", "enabled")
+
+def _qnum(qs, key, default, cast=int):
+    """Get numeric value from query string."""
+    v = qs.get(key, [None])[0]
+    if v is None or v == "":
+        return default
+    try:
+        return cast(v)
+    except (ValueError, TypeError):
+        try:
+            return cast(_to_text(v))
+        except (ValueError, TypeError):
+            return default
+
+def _qstr(qs, key, default=None):
+    """Get string value from query string."""
+    v = qs.get(key, [None])[0]
+    if v is None:
+        return default
+    return _to_text(v)
+
+def _ensure_dir(d):
+    """Ensure directory exists."""
+    if not d:
+        return
+    if not os.path.isdir(d):
+        try:
+            os.makedirs(d)
+        except (OSError, IOError):
+            pass
+
+def _guess_filename(url):
+    """Guess filename from URL."""
+    p = urlparse(url)
+    bn = os.path.basename(p.path or "")
+    return bn or "download.bin"
+
+def _choose_output_path(fname, overwrite=False, save_dir=None):
+    """Choose output path, avoiding overwrites if not allowed."""
+    if not save_dir:
+        save_dir = "."
+    _ensure_dir(save_dir)
+    
+    base = os.path.join(save_dir, fname)
+    if overwrite or not os.path.exists(base):
+        return base
+    
+    root, ext = os.path.splitext(base)
+    for i in range(1, 10000):
+        cand = "%s.%d%s" % (root, i, ext)
+        if not os.path.exists(cand):
+            return cand
+    
+    return base
+
+def _copy_fileobj_to_path(fileobj, path, overwrite=False):
+    """Copy file-like object to filesystem path."""
+    if (not overwrite) and os.path.exists(path):
+        raise IOError("Refusing to overwrite: %s" % path)
+    
+    _ensure_dir(os.path.dirname(path) or ".")
+    
+    with open(path, "wb") as out:
+        try:
+            fileobj.seek(0, 0)
+        except (AttributeError, IOError):
+            pass
+        shutil.copyfileobj(fileobj, out)
+
+def _net_log(verbose, msg):
+    """Lightweight network debug logging."""
+    if not verbose:
+        return
+    try:
+        sys.stderr.write("[NET] " + str(msg).rstrip() + "\n")
+        sys.stderr.flush()
+    except Exception:
+        pass
+
+def _resolve_wait_timeout(scheme, mode, options):
+    """Resolve effective wait timeout for sender-side wait/handshake."""
+    wt = options.get("wait_timeout", None)
+    if wt is not None:
+        try:
+            return float(wt)
+        except (ValueError, TypeError):
+            return wt
+    
+    if options.get("wait_forever"):
+        return None
+    
+    tt = options.get("total_timeout", 0.0)
+    try:
+        if tt not in (None, 0, 0.0) and float(tt) > 0.0:
+            return float(tt)
+    except (ValueError, TypeError):
+        pass
+    
+    if scheme == "udp" and (mode or "seq") == "raw":
+        return None
+    
+    return options.get("timeout", None)
+
+# --------------------------
+# File-like Object Management
+# --------------------------
+
+def MkTempFile(data=None,
+               inmem=__use_inmem__, usememfd=__use_memfd__,
+               isbytes=True,
+               prefix=__program_name__,
+               delete=True,
+               encoding="utf-8",
+               newline=None,
+               text_errors="strict",
+               dir=None,
+               suffix="",
+               use_spool=__use_spoolfile__,
+               autoswitch_spool=False,
+               spool_max=__spoolfile_size__,
+               spool_dir=__use_spooldir__,
+               reset_to_start=True,
+               memfd_name=__program_name__,
+               memfd_allow_sealing=False,
+               memfd_flags_extra=0,
+               on_create=None):
+    """
+    Return a file-like handle with consistent behavior on Py2.7 and Py3.x.
+
+    Storage:
+      - inmem=True, usememfd=True, isbytes=True and memfd available
+            -> memfd-backed anonymous file (binary)
+      - inmem=True, otherwise
+            -> BytesIO (bytes) or StringIO (text)
+      - inmem=False, use_spool=True
+            -> SpooledTemporaryFile (binary), optionally TextIOWrapper for text
+      - inmem=False, use_spool=False
+            -> NamedTemporaryFile (binary), optionally TextIOWrapper for text
+
+    Text vs bytes:
+      - isbytes=True  -> file expects bytes; 'data' must be bytes-like (or str which will be encoded)
+      - isbytes=False -> file expects text; 'data' must be text (or bytes which will be decoded)
+
+    Notes:
+      - On Windows, NamedTemporaryFile(delete=True) keeps the file open and cannot be reopened by
+        other processes. Use delete=False if you need to pass the path elsewhere.
+      - For text: in-memory StringIO ignores 'newline' and 'text_errors' (as usual).
+      - When available, and if usememfd=True, memfd is used only for inmem=True and isbytes=True
+        (Linux-only).
+      - If autoswitch_spool=True and initial data size exceeds spool_max, in-memory storage is
+        skipped and a spooled file is used instead (if use_spool=True).
+      - If on_create is not None, it is called as on_create(fp, kind) where kind is one of:
+        "memfd", "bytesio", "stringio", "spool", "disk".
+    """
+
+    # ---- sanitize params (avoid None surprises) ----
+    prefix = prefix or ""
+    suffix = suffix or ""
+    # dir/spool_dir may be None (allowed)
+
+    # ---- normalize initial data to the right type early ----
+    init = None
+    if data is not None:
+        if isbytes:
+            # Require bytes-like; allow common safe conversions
+            if isinstance(data, binary_types):
+                # bytes / bytearray / memoryview
+                init = bytes(data) if not isinstance(data, bytes) else data
+            elif isinstance(data, text_type):
+                init = data.encode(encoding)
+            else:
+                raise TypeError("data must be bytes-like for isbytes=True")
+        else:
+            # Require text; allow decoding from bytes-like
+            if isinstance(data, binary_types):
+                # NOTE: preserve original behavior: STRICT decode here (not text_errors)
+                init = bytes(data).decode(encoding, errors="strict")
+            elif isinstance(data, text_type):
+                init = data
+            else:
+                raise TypeError("data must be text (str/unicode) for isbytes=False")
+
+    init_len = len(init) if (init is not None and isbytes) else None
+
+    # ---- helper: callback ----
+    def _created(fp, kind):
+        if on_create is not None:
+            on_create(fp, kind)
+
+    # ---- helper: wrap binary handle as text with encoding/newline/errors ----
+    def _wrap_text(binary_handle):
+        # Prefer TextIOWrapper when available/usable.
+        # In Py2, io.TextIOWrapper exists and works with binary handles.
+        return io.TextIOWrapper(binary_handle, encoding=encoding,
+                                newline=newline, errors=text_errors)
+
+    # =========================
+    # In-memory branch
+    # =========================
+    if inmem:
+        # optional autoswitch to spool for large initial bytes payload
+        if autoswitch_spool and use_spool and init_len is not None and init_len > spool_max:
+            # fall through to spool/disk branches below
+            pass
+        else:
+            # memfd only for bytes and only where available (Linux + Python that exposes it)
+            memfd_create = getattr(os, "memfd_create", None)
+            if usememfd and isbytes and callable(memfd_create):
+                name = memfd_name or prefix or "MkTempFile"
+                flags = 0
+                # Close-on-exec is almost always what you want for temps
+                if hasattr(os, "MFD_CLOEXEC"):
+                    flags |= os.MFD_CLOEXEC
+                # Optional sealing support
+                if memfd_allow_sealing and hasattr(os, "MFD_ALLOW_SEALING"):
+                    flags |= os.MFD_ALLOW_SEALING
+                if memfd_flags_extra:
+                    flags |= int(memfd_flags_extra)
+
+                fd = memfd_create(name, flags)
+                f = os.fdopen(fd, "w+b")
+                if init is not None:
+                    f.write(init)
+                if reset_to_start:
+                    f.seek(0)
+                _created(f, "memfd")
+                return f
+
+            # Fallback: pure-Python in-memory objects
+            if isbytes:
+                f = io.BytesIO(init if init is not None else b"")
+                if reset_to_start:
+                    f.seek(0)
+                _created(f, "bytesio")
+                return f
+            else:
+                # StringIO ignores newline/text_errors by design
+                f = io.StringIO(init if init is not None else u"")
+                if reset_to_start:
+                    f.seek(0)
+                _created(f, "stringio")
+                return f
+
+    # =========================
+    # Spooled (RAM then disk)
+    # =========================
+    if use_spool:
+        # Always create binary spooled file; wrap for text if needed
+        b = tempfile.SpooledTemporaryFile(max_size=spool_max, mode="w+b", dir=spool_dir)
+        f = b if isbytes else _wrap_text(b)
+        if init is not None:
+            f.write(init)
+        if reset_to_start:
+            f.seek(0)
+        _created(f, "spool")
+        return f
+
+    # =========================
+    # On-disk temp (NamedTemporaryFile)
+    # =========================
+    b = tempfile.NamedTemporaryFile(mode="w+b", prefix=prefix, suffix=suffix, dir=dir, delete=delete)
+    f = b if isbytes else _wrap_text(b)
+    if init is not None:
+        f.write(init)
+    if reset_to_start:
+        f.seek(0)
+    _created(f, "disk")
+    return f
+
+# --------------------------
+# FTP Protocol Implementation
+# --------------------------
+
+def detect_cwd(ftp, file_dir):
+    """
+    Test whether CWD into file_dir works.
+    Returns True if it does, False if not (so absolute paths should be used).
+    """
+    if not file_dir or file_dir in ("/", "", "."):
+        return False  # nothing to CWD into
+    
+    try:
+        # Save current directory
+        orig_pwd = ftp.pwd()
+        ftp.cwd(file_dir)
+        # Restore original directory
+        ftp.cwd(orig_pwd)
+        return True
+    except Exception:
+        return False
+
+def _ftp_login(ftp, user, pw):
+    """Handle FTP login with proper defaults."""
+    if user is None:
+        user = "anonymous"
+    if pw is None:
+        pw = "anonymous@example.com" if user == "anonymous" else ""
+    
+    ftp.login(user, pw)
+
+def download_file_from_ftp_file(url):
+    """Download file from FTP/FTPS server."""
+    p = urlparse(url)
+    if p.scheme not in ("ftp", "ftps"):
+        return False
+    if p.scheme == "ftps" and not ftpssl:
+        return False
+    
+    host = p.hostname
+    port = p.port or 21
+    user = p.username
+    pw = p.password
+    path = p.path or "/"
+    file_dir = os.path.dirname(path)
+    
+    try:
+        if p.scheme == "ftps":
+            ftp = FTP_TLS()
+        else:
+            ftp = FTP()
+        
+        ftp.connect(host, port, timeout=10)
+        _ftp_login(ftp, user, pw)
+        
+        if p.scheme == "ftps":
+            try:
+                ftp.prot_p()  # Switch to secure data connection
+            except Exception:
+                pass
+        
+        # Try CWD into directory
+        use_cwd = detect_cwd(ftp, file_dir)
+        retr_path = os.path.basename(path) if use_cwd else path
+        
+        bio = BytesIO()
+        
+        def callback(data):
+            bio.write(data)
+        
+        ftp.retrbinary("RETR " + retr_path, callback)
+        ftp.quit()
+        
+        bio.seek(0, 0)
+        return bio
+    except Exception as e:
+        _net_log(True, "FTP download error: %s" % str(e))
+        try:
+            ftp.close()
+        except Exception:
+            pass
+        return False
+
+def download_file_from_ftp_string(url):
+    """Download file from FTP/FTPS as string."""
+    fp = download_file_from_ftp_file(url)
+    return fp.read() if fp else False
+
+def upload_file_to_ftp_file(fileobj, url):
+    """Upload file to FTP/FTPS server."""
+    p = urlparse(url)
+    if p.scheme not in ("ftp", "ftps"):
+        return False
+    if p.scheme == "ftps" and not ftpssl:
+        return False
+    
+    host = p.hostname
+    port = p.port or 21
+    user = p.username
+    pw = p.password
+    path = p.path or "/"
+    file_dir = os.path.dirname(path)
+    fname = os.path.basename(path) or "upload.bin"
+    
+    try:
+        if p.scheme == "ftps":
+            ftp = FTP_TLS()
+        else:
+            ftp = FTP()
+        
+        ftp.connect(host, port, timeout=10)
+        _ftp_login(ftp, user, pw)
+        
+        if p.scheme == "ftps":
+            try:
+                ftp.prot_p()
+            except Exception:
+                pass
+        
+        # Try CWD into directory
+        use_cwd = detect_cwd(ftp, file_dir)
+        stor_path = fname if use_cwd else path
+        
+        try:
+            fileobj.seek(0, 0)
+        except Exception:
+            pass
+        
+        ftp.storbinary("STOR " + stor_path, fileobj)
+        ftp.quit()
+        
+        try:
+            fileobj.seek(0, 0)
+        except Exception:
+            pass
+        
+        return fileobj
+    except Exception as e:
+        _net_log(True, "FTP upload error: %s" % str(e))
+        try:
+            ftp.close()
+        except Exception:
+            pass
+        return False
+
+def upload_file_to_ftp_string(data, url):
+    """Upload string to FTP/FTPS server."""
+    bio = BytesIO(_to_bytes(data))
+    out = upload_file_to_ftp_file(bio, url)
+    try:
+        bio.close()
+    except Exception:
+        pass
+    return out
+
+# --------------------------
+# SFTP Protocol Implementation
+# --------------------------
+
+def _sftp_connect(url):
+    """Connect to SFTP server, return (client, sftp) or (None, None)."""
+    if not haveparamiko:
+        return None, None
+    
+    p = urlparse(url)
+    if p.scheme not in ("sftp", "scp"):
+        return None, None
+    
+    host = p.hostname
+    port = p.port or 22
+    user = p.username or "anonymous"
+    pw = p.password or ("anonymous" if user == "anonymous" else "")
+    
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        
+        # Try key-based auth first if no password
+        if not pw:
+            try:
+                # Try default key locations
+                default_keys = [
+                    os.path.expanduser("~/.ssh/id_rsa"),
+                    os.path.expanduser("~/.ssh/id_dsa"),
+                    os.path.expanduser("~/.ssh/id_ecdsa"),
+                    os.path.expanduser("~/.ssh/id_ed25519"),
+                ]
+                for key_path in default_keys:
+                    if os.path.exists(key_path):
+                        try:
+                            ssh.connect(host, port=port, username=user, 
+                                       key_filename=key_path, timeout=10)
+                            break
+                        except Exception:
+                            continue
+                else:
+                    # No key worked, try without auth
+                    ssh.connect(host, port=port, username=user, timeout=10)
+            except Exception:
+                ssh.connect(host, port=port, username=user, password="", timeout=10)
+        else:
+            ssh.connect(host, port=port, username=user, password=pw, timeout=10)
+        
+        sftp = ssh.open_sftp()
+        return ssh, sftp
+    except Exception as e:
+        _net_log(True, "SFTP connect error: %s" % str(e))
+        try:
+            ssh.close()
+        except Exception:
+            pass
+        return None, None
+
+def download_file_from_sftp_file(url):
+    """Download file from SFTP server."""
+    ssh, sftp = _sftp_connect(url)
+    if not sftp:
+        return False
+    
+    p = urlparse(url)
+    path = p.path or "/"
+    
+    try:
+        bio = BytesIO()
+        
+        # Get file size for progress reporting
+        try:
+            file_size = sftp.stat(path).st_size
+        except Exception:
+            file_size = 0
+        
+        # Download in chunks
+        with sftp.open(path, 'rb') as remote_file:
+            while True:
+                chunk = remote_file.read(65536)
+                if not chunk:
+                    break
+                bio.write(chunk)
+        
+        sftp.close()
+        ssh.close()
+        
+        bio.seek(0, 0)
+        return bio
+    except Exception as e:
+        _net_log(True, "SFTP download error: %s" % str(e))
+        try:
+            sftp.close()
+        except Exception:
+            pass
+        try:
+            ssh.close()
+        except Exception:
+            pass
+        return False
+
+def download_file_from_sftp_string(url):
+    """Download file from SFTP as string."""
+    fp = download_file_from_sftp_file(url)
+    return fp.read() if fp else False
+
+def upload_file_to_sftp_file(fileobj, url):
+    """Upload file to SFTP server."""
+    ssh, sftp = _sftp_connect(url)
+    if not sftp:
+        return False
+    
+    p = urlparse(url)
+    path = p.path or "/"
+    
+    try:
+        # Ensure parent directory exists
+        dir_path = os.path.dirname(path)
+        if dir_path and dir_path != "/":
+            try:
+                sftp.makedirs(dir_path)
+            except Exception:
+                pass
+        
+        try:
+            fileobj.seek(0, 0)
+        except Exception:
+            pass
+        
+        # Upload in chunks
+        with sftp.open(path, 'wb') as remote_file:
+            while True:
+                chunk = fileobj.read(65536)
+                if not chunk:
+                    break
+                remote_file.write(chunk)
+        
+        sftp.close()
+        ssh.close()
+        
+        try:
+            fileobj.seek(0, 0)
+        except Exception:
+            pass
+        
+        return fileobj
+    except Exception as e:
+        _net_log(True, "SFTP upload error: %s" % str(e))
+        try:
+            sftp.close()
+        except Exception:
+            pass
+        try:
+            ssh.close()
+        except Exception:
+            pass
+        return False
+
+def upload_file_to_sftp_string(data, url):
+    """Upload string to SFTP server."""
+    bio = BytesIO(_to_bytes(data))
+    out = upload_file_to_sftp_file(bio, url)
+    try:
+        bio.close()
+    except Exception:
+        pass
+    return out
+
+# --------------------------
+# Pysftp Compatibility Layer
+# --------------------------
+
+def download_file_from_pysftp_file(url):
+    """Download using pysftp if available."""
+    if not havepysftp:
+        return False
+    # Delegate to paramiko implementation for consistency
+    return download_file_from_sftp_file(url)
+
+def download_file_from_pysftp_string(url):
+    """Download string using pysftp."""
+    fp = download_file_from_pysftp_file(url)
+    return fp.read() if fp else False
+
+def upload_file_to_pysftp_file(fileobj, url):
+    """Upload using pysftp."""
+    if not havepysftp:
+        return False
+    return upload_file_to_sftp_file(fileobj, url)
+
+def upload_file_to_pysftp_string(data, url):
+    """Upload string using pysftp."""
+    if not havepysftp:
+        return False
+    return upload_file_to_sftp_string(data, url)
+
+# --------------------------
+# HTTP Protocol Implementation
+# --------------------------
+
+def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
+    """Download file from HTTP/HTTPS server."""
+    if headers is None:
+        headers = {}
+    
+    p = urlparse(url)
+    
+    # Extract auth from URL
+    username = unquote(p.username) if p.username else None
+    password = unquote(p.password) if p.password else None
+    
+    # Remove auth from URL for libraries that don't support URL auth
+    netloc = p.hostname or ""
+    if p.port:
+        netloc += ":" + str(p.port)
+    rebuilt_url = urlunparse((p.scheme, netloc, p.path, p.params, p.query, p.fragment))
+    
+    # Parse query string for resume options
+    qs = parse_qs(p.query or "")
+    resume = _qflag(qs, "resume", False)
+    resume_to = _qstr(qs, "resume_to", None)
+    
+    # Handle resume
+    httpfile = MkTempFile()
+    resume_off = 0
+    
+    if resume and resume_to:
+        try:
+            if os.path.exists(resume_to):
+                httpfile = open(resume_to, "ab+")
+                httpfile.seek(0, 2)
+                resume_off = httpfile.tell()
+            else:
+                _ensure_dir(os.path.dirname(resume_to) or ".")
+                httpfile = open(resume_to, "wb+")
+                resume_off = 0
+        except Exception:
+            httpfile = MkTempFile()
+            resume_off = 0
+    
+    if resume_off and "Range" not in headers and "range" not in headers:
+        headers["Range"] = "bytes=%d-" % resume_off
+    
+    try:
+        # Requests library
+        if usehttp == "requests" and haverequests:
+            auth = (username, password) if (username and password) else None
+            r = requests.get(rebuilt_url, headers=headers, auth=auth, 
+                            stream=True, timeout=(5, 60))
+            r.raise_for_status()
+            
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:
+                    httpfile.write(chunk)
+        
+        # HTTPX library
+        elif usehttp == "httpx" and havehttpx:
+            with httpx.Client(follow_redirects=True, timeout=60.0) as client:
+                auth = (username, password) if (username and password) else None
+                r = client.get(rebuilt_url, headers=headers, auth=auth)
+                r.raise_for_status()
+                
+                for chunk in r.iter_bytes():
+                    if chunk:
+                        httpfile.write(chunk)
+        
+        # Mechanize library
+        elif usehttp == "mechanize" and havemechanize:
+            br = mechanize.Browser()
+            br.set_handle_robots(False)
+            
+            if headers:
+                br.addheaders = list(headers.items())
+            
+            if username and password:
+                br.add_password(rebuilt_url, username, password)
+            
+            resp = br.open(rebuilt_url)
+            shutil.copyfileobj(resp, httpfile)
+        
+        # urllib fallback
+        else:
+            req = Request(rebuilt_url, headers=headers)
+            
+            if username and password:
+                mgr = HTTPPasswordMgrWithDefaultRealm()
+                mgr.add_password(None, rebuilt_url, username, password)
+                opener = build_opener(HTTPBasicAuthHandler(mgr))
+            else:
+                opener = build_opener()
+            
+            resp = opener.open(req, timeout=60)
+            shutil.copyfileobj(resp, httpfile)
+        
+        try:
+            httpfile.seek(0, 0)
+        except Exception:
+            pass
+        
+        return httpfile
+    
+    except Exception as e:
+        _net_log(True, "HTTP download error: %s" % str(e))
+        try:
+            httpfile.close()
+        except Exception:
+            pass
+        return False
+
+def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__):
+    """Download from HTTP/HTTPS as string."""
+    fp = download_file_from_http_file(url, headers=headers, usehttp=usehttp)
+    return fp.read() if fp else False
+
+# --------------------------
+# UDP Packet Utilities
+# --------------------------
+
+def _u_pack(flags, seq, total):
+    """Pack UDP packet header."""
+    return struct.pack(UDP_HEADER_FORMAT, UDP_MAGIC, UDP_VERSION, 
+                      int(flags) & 0xFF, int(seq) & 0xFFFFFFFF, 
+                      int(total) & 0xFFFFFFFFFFFFFFFF)
+
+def _u_unpack(pkt):
+    """Unpack UDP packet header."""
+    if not pkt or len(pkt) < UDP_HEADER_LEN:
+        return None
+    
+    try:
+        magic, ver, flags, seq, total = struct.unpack(UDP_HEADER_FORMAT, 
+                                                     pkt[:UDP_HEADER_LEN])
+        if magic != UDP_MAGIC or ver != UDP_VERSION:
+            return None
+        return (flags, seq, total, pkt[UDP_HEADER_LEN:])
+    except struct.error:
+        return None
+
+# --------------------------
+# Network URL Parsing
+# --------------------------
+
+def _parse_net_url(url):
+    """Parse network URL (TCP/UDP) with all options."""
+    p = urlparse(url)
+    qs = parse_qs(p.query or "")
+    
+    # Determine mode
+    if p.scheme == "udp":
+        mode = _qstr(qs, "mode", "seq").lower()
+    else:
+        mode = _qstr(qs, "mode", "raw").lower()
+    
+    # Timeout settings
+    has_timeout = "timeout" in qs
+    if p.scheme == "tcp" and not has_timeout:
+        timeout = None
+    else:
+        timeout = float(_qnum(qs, "timeout", 
+                            1.0 if p.scheme == "udp" else 30.0, cast=float))
+    
+    # Parse all options
+    options = {
+        "mode": mode,
+        "timeout": timeout,
+        "accept_timeout": float(_qnum(qs, "accept_timeout", 
+                                    0.0 if p.scheme == "tcp" else (timeout or 0.0), 
+                                    cast=float)),
+        "total_timeout": float(_qnum(qs, "total_timeout", 0.0, cast=float)),
+        "window": int(_qnum(qs, "window", DEFAULT_WINDOW_SIZE, cast=int)),
+        "retries": int(_qnum(qs, "retries", DEFAULT_RETRIES, cast=int)),
+        "chunk": int(_qnum(qs, "chunk", 
+                          DEFAULT_UDP_CHUNK if p.scheme == "udp" else DEFAULT_CHUNK_SIZE, 
+                          cast=int)),
+        "print_url": _qflag(qs, "print_url", False),
+        "wait": _qflag(qs, "wait", p.scheme == "udp" and mode == "raw"),
+        "connect_wait": _qflag(qs, "connect_wait", p.scheme == "tcp"),
+        "handshake": _qflag(qs, "handshake", p.scheme in ("tcp", "udp")),
+        "hello_interval": float(_qnum(qs, "hello_interval", 0.1, cast=float)),
+        "wait_timeout": _qnum(qs, "wait_timeout", None, cast=float),
+        "wait_forever": _qflag(qs, "wait_forever", False),
+        "verbose": _qflag(qs, "verbose", False) or _qflag(qs, "debug", False),
+        "bind": _qstr(qs, "bind", None),
+        "resume": _qflag(qs, "resume", False),
+        "resume_to": _qstr(qs, "resume_to", None),
+        "save": _qflag(qs, "save", False),
+        "overwrite": _qflag(qs, "overwrite", False),
+        "save_dir": _qstr(qs, "save_dir", None),
+        "done": _qflag(qs, "done", False),
+        "done_token": _qstr(qs, "done_token", None),
+        "framing": _qstr(qs, "framing", None),
+        "sha256": _qflag(qs, "sha256", False) or _qflag(qs, "sha", False),
+        "raw_meta": _qflag(qs, "raw_meta", True),
+        "raw_ack": _qflag(qs, "raw_ack", False),
+        "raw_ack_timeout": _qnum(qs, "raw_ack_timeout", 0.5, cast=float),
+        "raw_ack_retries": int(_qnum(qs, "raw_ack_retries", 40, cast=int)),
+        "raw_ack_window": max(1, int(_qnum(qs, "raw_ack_window", 1, cast=int))),
+        "raw_sha": _qflag(qs, "raw_sha", False),
+        "raw_hash": _qstr(qs, "raw_hash", "sha256"),
+        "idle_timeout": _qnum(qs, "idle_timeout", None, cast=float),
+        "end_timeout": _qnum(qs, "end_timeout", 0.25, cast=float),
+    }
+    
+    return p, options
+
+# --------------------------
+# TCP/UDP Receiver Implementation
+# --------------------------
+
+def recv_to_fileobj(fileobj, host, port, proto="tcp", path_text=None, **kwargs):
+    """
+    Receive bytes into fileobj.
+    
+    TCP modes:
+      - Default: stream until FIN
+      - framing=len: read length header then exactly N bytes
+      - sha256=1 with framing=len: verify trailing digest
+      - resume=1: send OFFSET <n> and sender seeks before streaming
+    
+    UDP modes:
+      - raw: receive until DONE or timeout
+      - seq: reliable with ACK/DONE and optional RESUME
+    """
+    proto = (proto or "tcp").lower()
+    port = int(port)
+    
+    if proto == "tcp":
+        return _tcp_recv(fileobj, host, port, path_text, **kwargs)
+    else:
+        mode = (kwargs.get("mode") or "seq").lower()
+        if mode == "raw":
+            return _udp_raw_recv(fileobj, host, port, **kwargs)
+        else:
+            return _udp_seq_recv(fileobj, host, port, **kwargs)
+
+def _tcp_recv(fileobj, host, port, path_text, **kwargs):
+    """TCP receiver implementation."""
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
+    try:
+        # Set socket options
+        try:
+            srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        except Exception:
+            pass
+        
+        srv.bind((host or "", port))
+        srv.listen(1)
+        
+        chosen_port = srv.getsockname()[1]
+        
+        # Print listening URLs if requested
+        if kwargs.get("print_url"):
+            path = path_text or "/"
+            bind_host = host or "0.0.0.0"
+            for u in _listen_urls("tcp", bind_host, chosen_port, path, ""):
+                sys.stdout.write("Listening: %s\n" % u)
+            sys.stdout.flush()
+        
+        # Set accept timeout
+        timeout = kwargs.get("timeout")
+        accept_timeout = kwargs.get("accept_timeout")
+        idle_timeout = kwargs.get("idle_timeout")
+        
+        if idle_timeout is not None and float(idle_timeout) > 0:
+            srv.settimeout(float(idle_timeout))
+        elif accept_timeout is not None and float(accept_timeout) > 0:
+            srv.settimeout(float(accept_timeout))
+        elif timeout is not None and float(timeout) > 0:
+            srv.settimeout(float(timeout))
+        else:
+            srv.settimeout(None)  # Wait forever
+        
+        # Accept connection
+        try:
+            conn, addr = srv.accept()
+            _net_log(kwargs.get("verbose"), "TCP connection from %s:%d" % addr)
+        except socket.timeout:
+            _net_log(kwargs.get("verbose"), "TCP accept timeout")
+            return False
+        except KeyboardInterrupt:
+            raise
+        except Exception as e:
+            _net_log(kwargs.get("verbose"), "TCP accept error: %s" % str(e))
+            return False
+        
+        # Set connection timeout
+        if timeout is not None and float(timeout) > 0:
+            conn.settimeout(float(timeout))
+        
+        # Optional handshake
+        if kwargs.get("handshake", True):
+            _tcp_handshake(conn, kwargs.get("verbose"))
+        
+        # Consume PATH line if present
+        _tcp_consume_path(conn, kwargs.get("verbose"))
+        
+        # Resume handshake
+        if kwargs.get("resume"):
+            _tcp_resume_handshake(fileobj, conn, kwargs.get("verbose"))
+        
+        # Receive data
+        framing = (kwargs.get("framing") or "").lower()
+        want_sha = bool(kwargs.get("sha256") or kwargs.get("sha"))
+        
+        if framing == "len":
+            success = _tcp_receive_framed(fileobj, conn, want_sha, kwargs.get("verbose"))
+        else:
+            success = _tcp_receive_stream(fileobj, conn, kwargs, kwargs.get("verbose"))
+        
+        # Cleanup
+        try:
+            conn.close()
+        except Exception:
+            pass
+        
+        if success:
+            try:
+                fileobj.seek(0, 0)
+            except Exception:
+                pass
+            return True
+        else:
+            return False
+    
+    finally:
+        try:
+            srv.close()
+        except Exception:
+            pass
+
+def _tcp_handshake(conn, verbose):
+    """Perform TCP handshake (HELLO/READY)."""
+    try:
+        conn.settimeout(0.25)
+        
+        # Peek to see if HELLO is present
+        try:
+            if hasattr(socket, "MSG_PEEK"):
+                peekh = conn.recv(6, socket.MSG_PEEK)
+            else:
+                # No MSG_PEEK, just try to read
+                conn.settimeout(0.1)
+                peekh = conn.recv(6)
+                if peekh == b"HELLO ":
+                    # Put it back by sending to ourselves? Can't easily undo.
+                    # For simplicity, we'll handle it differently.
+                    pass
+                else:
+                    # Not HELLO, restore timeout and continue
+                    return
+        except socket.timeout:
+            return
+        except Exception:
+            return
+        
+        if peekh == b"HELLO ":
+            # Read the full HELLO line
+            line = b""
+            conn.settimeout(0.5)
+            while True:
+                b = conn.recv(1)
+                if not b or b == b"\n" or len(line) > 4096:
+                    break
+                line += b
+            
+            # Parse token
+            parts = line.strip().split(None, 1)
+            token = parts[1] if len(parts) > 1 else b""
+            
+            # Send READY response
+            try:
+                conn.sendall(b"READY " + token + b"\n")
+            except Exception:
+                pass
+    
+    except Exception:
+        pass
+
+def _tcp_consume_path(conn, verbose):
+    """Consume PATH line if present."""
+    try:
+        conn.settimeout(0.25)
+        
+        # Peek for PATH
+        try:
+            if hasattr(socket, "MSG_PEEK"):
+                peek = conn.recv(5, socket.MSG_PEEK)
+            else:
+                peek = conn.recv(5)
+                if peek != b"PATH ":
+                    # Not PATH, put back (can't actually do this easily)
+                    return
+        except socket.timeout:
+            return
+        
+        if peek == b"PATH ":
+            # Read the PATH line
+            line = b""
+            while True:
+                b = conn.recv(1)
+                if not b or b == b"\n" or len(line) > 4096:
+                    break
+                line += b
+    
+    except Exception:
+        pass
+
+def _tcp_resume_handshake(fileobj, conn, verbose):
+    """Perform resume handshake."""
+    try:
+        cur_pos = fileobj.tell()
+    except Exception:
+        cur_pos = 0
+    
+    try:
+        msg = ("OFFSET %d\n" % cur_pos).encode("utf-8")
+        conn.sendall(msg)
+        _net_log(verbose, "Sent OFFSET %d" % cur_pos)
+    except Exception:
+        pass
+
+def _tcp_receive_framed(fileobj, conn, want_sha, verbose):
+    """Receive framed data with length header."""
+    try:
+        # Read header: b"PWG4" + uint64 size + uint32 flags
+        header = b""
+        while len(header) < TCP_HEADER_LEN:
+            chunk = conn.recv(TCP_HEADER_LEN - len(header))
+            if not chunk:
+                break
+            header += _to_bytes(chunk)
+        
+        if len(header) != TCP_HEADER_LEN or not header.startswith(TCP_MAGIC):
+            _net_log(verbose, "Invalid framing header")
+            return False
+        
+        # Parse header
+        size = struct.unpack("!Q", header[4:12])[0]
+        flags = struct.unpack("!I", header[12:16])[0]
+        sha_in_stream = bool(flags & 1)
+        remaining = int(size)
+        
+        # Initialize hash if needed
+        h = hashlib.sha256() if (want_sha or sha_in_stream) else None
+        
+        # Receive payload
+        while remaining > 0:
+            chunk = conn.recv(min(DEFAULT_CHUNK_SIZE, remaining))
+            if not chunk:
+                break
+            
+            fileobj.write(chunk)
+            if h is not None:
+                h.update(chunk)
+            
+            remaining -= len(chunk)
+        
+        if remaining != 0:
+            _net_log(verbose, "Incomplete framed transfer")
+            return False
+        
+        # Verify SHA if present in stream
+        if sha_in_stream:
+            digest = b""
+            while len(digest) < 32:
+                part = conn.recv(32 - len(digest))
+                if not part:
+                    break
+                digest += _to_bytes(part)
+            
+            if len(digest) != 32:
+                _net_log(verbose, "Missing or incomplete SHA256 digest")
+                return False
+            
+            if h is not None and h.digest() != digest:
+                _net_log(verbose, "SHA256 verification failed")
+                return False
+        
+        # If user wanted SHA but sender didn't provide it
+        if want_sha and not sha_in_stream:
+            _net_log(verbose, "SHA256 requested but not provided by sender")
+            return False
+        
+        return True
+    
+    except Exception as e:
+        _net_log(verbose, "Framed receive error: %s" % str(e))
+        return False
+
+def _tcp_receive_stream(fileobj, conn, kwargs, verbose):
+    """Receive streaming data (plain or DONE-token mode)."""
+    done = bool(kwargs.get("done"))
+    tok = kwargs.get("done_token") or "\nDONE\n"
+    tokb = _to_bytes(tok)
+    tlen = len(tokb)
+    tail = b""
+    
+    h = None
+    if kwargs.get("sha256") or kwargs.get("sha"):
+        h = hashlib.sha256()
+    
+    try:
+        while True:
+            try:
+                chunk = conn.recv(DEFAULT_CHUNK_SIZE)
+            except socket.timeout:
+                continue
+            except Exception:
+                break
+            
+            if not chunk:
+                break
+            
+            chunk = _to_bytes(chunk)
+            
+            if not done:
+                fileobj.write(chunk)
+                if h is not None:
+                    h.update(chunk)
+                continue
+            
+            # DONE token mode
+            buf = tail + chunk
+            
+            if tlen and buf.endswith(tokb):
+                # Found DONE token
+                if len(buf) > tlen:
+                    fileobj.write(buf[:-tlen])
+                    if h is not None:
+                        h.update(buf[:-tlen])
+                tail = b""
+                break
+            
+            if tlen and len(buf) > tlen:
+                # Write all but last tlen bytes (could contain partial token)
+                fileobj.write(buf[:-tlen])
+                if h is not None:
+                    h.update(buf[:-tlen])
+                tail = buf[-tlen:]
+            else:
+                tail = buf
+        
+        # Write any remaining data
+        if done and tail:
+            fileobj.write(tail)
+            if h is not None:
+                h.update(tail)
+        
+        return True
+    
+    except Exception as e:
+        _net_log(verbose, "Stream receive error: %s" % str(e))
+        return False
+
+# --------------------------
+# UDP Raw Receiver
+# --------------------------
+
+def _udp_raw_recv(fileobj, host, port, **kwargs):
+    """Raw UDP receiver implementation."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    
+    try:
+        sock.bind((host or "", int(port)))
+        
+        # Print listening URL
+        if kwargs.get("print_url"):
+            sys.stdout.write("Listening: udp://%s:%d/\n" % 
+                           (host or "0.0.0.0", sock.getsockname()[1]))
+            sys.stdout.flush()
+        
+        # Configure socket
+        timeout = float(kwargs.get("timeout", 1.0))
+        end_timeout = float(kwargs.get("end_timeout", 0.25))
+        sock.settimeout(timeout)
+        
+        # Setup for optional features
+        want_sha = bool(kwargs.get("raw_sha", False))
+        raw_hash = (kwargs.get("raw_hash", "sha256") or "sha256").lower()
+        
+        hasher = None
+        expected_hex = None
+        if want_sha:
+            if raw_hash == "md5":
+                hasher = hashlib.md5()
+            else:
+                hasher = hashlib.sha256()
+        
+        want_ack = bool(kwargs.get("raw_ack") or kwargs.get("want_ack"))
+        exp_seq = 0
+        bytes_written = 0
+        
+        expected = None
+        received = 0
+        saw_any = False
+        last = time.time()
+        
+        sender_addr = None
+        
+        while True:
+            try:
+                pkt, addr = sock.recvfrom(65536)
+                sender_addr = addr  # Remember sender for replies
+                saw_any = True
+                last = time.time()
+                
+                # Handshake: HELLO
+                if kwargs.get("handshake", True) and pkt.startswith(b"HELLO "):
+                    parts = pkt.split(None, 1)
+                    token = parts[1].strip() if len(parts) > 1 else b""
+                    try:
+                        sock.sendto(b"READY " + token + b"\n", addr)
+                    except Exception:
+                        pass
+                    continue
+                
+                # META packet (length announcement)
+                if expected is None and pkt.startswith(b"META "):
+                    try:
+                        line = pkt.split(b"\n", 1)[0]
+                        expected = int(line.split()[1])
+                        # Acknowledge META
+                        try:
+                            sock.sendto(b"READY\n", addr)
+                        except Exception:
+                            pass
+                    except Exception:
+                        pass
+                    continue
+                
+                # HASH packet (checksum announcement)
+                if pkt.startswith(b"HASH "):
+                    try:
+                        line = pkt.split(b"\n", 1)[0]
+                        parts = line.split()
+                        if len(parts) >= 3:
+                            algo = parts[1].decode("ascii", "ignore").lower()
+                            hx = parts[2].decode("ascii", "ignore")
+                            expected_hex = hx
+                            if not want_sha:
+                                want_sha = True
+                            raw_hash = algo or raw_hash
+                            if raw_hash == "md5":
+                                hasher = hashlib.md5()
+                            else:
+                                hasher = hashlib.sha256()
+                    except Exception:
+                        pass
+                    continue
+                
+                # DONE packet
+                if pkt == b"DONE":
+                    break
+                
+                # Reliable mode (Go-Back-N)
+                if want_ack and pkt.startswith(b"PKT "):
+                    try:
+                        parts = pkt.split(b" ", 2)
+                        seq = int(parts[1])
+                        payload = parts[2] if len(parts) > 2 else b""
+                    except Exception:
+                        seq = -1
+                        payload = b""
+                    
+                    # Accept in-order packets only
+                    if seq == exp_seq:
+                        fileobj.write(payload)
+                        if hasher is not None:
+                            hasher.update(payload)
+                        bytes_written += len(payload)
+                        exp_seq += 1
+                    
+                    # Send ACK for last in-order packet
+                    try:
+                        sock.sendto(b"ACK " + str(exp_seq - 1).encode("ascii") + b"\n", addr)
+                    except Exception:
+                        pass
+                    continue
+                
+                # Normal raw packet processing
+                if expected is None:
+                    # No expected length, just write everything
+                    fileobj.write(pkt)
+                    if hasher is not None:
+                        hasher.update(pkt)
+                else:
+                    # Have expected length, write up to that amount
+                    remain = expected - received
+                    if remain <= 0:
+                        break
+                    
+                    if len(pkt) <= remain:
+                        fileobj.write(pkt)
+                        if hasher is not None:
+                            hasher.update(pkt)
+                        received += len(pkt)
+                    else:
+                        piece = pkt[:remain]
+                        fileobj.write(piece)
+                        if hasher is not None:
+                            hasher.update(piece)
+                        received += remain
+                        break
+                
+                # Check if we've received expected amount
+                if expected is not None and received >= expected:
+                    break
+            
+            except socket.timeout:
+                if expected is not None:
+                    continue
+                if saw_any and (time.time() - last) >= end_timeout:
+                    break
+                continue
+            
+            except KeyboardInterrupt:
+                raise
+            except Exception as e:
+                _net_log(kwargs.get("verbose"), "UDP raw recv error: %s" % str(e))
+                break
+        
+        # Final DONE acknowledgment
+        if sender_addr:
+            try:
+                sock.sendto(b"DONE_ACK\n", sender_addr)
+            except Exception:
+                pass
+        
+        try:
+            fileobj.seek(0, 0)
+        except Exception:
+            pass
+        
+        # Verify hash if requested
+        if want_sha:
+            if expected_hex is None or hasher is None:
+                return False
+            try:
+                return (hasher.hexdigest().lower() == expected_hex.strip().lower())
+            except Exception:
+                return False
+        
+        return True
+    
+    finally:
+        try:
+            sock.close()
+        except Exception:
+            pass
+
+# --------------------------
+# UDP Seq Receiver
+# --------------------------
+
+def _udp_seq_recv(fileobj, host, port, **kwargs):
+    """UDP seq mode (reliable) receiver."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    
+    try:
+        sock.bind((host or "", int(port)))
+        chosen_port = sock.getsockname()[1]
+        
+        # Print listening URL
+        if kwargs.get("print_url"):
+            sys.stdout.write("Listening: udp://%s:%d/\n" % 
+                           (host or "0.0.0.0", chosen_port))
+            sys.stdout.flush()
+        
+        # Configure socket
+        timeout = float(kwargs.get("timeout", 1.0))
+        sock.settimeout(timeout)
+        
+        chunk = int(kwargs.get("chunk", DEFAULT_UDP_CHUNK))
+        window = int(kwargs.get("window", DEFAULT_WINDOW_SIZE))
+        total_timeout = float(kwargs.get("total_timeout", 0.0))
+        
+        framing = (kwargs.get("framing") or "").lower()
+        want_sha = bool(kwargs.get("sha256") or kwargs.get("sha") or kwargs.get("want_sha"))
+        
+        h = hashlib.sha256() if want_sha else None
+        
+        total_len = None
+        bytes_written = 0
+        got_digest = None
+        
+        # Resume offset
+        resume_off = 0
+        try:
+            resume_off = int(kwargs.get("resume_offset", 0) or 0)
+        except Exception:
+            resume_off = 0
+        
+        expected_seq = int(resume_off // chunk)
+        received = {}  # Out-of-order buffer
+        done = False
+        t0 = time.time()
+        
+        sender_addr = None
+        resume_sent = False
+        complete = False
+        
+        def _ack(addr, seq):
+            """Send ACK for received packet."""
+            try:
+                sock.sendto(_u_pack(UF_ACK, 0, 0) + 
+                          struct.pack("!I", int(seq) & 0xFFFFFFFF), addr)
+            except Exception:
+                pass
+        
+        while True:
+            # Check timeouts
+            if total_timeout and (time.time() - t0) > total_timeout:
+                _net_log(kwargs.get("verbose"), "Total timeout reached")
+                break
+            
+            try:
+                pkt, addr = sock.recvfrom(65536)
+                sender_addr = addr
+            except socket.timeout:
+                if complete and want_sha:
+                    continue
+                if done and not received:
+                    break
+                continue
+            except Exception as e:
+                _net_log(kwargs.get("verbose"), "UDP seq recv error: %s" % str(e))
+                break
+            
+            up = _u_unpack(pkt)
+            if not up:
+                continue
+            
+            flags, seq, total, payload = up
+            
+            # Update total length if provided
+            if total_len is None and total:
+                try:
+                    total_len = int(total)
+                except Exception:
+                    pass
+            
+            # Send resume response if needed
+            if not resume_sent:
+                try:
+                    sock.sendto(_u_pack(UF_RESUME, 0xFFFFFFFE, 0) + 
+                              struct.pack("!Q", int(resume_off)), addr)
+                except Exception:
+                    pass
+                resume_sent = True
+            
+            # Handle META packets (resume requests from sender)
+            if flags & UF_META:
+                try:
+                    sock.sendto(_u_pack(UF_RESUME, 0xFFFFFFFE, 0) + 
+                              struct.pack("!Q", int(resume_off)), addr)
+                except Exception:
+                    pass
+                continue
+            
+            # Handle DONE packet
+            if flags & UF_DONE:
+                done = True
+                if payload.startswith(b"DONE") and len(payload) >= 4 + 32:
+                    got_digest = payload[4:4+32]
+                
+                if (framing == "len") and complete:
+                    break
+                if not received and not want_sha:
+                    break
+                continue
+            
+            # Only process DATA packets
+            if not (flags & UF_DATA):
+                continue
+            
+            # Send ACK
+            _ack(addr, seq)
+            
+            if complete:
+                continue
+            
+            # Check sequence number bounds
+            if seq < expected_seq:
+                continue
+            if seq >= expected_seq + window * 8:
+                continue
+            
+            # Process in-order packet
+            if seq == expected_seq:
+                fileobj.write(payload)
+                bytes_written += len(payload)
+                if h is not None:
+                    h.update(payload)
+                expected_seq += 1
+                
+                # Process any buffered packets that are now in-order
+                while expected_seq in received:
+                    buffered = received.pop(expected_seq)
+                    fileobj.write(buffered)
+                    bytes_written += len(buffered)
+                    if h is not None:
+                        h.update(buffered)
+                    expected_seq += 1
+            else:
+                # Buffer out-of-order packet
+                if seq not in received:
+                    received[seq] = payload
+            
+            # Check completion criteria
+            if (framing == "len") and (total_len is not None) and (bytes_written >= total_len):
+                complete = True
+                if not want_sha:
+                    break
+                if got_digest is not None:
+                    break
+            
+            if done and not received:
+                break
+        
+        # Verify hash if requested
+        if want_sha:
+            if got_digest is None:
+                return False
+            if h is None or h.digest() != got_digest:
+                return False
+        
+        try:
+            fileobj.seek(0, 0)
+        except Exception:
+            pass
+        
+        return True
+    
+    finally:
+        try:
+            sock.close()
+        except Exception:
+            pass
+
+# --------------------------
+# TCP/UDP Sender Implementation
+# --------------------------
+
+def send_from_fileobj(fileobj, host, port, proto="tcp", path_text=None, **kwargs):
+    """
+    Send bytes from fileobj to a listening receiver.
+    
+    TCP modes:
+      - Default: stream and close (FIN)
+      - framing=len: send length header
+      - sha256=1: append digest after payload
+      - resume=1: wait for OFFSET from receiver
+    
+    UDP modes:
+      - raw: send chunks then DONE
+      - seq: reliable with ACK/DONE and optional RESUME
+    """
+    proto = (proto or "tcp").lower()
+    port = int(port)
+    
+    if proto == "tcp":
+        return _tcp_send(fileobj, host, port, path_text, **kwargs)
+    else:
+        mode = (kwargs.get("mode") or "seq").lower()
+        if mode == "raw":
+            return _udp_raw_send(fileobj, host, port, **kwargs)
+        else:
+            return _udp_seq_send(fileobj, host, port, **kwargs)
+
+def _tcp_send(fileobj, host, port, path_text, **kwargs):
+    """TCP sender implementation."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
+    try:
+        # Set timeout
+        timeout = kwargs.get("timeout")
+        if timeout is not None and float(timeout) > 0:
+            sock.settimeout(float(timeout))
+        
+        # Wait for receiver (connect with retries)
+        wait = bool(kwargs.get("wait", False) or kwargs.get("connect_wait", True))
+        wait_timeout = kwargs.get("wait_timeout", None)
+        
+        if wait_timeout is not None:
+            try:
+                wait_timeout = float(wait_timeout)
+            except (ValueError, TypeError):
+                wait_timeout = None
+        
+        start_t = time.time()
+        connected = False
+        
+        while not connected:
+            try:
+                sock.connect((host, port))
+                connected = True
+                _net_log(kwargs.get("verbose"), "TCP connected to %s:%d" % (host, port))
+            except Exception as e:
+                if not wait:
+                    _net_log(kwargs.get("verbose"), "TCP connect failed: %s" % str(e))
+                    return False
+                
+                if wait_timeout is not None and wait_timeout >= 0:
+                    if (time.time() - start_t) >= wait_timeout:
+                        _net_log(kwargs.get("verbose"), "TCP connect timeout")
+                        return False
+                
+                _net_log(kwargs.get("verbose"), "TCP waiting for receiver, retrying...")
+                time.sleep(0.1)
+        
+        # Handshake
+        if kwargs.get("handshake", True):
+            if not _tcp_send_handshake(sock, kwargs):
+                return False
+        
+        # Send PATH
+        if path_text:
+            try:
+                line = ("PATH %s\n" % (path_text or "/")).encode("utf-8")
+                sock.sendall(line)
+            except Exception:
+                pass
+        
+        # Resume handshake
+        if kwargs.get("resume"):
+            if not _tcp_send_resume(sock, fileobj, kwargs.get("verbose")):
+                return False
+        
+        # Send data
+        framing = (kwargs.get("framing") or "").lower()
+        want_sha = bool(kwargs.get("sha256") or kwargs.get("sha") or kwargs.get("want_sha"))
+        
+        if framing == "len":
+            success = _tcp_send_framed(sock, fileobj, want_sha, kwargs.get("verbose"))
+        else:
+            success = _tcp_send_stream(sock, fileobj, kwargs, kwargs.get("verbose"))
+        
+        return success
+    
+    finally:
+        try:
+            sock.close()
+        except Exception:
+            pass
+
+def _tcp_send_handshake(sock, kwargs):
+    """Perform TCP sender handshake."""
+    tok = kwargs.get("token")
+    if tok is None:
+        tok = _hs_token()
+    else:
+        tok = _to_bytes(tok)
+    
+    try:
+        sock.sendall(b"HELLO " + tok + b"\n")
+    except Exception:
+        return False
+    
+    # Wait for READY response
+    wt = kwargs.get("wait_timeout", None)
+    try:
+        sock.settimeout(float(wt) if wt is not None else None)
+    except Exception:
+        pass
+    
+    buf = b""
+    try:
+        while b"\n" not in buf and len(buf) < 4096:
+            b = sock.recv(1024)
+            if not b:
+                return False
+            buf += b
+    except Exception:
+        return False
+    
+    line = buf.split(b"\n", 1)[0].strip()
+    if not line.startswith(b"READY"):
+        return False
+    
+    if b" " in line:
+        rt = line.split(None, 1)[1].strip()
+        if rt and rt != tok:
+            return False
+    
+    # Restore timeout
+    timeout = kwargs.get("timeout")
+    try:
+        if timeout is not None and float(timeout) > 0:
+            sock.settimeout(float(timeout))
+        else:
+            sock.settimeout(None)
+    except Exception:
+        pass
+    
+    return True
+
+def _tcp_send_resume(sock, fileobj, verbose):
+    """Handle resume request from receiver."""
+    try:
+        buf = b""
+        sock.settimeout(1.0)
+        
+        while not buf.endswith(b"\n") and len(buf) < 128:
+            try:
+                b = sock.recv(1)
+                if not b:
+                    break
+                buf += b
+            except socket.timeout:
+                break
+        
+        if buf.startswith(b"OFFSET "):
+            try:
+                off = int(buf.split()[1])
+                fileobj.seek(off, 0)
+                _net_log(verbose, "Resuming from offset %d" % off)
+            except Exception:
+                pass
+    except Exception:
+        pass
+    
+    return True
+
+def _tcp_send_framed(sock, fileobj, want_sha, verbose):
+    """Send framed data with length header."""
+    try:
+        # Determine size
+        size = None
+        try:
+            cur = fileobj.tell()
+            fileobj.seek(0, os.SEEK_END)
+            end = fileobj.tell()
+            fileobj.seek(cur, os.SEEK_SET)
+            size = int(end - cur)
+        except Exception:
+            _net_log(verbose, "Cannot determine file size")
+            return False
+        
+        if size < 0:
+            return False
+        
+        # Prepare header
+        flags = 1 if want_sha else 0
+        header = TCP_MAGIC + struct.pack("!Q", int(size)) + struct.pack("!I", int(flags))
+        
+        # Send header
+        sock.sendall(header)
+        
+        # Initialize hash
+        h = hashlib.sha256() if want_sha else None
+        
+        # Send data
+        sent = 0
+        while sent < size:
+            remaining = size - sent
+            chunk_size = min(DEFAULT_CHUNK_SIZE, remaining)
+            data = fileobj.read(chunk_size)
+            if not data:
+                break
+            
+            sock.sendall(data)
+            if h is not None:
+                h.update(data)
+            sent += len(data)
+        
+        # Send hash if requested
+        if want_sha and h is not None:
+            sock.sendall(h.digest())
+        
+        return True
+    
+    except Exception as e:
+        _net_log(verbose, "Framed send error: %s" % str(e))
+        return False
+
+def _tcp_send_stream(sock, fileobj, kwargs, verbose):
+    """Send streaming data."""
+    done = bool(kwargs.get("done"))
+    
+    try:
+        # Send data
+        while True:
+            data = fileobj.read(DEFAULT_CHUNK_SIZE)
+            if not data:
+                break
+            sock.sendall(data)
+        
+        # Send DONE token if requested
+        if done:
+            tok = kwargs.get("done_token") or "\nDONE\n"
+            sock.sendall(_to_bytes(tok))
+        
+        # Graceful shutdown
+        try:
+            sock.shutdown(socket.SHUT_WR)
+        except Exception:
+            pass
+        
+        return True
+    
+    except Exception as e:
+        _net_log(verbose, "Stream send error: %s" % str(e))
+        return False
+
+# --------------------------
+# UDP Raw Sender
+# --------------------------
+
+def _udp_raw_send(fileobj, host, port, **kwargs):
+    """UDP raw sender implementation."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    addr = (host, int(port))
+    
+    try:
+        # Configure socket
+        timeout = float(kwargs.get("timeout", 1.0))
+        sock.settimeout(timeout)
+        
+        chunk = int(kwargs.get("chunk", DEFAULT_UDP_CHUNK))
+        
+        # Get file info for META
+        total_len = None
+        pos = None
+        
+        raw_meta = kwargs.get("raw_meta", True)
+        raw_sha = kwargs.get("raw_sha", False)
+        raw_hash = (kwargs.get("raw_hash", "sha256") or "sha256").lower()
+        
+        if raw_meta or raw_sha:
+            try:
+                pos = fileobj.tell()
+                fileobj.seek(0, os.SEEK_END)
+                end = fileobj.tell()
+                fileobj.seek(pos, os.SEEK_SET)
+                total_len = int(end - pos)
+                if total_len < 0:
+                    total_len = None
+            except Exception:
+                total_len = None
+        
+        # Send META if available
+        if raw_meta and total_len is not None:
+            try:
+                sock.sendto(b"META " + str(total_len).encode("ascii") + b"\n", addr)
+            except Exception:
+                pass
+        
+        # Wait for receiver (handshake)
+        wait = bool(kwargs.get("wait", True) or kwargs.get("connect_wait", False))
+        if wait:
+            if not _udp_raw_wait_for_receiver(sock, addr, total_len, kwargs):
+                return False
+        
+        # Send HASH if requested
+        expected_hex = None
+        if raw_sha and total_len is not None:
+            expected_hex = _udp_raw_compute_hash(fileobj, raw_hash, pos)
+            if expected_hex:
+                try:
+                    sock.sendto(b"HASH " + raw_hash.encode("ascii") + b" " + 
+                              expected_hex.encode("ascii") + b"\n", addr)
+                except Exception:
+                    pass
+        
+        # Send data (reliable or best-effort)
+        if kwargs.get("raw_ack"):
+            success = _udp_raw_send_reliable(sock, fileobj, addr, chunk, kwargs)
+        else:
+            success = _udp_raw_send_best_effort(sock, fileobj, addr, chunk)
+        
+        # Send DONE
+        if success:
+            try:
+                sock.sendto(b"DONE", addr)
+            except Exception:
+                pass
+        
+        return success
+    
+    finally:
+        try:
+            sock.close()
+        except Exception:
+            pass
+
+def _udp_raw_wait_for_receiver(sock, addr, total_len, kwargs):
+    """Wait for receiver to be ready."""
+    wt = kwargs.get("wait_timeout", None)
+    try:
+        wt = float(wt) if wt is not None else None
+    except (ValueError, TypeError):
+        wt = None
+    
+    hello_iv = float(kwargs.get("hello_interval", 0.1))
+    if hello_iv <= 0:
+        hello_iv = 0.1
+    
+    start_t = time.time()
+    tok = kwargs.get("token")
+    if tok is None:
+        tok = _hs_token()
+    else:
+        tok = _to_bytes(tok)
+    
+    while True:
+        # Check timeout
+        if wt is not None and wt >= 0:
+            if (time.time() - start_t) >= wt:
+                return False
+        
+        # Send HELLO
+        if kwargs.get("handshake", True):
+            try:
+                sock.sendto(b"HELLO " + tok + b"\n", addr)
+            except Exception:
+                pass
+        
+        # Send META periodically for legacy receivers
+        if total_len is not None:
+            try:
+                sock.sendto(b"META " + str(total_len).encode("ascii") + b"\n", addr)
+            except Exception:
+                pass
+        
+        # Wait for READY
+        try:
+            sock.settimeout(hello_iv)
+        except Exception:
+            pass
+        
+        try:
+            pkt, _ = sock.recvfrom(1024)
+            if pkt.startswith(b"READY"):
+                _net_log(kwargs.get("verbose"), "UDP raw: received READY from receiver")
+                
+                # Verify token if present
+                if b" " in pkt:
+                    rt = pkt.split(None, 1)[1].strip()
+                    if rt and rt != tok:
+                        continue
+                return True
+        except socket.timeout:
+            pass
+        except Exception:
+            pass
+
+def _udp_raw_compute_hash(fileobj, algo, start_pos):
+    """Compute hash of file data."""
+    try:
+        if algo == "md5":
+            h = hashlib.md5()
+        else:
+            h = hashlib.sha256()
+        
+        cur = fileobj.tell()
+        if start_pos is not None:
+            fileobj.seek(start_pos, os.SEEK_SET)
+        
+        while True:
+            b = fileobj.read(65536)
+            if not b:
+                break
+            h.update(b)
+        
+        if start_pos is not None:
+            fileobj.seek(start_pos, os.SEEK_SET)
+        
+        return h.hexdigest()
+    except Exception:
+        return None
+
+def _udp_raw_send_reliable(sock, fileobj, addr, chunk, kwargs):
+    """Send data using Go-Back-N reliable protocol."""
+    ack_to = float(kwargs.get("raw_ack_timeout", 0.5))
+    retries_max = int(kwargs.get("raw_ack_retries", 40))
+    win = max(1, int(kwargs.get("raw_ack_window", 1)))
+    
+    base_seq = 0
+    next_seq = 0
+    pkts = {}
+    eof = False
+    timeout_tries = 0
+    
+    try:
+        sock.settimeout(ack_to)
+    except Exception:
+        pass
+    
+    def _make_pkt(seq, data):
+        return b"PKT " + str(seq).encode("ascii") + b" " + _to_bytes(data)
+    
+    while True:
+        # Fill window
+        while (not eof) and next_seq < base_seq + win:
+            data = fileobj.read(chunk)
+            if not data:
+                eof = True
+                break
+            
+            pkt = _make_pkt(next_seq, data)
+            pkts[next_seq] = pkt
+            
+            try:
+                sock.sendto(pkt, addr)
+            except Exception:
+                pass
+            
+            next_seq += 1
+        
+        if eof and base_seq == next_seq:
+            break
+        
+        # Wait for ACK
+        try:
+            apkt, _ = sock.recvfrom(1024)
+            if apkt.startswith(b"ACK "):
+                try:
+                    aseq = int(apkt.split()[1])
+                except Exception:
+                    aseq = -1
+                
+                new_base = aseq + 1
+                if new_base > base_seq:
+                    # Remove acknowledged packets
+                    for s in list(pkts.keys()):
+                        if s < new_base:
+                            try:
+                                del pkts[s]
+                            except Exception:
+                                pass
+                    base_seq = new_base
+                    timeout_tries = 0
+        except socket.timeout:
+            timeout_tries += 1
+            if retries_max >= 0 and timeout_tries >= retries_max:
+                return False
+            
+            # Retransmit all unacknowledged packets in window
+            for s in range(base_seq, next_seq):
+                pkt = pkts.get(s)
+                if pkt is None:
+                    continue
+                try:
+                    sock.sendto(pkt, addr)
+                except Exception:
+                    pass
+        except Exception:
+            return False
+    
+    return True
+
+def _udp_raw_send_best_effort(sock, fileobj, addr, chunk):
+    """Send data using best-effort (no ACKs)."""
+    try:
+        while True:
+            data = fileobj.read(chunk)
+            if not data:
+                break
+            sock.sendto(_to_bytes(data), addr)
+        return True
+    except Exception:
+        return False
+
+# --------------------------
+# UDP Seq Sender
+# --------------------------
+
+def _udp_seq_send(fileobj, host, port, **kwargs):
+    """UDP seq mode (reliable) sender."""
+    addr = (host, int(port))
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    
+    try:
+        # Configure socket
+        timeout = float(kwargs.get("timeout", 1.0))
+        sock.settimeout(timeout)
+        
+        chunk = int(kwargs.get("chunk", DEFAULT_UDP_CHUNK))
+        window = int(kwargs.get("window", DEFAULT_WINDOW_SIZE))
+        retries = int(kwargs.get("retries", DEFAULT_RETRIES))
+        total_timeout = float(kwargs.get("total_timeout", 0.0))
+        
+        want_sha = bool(kwargs.get("sha256") or kwargs.get("sha") or kwargs.get("want_sha"))
+        h = hashlib.sha256() if want_sha else None
+        
+        # Get file size
+        total = 0
+        start_pos = None
+        try:
+            start_pos = fileobj.tell()
+            fileobj.seek(0, os.SEEK_END)
+            total = int(fileobj.tell())
+            fileobj.seek(start_pos, os.SEEK_SET)
+        except Exception:
+            total = 0
+            start_pos = None
+        
+        # Resume handshake
+        start_seq = 0
+        resume = kwargs.get("resume", False)
+        
+        if resume:
+            sock.sendto(_u_pack(UF_META, 0xFFFFFFFF, total) + b"RESUME", addr)
+            t0 = time.time()
+            
+            while True:
+                if total_timeout and (time.time() - t0) > total_timeout:
+                    break
+                
+                try:
+                    pkt, _ = sock.recvfrom(2048)
+                except Exception:
+                    break
+                
+                up = _u_unpack(pkt)
+                if not up:
+                    continue
+                
+                flags, seq, _, payload = up
+                if flags & UF_RESUME and len(payload) >= 8:
+                    off = struct.unpack("!Q", payload[:8])[0]
+                    try:
+                        fileobj.seek(int(off), os.SEEK_SET)
+                        start_seq = int(off // chunk)
+                    except Exception:
+                        start_seq = 0
+                    break
+        
+        # Send data with sliding window
+        next_seq = start_seq
+        in_flight = {}  # seq -> (data, ts, tries)
+        t_start = time.time()
+        eof = False
+        
+        def _send_pkt(seq, data):
+            """Send a data packet."""
+            sock.sendto(_u_pack(UF_DATA, seq, total) + data, addr)
+        
+        # Prime window
+        while not eof and len(in_flight) < window:
+            data = fileobj.read(chunk)
+            if not data:
+                eof = True
+                break
+            
+            data = _to_bytes(data)
+            if h is not None:
+                h.update(data)
+            
+            _send_pkt(next_seq, data)
+            in_flight[next_seq] = (data, time.time(), 0)
+            next_seq += 1
+        
+        # Main send loop
+        while in_flight or not eof:
+            if total_timeout and (time.time() - t_start) > total_timeout:
+                break
+            
+            # Receive ACKs
+            try:
+                pkt, _ = sock.recvfrom(2048)
+                up = _u_unpack(pkt)
+                if up:
+                    flags, seq, _, payload = up
+                    if flags & UF_ACK and len(payload) >= 4:
+                        ack_seq = struct.unpack("!I", payload[:4])[0]
+                        if ack_seq in in_flight:
+                            del in_flight[ack_seq]
+            except socket.timeout:
+                pass
+            except Exception:
+                pass
+            
+            # Retransmit timed-out packets
+            now = time.time()
+            for seq in list(in_flight.keys()):
+                data, ts, tries = in_flight[seq]
+                if (now - ts) >= timeout:
+                    if tries >= retries:
+                        del in_flight[seq]
+                        continue
+                    
+                    _send_pkt(seq, data)
+                    in_flight[seq] = (data, now, tries + 1)
+            
+            # Fill window with new data
+            while not eof and len(in_flight) < window:
+                data = fileobj.read(chunk)
+                if not data:
+                    eof = True
+                    break
+                
+                data = _to_bytes(data)
+                if h is not None:
+                    h.update(data)
+                
+                _send_pkt(next_seq, data)
+                in_flight[next_seq] = (data, now, 0)
+                next_seq += 1
+        
+        # Send DONE packet
+        payload = b"DONE"
+        if h is not None:
+            payload += h.digest()
+        
+        for _ in range(3):  # Send multiple times for reliability
+            sock.sendto(_u_pack(UF_DONE, 0xFFFFFFFE, total) + payload, addr)
+            time.sleep(0.02)
+        
+        return True
+    
+    except Exception as e:
+        _net_log(kwargs.get("verbose"), "UDP seq send error: %s" % str(e))
+        return False
+    
+    finally:
+        try:
+            sock.close()
+        except Exception:
+            pass
+
+# --------------------------
+# HTTP Server Implementation (for uploads)
+# --------------------------
+
+def _serve_file_over_http(fileobj, url):
+    """Serve file via HTTP server."""
+    p = urlparse(url)
+    qs = parse_qs(p.query or "")
+    
+    # Parse options
+    bind = _qstr(qs, "bind", None) or (p.hostname or "0.0.0.0")
+    port = p.port if (p.port is not None) else int(_qnum(qs, "port", 0, cast=int))
+    path = p.path or "/"
+    print_url = _qflag(qs, "print_url", False)
+    max_clients = int(_qnum(qs, "max_clients", 1, cast=int))
+    idle_timeout = float(_qnum(qs, "idle_timeout", 0.0, cast=float))
+    allow_range = _qflag(qs, "range", True)
+    gzip_on = _qflag(qs, "gzip", False)
+    cors = _qflag(qs, "cors", False)
+    content_type = _qstr(qs, "content_type", None)
+    download = _qstr(qs, "download", None)
+    auth = _qstr(qs, "auth", None)
+    extra_headers = _parse_kv_headers(qs, prefix="hdr_")
+    
+    # TLS not implemented in original, setting to False
+    tls_on = False
+    
+    # Check if we can reopen the file
+    file_path = getattr(fileobj, "name", None)
+    can_reopen = False
+    if file_path and isinstance(file_path, (str, bytes)):
+        try:
+            can_reopen = os.path.isfile(file_path)
+        except Exception:
+            can_reopen = False
+    
+    # Determine if we need to buffer in memory
+    use_direct = (not can_reopen) and (max_clients == 1)
+    data_bytes = None
+    
+    if (not can_reopen) and (not use_direct):
+        # Buffer data in memory for multiple clients
+        try:
+            pos = fileobj.tell()
+        except Exception:
+            pos = None
+        
+        try:
+            try:
+                fileobj.seek(0, 0)
+            except Exception:
+                pass
+            data_bytes = fileobj.read()
+        finally:
+            if pos is not None:
+                try:
+                    fileobj.seek(pos, 0)
+                except Exception:
+                    pass
+        
+        data_bytes = _to_bytes(data_bytes)
+    
+    # Determine filename for Content-Disposition
+    default_name = os.path.basename(path.strip("/")) or "download.bin"
+    if download and download not in ("1", "true", "yes"):
+        disp_name = download
+    else:
+        disp_name = default_name
+    
+    # Determine Content-Type
+    if not content_type:
+        try:
+            content_type = mimetypes.guess_type(default_name)[0] or "application/octet-stream"
+        except Exception:
+            content_type = "application/octet-stream"
+    
+    # Parse auth
+    auth_user = auth_pass = None
+    if auth:
+        if ":" in auth:
+            auth_user, auth_pass = auth.split(":", 1)
+        else:
+            auth_user, auth_pass = auth, ""
+    
+    # Shared state
+    state = {"served": 0, "stop": False}
+    
+    def _open_reader():
+        """Open appropriate reader for current request."""
+        if use_direct:
+            try:
+                fileobj.seek(0, 0)
+            except Exception:
+                pass
+            return fileobj
+        if can_reopen:
+            return open(file_path, "rb")
+        return BytesIO(data_bytes)
+    
+    class _Handler(BaseHTTPRequestHandler):
+        """HTTP request handler for serving files."""
+        
+        server_version = "PyWWWGetCleanHTTP/1.0"
+        
+        def log_message(self, fmt, *args):
+            """Quiet logging."""
+            if _qflag(qs, "verbose", False):
+                super(_Handler, self).log_message(fmt, *args)
+        
+        def _unauth(self):
+            """Send 401 Unauthorized response."""
+            self.send_response(401)
+            self.send_header("WWW-Authenticate", 'Basic realm="pywwwget"')
+            self.send_header("Connection", "close")
+            self.end_headers()
+        
+        def _check_auth(self):
+            """Check Basic Authentication."""
+            if not auth_user:
+                return True
+            
+            h = self.headers.get("Authorization")
+            if not h or not h.startswith("Basic "):
+                return False
+            
+            try:
+                raw = base64.b64decode(h.split(" ", 1)[1].strip().encode("utf-8"))
+                if not isinstance(raw, bytes):
+                    raw = _to_bytes(raw)
+                pair = raw.decode("utf-8", "ignore")
+            except Exception:
+                return False
+            
+            if ":" in pair:
+                u, pw = pair.split(":", 1)
+            else:
+                u, pw = pair, ""
+            
+            return (u == auth_user and pw == auth_pass)
+        
+        def do_HEAD(self):
+            """Handle HEAD request."""
+            self._do_send(body=False)
+        
+        def do_GET(self):
+            """Handle GET request."""
+            self._do_send(body=True)
+        
+        def _do_send(self, body=True):
+            """Send file data."""
+            # Only serve exact path
+            req_path = self.path.split("?", 1)[0]
+            if req_path != path:
+                self.send_response(404)
+                self.send_header("Connection", "close")
+                self.end_headers()
+                return
+            
+            # Check auth
+            if not self._check_auth():
+                self._unauth()
+                return
+            
+            # Open data source
+            f = _open_reader()
+            try:
+                # Get file size
+                try:
+                    f.seek(0, 2)
+                    total = f.tell()
+                    f.seek(0, 0)
+                except Exception:
+                    total = None
+                    try:
+                        f.seek(0, 0)
+                    except Exception:
+                        pass
+                
+                # Handle Range requests
+                start = 0
+                end = None
+                status = 200
+                
+                if allow_range and total is not None:
+                    rng = self.headers.get("Range")
+                    if rng and rng.startswith("bytes="):
+                        try:
+                            spec = rng.split("=", 1)[1].strip()
+                            a, b = spec.split("-", 1)
+                            if a:
+                                start = int(a)
+                            if b:
+                                end = int(b)
+                            status = 206
+                        except Exception:
+                            start = 0
+                            end = None
+                            status = 200
+                
+                if total is not None:
+                    if start < 0:
+                        start = 0
+                    if start > total:
+                        start = total
+                    
+                    f.seek(start, 0)
+                    remain = total - start
+                    if end is not None and end >= start:
+                        remain = min(remain, (end - start + 1))
+                else:
+                    remain = None
+                
+                # Check for gzip support
+                use_gzip = False
+                if gzip_on and status == 200:
+                    ae = self.headers.get("Accept-Encoding", "") or ""
+                    if "gzip" in ae.lower():
+                        # Only gzip text content or small files
+                        if content_type.startswith("text/") or \
+                           content_type in ("application/json", "application/xml"):
+                            use_gzip = True
+                
+                # Send headers
+                self.send_response(status)
+                self.send_header("Content-Type", content_type)
+                
+                if cors:
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                
+                if download:
+                    self.send_header("Content-Disposition", 
+                                   'attachment; filename="%s"' % disp_name)
+                
+                # Extra headers
+                for hk, hv in extra_headers.items():
+                    try:
+                        self.send_header(hk, hv)
+                    except Exception:
+                        pass
+                
+                # Range headers
+                if total is not None:
+                    if status == 206:
+                        last = start + (remain - 1 if remain is not None else 0)
+                        self.send_header("Content-Range", 
+                                       "bytes %d-%d/%d" % (start, last, total))
+                    self.send_header("Accept-Ranges", "bytes")
+                
+                # Gzip header
+                if use_gzip:
+                    self.send_header("Content-Encoding", "gzip")
+                
+                # No body for HEAD
+                if not body:
+                    self.send_header("Connection", "close")
+                    self.end_headers()
+                    return
+                
+                # Send body
+                if use_gzip:
+                    # Stream gzip
+                    self.send_header("Connection", "close")
+                    self.end_headers()
+                    
+                    gz = gzip.GzipFile(fileobj=self.wfile, mode="wb")
+                    try:
+                        shutil.copyfileobj(f, gz)
+                    finally:
+                        try:
+                            gz.close()
+                        except Exception:
+                            pass
+                else:
+                    # Plain send
+                    if remain is not None:
+                        self.send_header("Content-Length", str(int(remain)))
+                    self.send_header("Connection", "close")
+                    self.end_headers()
+                    
+                    if remain is None:
+                        shutil.copyfileobj(f, self.wfile)
+                    else:
+                        # Bounded copy
+                        left = int(remain)
+                        buf_size = 64 * 1024
+                        while left > 0:
+                            chunk = f.read(min(buf_size, left))
+                            if not chunk:
+                                break
+                            self.wfile.write(chunk)
+                            left -= len(chunk)
+                
+                # Update state
+                state["served"] += 1
+                if state["served"] >= max_clients:
+                    state["stop"] = True
+            
+            finally:
+                try:
+                    if not use_direct:
+                        f.close()
+                except Exception:
+                    pass
+    
+    # Create server
+    try:
+        httpd = HTTPServer((bind, int(port)), _Handler)
+    except Exception as e:
+        _net_log(True, "HTTP server error: %s" % str(e))
+        return False
+    
+    bound_port = httpd.server_address[1]
+    
+    # Print URLs
+    if print_url:
+        for u in _listen_urls(("https" if tls_on else p.scheme), 
+                             bind, bound_port, path, p.query):
+            sys.stdout.write("Listening: %s\n" % u)
+        sys.stdout.flush()
+    
+    # Configure timeout
+    if idle_timeout and idle_timeout > 0:
+        try:
+            httpd.timeout = float(idle_timeout)
+        except Exception:
+            pass
+    
+    # Serve requests
+    try:
+        while not state["stop"]:
+            httpd.handle_request()
+            
+            if idle_timeout and idle_timeout > 0 and state["served"] == 0:
+                # Timed out waiting for first request
+                break
+    except KeyboardInterrupt:
+        pass
+    finally:
+        try:
+            httpd.server_close()
+        except Exception:
+            pass
+    
+    return bound_port
+
+# --------------------------
+# Main Public API Functions
+# --------------------------
+
+def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__):
+    """
+    Download file from any supported protocol.
+    
+    Returns file-like object on success, False on failure.
+    """
+    p = urlparse(url)
+    
+    # HTTP/HTTPS
+    if p.scheme in ("http", "https"):
+        return download_file_from_http_file(url, headers=headers or {}, usehttp=usehttp)
+    
+    # FTP/FTPS
+    elif p.scheme in ("ftp", "ftps"):
+        return download_file_from_ftp_file(url)
+    
+    # SFTP/SCP
+    elif p.scheme in ("sftp", "scp"):
+        if __use_pysftp__ and havepysftp:
+            return download_file_from_pysftp_file(url)
+        return download_file_from_sftp_file(url)
+    
+    # TCP/UDP
+    elif p.scheme in ("tcp", "udp"):
+        parts, options = _parse_net_url(url)
+        host = options.get("bind") or parts.hostname or ""
+        port = parts.port or 0
+        path_text = parts.path or "/"
+        
+        # Handle resume/save options
+        outfile = None
+        dest_path = None
+        resume_off = 0
+        
+        if options.get("resume"):
+            dest_path = options.get("resume_to")
+            if not dest_path and options.get("save"):
+                dest_path = _choose_output_path(_guess_filename(url), 
+                                              options.get("overwrite", False), 
+                                              options.get("save_dir"))
+            
+            if dest_path:
+                try:
+                    if os.path.exists(dest_path):
+                        outfile = open(dest_path, "r+b")
+                        outfile.seek(0, 2)
+                        resume_off = outfile.tell()
+                    else:
+                        _ensure_dir(os.path.dirname(dest_path) or ".")
+                        outfile = open(dest_path, "w+b")
+                        resume_off = 0
+                except Exception:
+                    outfile = None
+                    dest_path = None
+                    resume_off = 0
+        
+        if outfile is None:
+            outfile = MkTempFile()
+        
+        # Receive data
+        ok = recv_to_fileobj(
+            outfile, host=host, port=port, proto=p.scheme,
+            mode=options.get("mode"), timeout=options.get("timeout"), 
+            total_timeout=options.get("total_timeout"), window=options.get("window"), 
+            retries=options.get("retries"), chunk=options.get("chunk"),
+            print_url=options.get("print_url"), resume_offset=resume_off, 
+            path_text=path_text
+        )
+        
+        if not ok:
+            try:
+                outfile.close()
+            except Exception:
+                pass
+            return False
+        
+        # Save to disk if requested
+        if options.get("save") and not dest_path:
+            out_path = _choose_output_path(_guess_filename(url), 
+                                         options.get("overwrite", False), 
+                                         options.get("save_dir"))
+            try:
+                _copy_fileobj_to_path(outfile, out_path, 
+                                    overwrite=options.get("overwrite", False))
+                sys.stdout.write("Saved: %s\n" % out_path)
+                sys.stdout.flush()
+                
+                # Return the saved file
+                outfile.close()
+                outfile = open(out_path, "rb")
+            except Exception:
+                pass
+        
+        try:
+            outfile.seek(0, 0)
+        except Exception:
+            pass
+        
+        return outfile
+    
+    # Unsupported protocol
+    else:
+        return False
+
+def download_file_from_internet_string(url, headers=None, usehttp=__use_http_lib__):
+    """Download file as string/bytes."""
+    fp = download_file_from_internet_file(url, headers=headers, usehttp=usehttp)
+    return fp.read() if fp else False
+
+def upload_file_to_internet_file(fileobj, url):
+    """
+    Upload file to any supported protocol.
+    
+    Returns fileobj on success, False on failure.
+    """
+    p = urlparse(url)
+    
+    # HTTP/HTTPS (serve file)
+    if p.scheme in ("http", "https"):
+        return _serve_file_over_http(fileobj, url)
+    
+    # FTP/FTPS
+    elif p.scheme in ("ftp", "ftps"):
+        return upload_file_to_ftp_file(fileobj, url)
+    
+    # SFTP/SCP
+    elif p.scheme in ("sftp", "scp"):
+        if __use_pysftp__ and havepysftp:
+            return upload_file_to_pysftp_file(fileobj, url)
+        return upload_file_to_sftp_file(fileobj, url)
+    
+    # TCP/UDP
+    elif p.scheme in ("tcp", "udp"):
+        parts, options = _parse_net_url(url)
+        host = parts.hostname
+        port = parts.port or 0
+        path_text = parts.path or "/"
+        
+        try:
+            fileobj.seek(0, 0)
+        except Exception:
+            pass
+        
+        # Send data
+        ok = send_from_fileobj(
+            fileobj, host=host, port=port, proto=p.scheme,
+            mode=options.get("mode"), timeout=options.get("timeout"), 
+            total_timeout=options.get("total_timeout"), wait=options.get("wait"), 
+            connect_wait=options.get("connect_wait"), 
+            wait_timeout=options.get("wait_timeout"),
+            window=options.get("window"), retries=options.get("retries"), 
+            chunk=options.get("chunk"), resume=options.get("resume"), 
+            path_text=path_text, done=options.get("done"), 
+            done_token=options.get("done_token"), framing=options.get("framing"), 
+            sha256=options.get("sha256")
+        )
+        
+        return fileobj if ok else False
+    
+    # Unsupported protocol
+    else:
+        return False
+
+def upload_file_to_internet_string(data, url):
+    """Upload string/bytes to any supported protocol."""
+    bio = BytesIO(_to_bytes(data))
+    out = upload_file_to_internet_file(bio, url)
+    try:
+        bio.close()
+    except Exception:
+        pass
+    return out
+
+# --------------------------
+# Convenience Functions
+# --------------------------
+
+def send_path(path, url, fmt="tar", compression=None, **kwargs):
+    """
+    Package a directory or file and send it.
+    
+    Args:
+        path: File or directory path
+        url: Destination URL
+        fmt: "tar" or "zip"
+        compression: For tar: "gz" or None
+        **kwargs: Additional options passed to upload_file_to_internet_file
+    
+    Returns:
+        Result from upload_file_to_internet_file
+    """
+    try:
+        import tarfile
+        import zipfile
+    except ImportError:
+        return False
+    
+    p = os.path.abspath(path)
+    
+    # Create archive in memory/temp file
+    tmp = None
+    try:
+        # Use spooled file for memory efficiency
+        tmp = tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024, mode="w+b")
+        
+        if fmt.lower() == "zip":
+            zf = zipfile.ZipFile(tmp, mode="w", compression=zipfile.ZIP_DEFLATED)
+            try:
+                if os.path.isdir(p):
+                    # Add directory contents
+                    for root, dirs, files in os.walk(p):
+                        for fn in files:
+                            full = os.path.join(root, fn)
+                            rel = os.path.relpath(full, os.path.dirname(p))
+                            zf.write(full, rel)
+                else:
+                    # Add single file
+                    zf.write(p, os.path.basename(p))
+            finally:
+                zf.close()
+        else:
+            # Tar format
+            mode = "w"
+            if compression in ("gz", "gzip"):
+                mode = "w:gz"
+            
+            tf = tarfile.open(fileobj=tmp, mode=mode)
+            try:
+                arcname = os.path.basename(p.rstrip(os.sep))
+                if os.path.isdir(p):
+                    tf.add(p, arcname=arcname)
+                else:
+                    tf.add(p, arcname=os.path.basename(p))
+            finally:
+                tf.close()
+        
+        tmp.seek(0, 0)
+        return upload_file_to_internet_file(tmp, url, **kwargs)
+    
+    finally:
+        try:
+            if tmp is not None:
+                tmp.close()
+        except Exception:
+            pass
+
+def recv_to_path(url, out_path, auto_extract=False, extract_dir=None, 
+                keep_archive=True, **kwargs):
+    """
+    Download directly to filesystem path.
+    
+    Args:
+        url: Source URL
+        out_path: Destination path
+        auto_extract: Auto-extract archives
+        extract_dir: Extraction directory (defaults to out_path parent)
+        keep_archive: Keep archive after extraction
+        **kwargs: Additional options
+    
+    Returns:
+        out_path on success, False on failure
+    """
+    # Handle HTTP listen mode specially
+    try:
+        up = urlparse(url)
+        if (up.scheme or "").lower() in ("http", "https"):
+            qs = parse_qs(up.query or "")
+            if _qflag(qs, "listen", False) or _qflag(qs, "recv", False):
+                # Modify URL for direct save
+                url2 = url
+                if "out" not in qs:
+                    url2 = _set_query_param(url2, "out", out_path)
+                if "mkdir" not in qs:
+                    url2 = _set_query_param(url2, "mkdir", "1")
+                if "overwrite" not in qs:
+                    url2 = _set_query_param(url2, "overwrite", "1")
+                
+                ok = download_file_from_internet_file(url2, **kwargs)
+                return out_path if ok is not False else False
+    except Exception:
+        pass
+    
+    # General download
+    f = download_file_from_internet_file(url, **kwargs)
+    if f is False:
+        return False
+    
+    try:
+        # Ensure parent directory exists
+        parent = os.path.dirname(os.path.abspath(out_path))
+        if parent and not os.path.isdir(parent):
+            try:
+                os.makedirs(parent)
+            except Exception:
+                pass
+        
+        # Write to file
+        with open(out_path, "wb") as outfp:
+            try:
+                shutil.copyfileobj(f, outfp)
+            finally:
+                try:
+                    f.close()
+                except Exception:
+                    pass
+    except Exception as e:
+        _net_log(True, "recv_to_path error: %s" % str(e))
+        return False
+    
+    # Auto-extract if requested
+    if auto_extract:
+        try:
+            import tarfile
+            import zipfile
+            
+            if extract_dir is None:
+                extract_dir = os.path.dirname(os.path.abspath(out_path)) or "."
+            
+            ext = out_path.lower()
+            if ext.endswith(".zip"):
+                zf = zipfile.ZipFile(out_path, "r")
+                try:
+                    zf.extractall(extract_dir)
+                finally:
+                    zf.close()
+            
+            elif any(ext.endswith(x) for x in [".tar", ".tar.gz", ".tgz", 
+                                             ".tar.bz2", ".tbz2", ".tar.xz", ".txz"]):
+                tf = tarfile.open(out_path, "r:*")
+                try:
+                    tf.extractall(extract_dir)
+                finally:
+                    tf.close()
+            
+            # Remove archive if requested
+            if not keep_archive:
+                try:
+                    os.unlink(out_path)
+                except Exception:
+                    pass
+        
+        except Exception as e:
+            _net_log(True, "Auto-extract error: %s" % str(e))
+    
+    return out_path
+
+# --------------------------
+# Module Initialization
+# --------------------------
+
+# Initialize mimetypes
+mimetypes.init()
+
+# Export public API
+__all__ = [
+    'download_file_from_internet_file',
+    'download_file_from_internet_string',
+    'upload_file_to_internet_file',
+    'upload_file_to_internet_string',
+    'send_path',
+    'recv_to_path',
+    'detect_cwd',
+    'MkTempFile',
+    '__version__',
+    '__program_name__',
+    '__project__',
+    '__project_url__',
+]
+
+# Main entry point for command-line usage
+if __name__ == "__main__":
+    # Simple command-line interface
+    if len(sys.argv) > 1:
+        cmd = sys.argv[1].lower()
+        
+        if cmd in ("download", "dl", "get"):
+            if len(sys.argv) > 2:
+                url = sys.argv[2]
+                out = sys.argv[3] if len(sys.argv) > 3 else _guess_filename(url)
+                
+                result = recv_to_path(url, out, print_url=True)
+                if result:
+                    print("Downloaded to: %s" % result)
+                else:
+                    print("Download failed")
+                    sys.exit(1)
+        
+        elif cmd in ("upload", "up", "send"):
+            if len(sys.argv) > 3:
+                path = sys.argv[2]
+                url = sys.argv[3]
+                
+                if os.path.isdir(path):
+                    result = send_path(path, url, print_url=True)
+                else:
+                    with open(path, "rb") as f:
+                        result = upload_file_to_internet_file(f, url)
+                
+                if result:
+                    print("Upload successful")
+                else:
+                    print("Upload failed")
+                    sys.exit(1)
+        
+        elif cmd in ("help", "-h", "--help"):
+            print("""
+PyWWW-Get (Optimized) v%s
+Usage:
+  %s download <url> [output_path]
+  %s upload <file_or_dir> <url>
+  %s help
+
+Examples:
+  %s download http://example.com/file.zip
+  %s upload backup.tar.gz tcp://192.168.1.100:8000/
+  %s upload /photos/ udp://192.168.1.100:9000/?mode=seq
+            """ % (__version__, sys.argv[0], sys.argv[0], sys.argv[0], 
+                   sys.argv[0], sys.argv[0], sys.argv[0]))
+        
+        else:
+            print("Unknown command. Use 'help' for usage.")
+            sys.exit(1)
+    else:
+        print("PyWWW-Get (Optimized) v%s" % __version__)
+        print("Use '%s help' for usage." % sys.argv[0])
