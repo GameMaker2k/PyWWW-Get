@@ -2940,7 +2940,7 @@ def upload_file_to_internet_file(fileobj, url):
             chunk=options.get("chunk"), resume=options.get("resume"), 
             path_text=path_text, done=options.get("done"), 
             done_token=options.get("done_token"), framing=options.get("framing"), 
-            sha256=options.get("sha256"), **options
+            sha256=options.get("sha256")
         )
         
         return fileobj if ok else False
