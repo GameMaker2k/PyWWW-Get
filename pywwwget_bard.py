@@ -261,7 +261,12 @@ def _copy_fileobj_to_path(fileobj, path, overwrite=False):
 # --------------------------
 
 def detect_cwd(ftp, file_dir):
-    if not file_dir or file_dir in ("/", ""): return False
+    """
+    Test whether cwd into file_dir works. Returns True if it does,
+    False if not (so absolute paths should be used).
+    """
+    if not file_dir:
+        return False  # nothing to cwd into
     try:
         ftp.cwd(file_dir)
         return True
