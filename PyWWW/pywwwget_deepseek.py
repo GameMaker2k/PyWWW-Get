@@ -270,6 +270,13 @@ try:
 except ImportError:
     pass
 
+haveurllib3 = False
+try:
+    import urllib3  # noqa
+    haveurllib3 = True
+except Exception:
+    pass
+
 havehttpx = False
 try:
     import httpx  # noqa
@@ -1274,7 +1281,18 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
             
             resp = br.open(rebuilt_url)
             shutil.copyfileobj(resp, httpfile)
-        
+
+        # URLLib3
+        elif usehttp == "urllib3" and haveurllib3:
+            http = urllib3.PoolManager()
+            if username and password:
+                auth_headers = urllib3.make_headers(basic_auth="{}:{}".format(username, password))
+                headers.update(auth_headers)
+            # Request with preload_content=False to get a file-like object
+            resp = http.request("GET", rebuilt_url, headers=headers, preload_content=False)
+            shutil.copyfileobj(resp, httpfile)
+            resp.release_conn()
+
         # urllib fallback
         else:
             req = Request(rebuilt_url, headers=headers)
