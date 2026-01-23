@@ -330,13 +330,13 @@ if(__use_http_lib__ == "requests" and havehttpx and not haverequests):
 if((__use_http_lib__ == "httpx" or __use_http_lib__ == "requests") and not havehttpx and not haverequests):
     __use_http_lib__ = "urllib"
 
-__program_name__ = "PyWWW-Get"
+__program_name__ = "PyNeoWWW-Get"
 __program_alt_name__ = "PyWWWGet"
 __program_small_name__ = "wwwget"
 __project__ = __program_name__
-__project_url__ = "https://github.com/GameMaker2k/PyWWW-Get"
-__version_info__ = (2, 1, 6, "RC 1", 1)
-__version_date_info__ = (2025, 8, 14, "RC 1", 1)
+__project_url__ = "https://github.com/GameMaker2k/PyNeoWWW-Get"
+__version_info__ = (2, 2, 0, "RC 1", 1)
+__version_date_info__ = (2026, 1, 23, "RC 1", 1)
 __version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[
     1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2)
 __revision__ = __version_info__[3]
@@ -3591,7 +3591,7 @@ if __name__ == "__main__":
         
         elif cmd in ("help", "-h", "--help"):
             print("""
-PyWWW-Get (Optimized) v%s
+PyNeoWWW-Get (Optimized) v%s
 Usage:
   %s download <url> [output_path]
   %s upload <file_or_dir> <url>
@@ -3608,5 +3608,5 @@ Examples:
             print("Unknown command. Use 'help' for usage.")
             sys.exit(1)
     else:
-        print("PyWWW-Get (Optimized) v%s" % __version__)
+        print("PyNeoWWW-Get (Optimized) v%s" % __version__)
         print("Use '%s help' for usage." % sys.argv[0])

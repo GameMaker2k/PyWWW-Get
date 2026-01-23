@@ -6,7 +6,7 @@
 """
 pywwwgetadv_clean.py
 
-A small, self-contained subset of PyWWW-Get style helpers that keeps the same
+A small, self-contained subset of PyNeoWWW-Get style helpers that keeps the same
 public API shape you were using:
 
 - download_file_from_internet_file(url, headers=..., usehttp=...)
@@ -363,13 +363,13 @@ if(__use_http_lib__ == "requests" and havehttpx and not haverequests):
 if((__use_http_lib__ == "httpx" or __use_http_lib__ == "requests") and not havehttpx and not haverequests):
     __use_http_lib__ = "urllib"
 
-__program_name__ = "PyWWW-Get"
+__program_name__ = "PyNeoWWW-Get"
 __program_alt_name__ = "PyWWWGet"
 __program_small_name__ = "wwwget"
 __project__ = __program_name__
-__project_url__ = "https://github.com/GameMaker2k/PyWWW-Get"
-__version_info__ = (2, 1, 6, "RC 1", 1)
-__version_date_info__ = (2025, 8, 14, "RC 1", 1)
+__project_url__ = "https://github.com/GameMaker2k/PyNeoWWW-Get"
+__version_info__ = (2, 2, 0, "RC 1", 1)
+__version_date_info__ = (2026, 1, 23, "RC 1", 1)
 __version_date__ = str(__version_date_info__[0])+"."+str(__version_date_info__[
     1]).zfill(2)+"."+str(__version_date_info__[2]).zfill(2)
 __revision__ = __version_info__[3]
@@ -3530,7 +3530,7 @@ if __name__ == "__main__":
 
         else:
             sys.stdout.write(
-                "PyWWW-Get v%s\n\n"
+                "PyNeoWWW-Get v%s\n\n"
                 "Usage:\n"
                 "  %s download <url> [output_path]\n"
                 "  %s upload <file_or_dir> <url>\n"
@@ -3538,4 +3538,4 @@ if __name__ == "__main__":
                 % (__version__, argv[0] if argv else "python", argv[0] if argv else "python", argv[0] if argv else "python")
             )
     else:
-        sys.stdout.write("PyWWW-Get Library %s loaded.\n" % __version__)
+        sys.stdout.write("PyNeoWWW-Get Library %s loaded.\n" % __version__)
