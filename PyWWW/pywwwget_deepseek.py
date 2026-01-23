@@ -28,6 +28,7 @@ import io
 import re
 import sys
 import platform
+import secrets
 import socket
 import shutil
 import time
@@ -419,7 +420,7 @@ except NameError:
 
 UDP_MAGIC = b"PWG2"
 UDP_VERSION = 1
-UDP_HEADER_FORMAT = "!4sBBIQ"  # magic, ver, flags, seq(u32), total(u64)
+UDP_HEADER_FORMAT = "!4sBBIQ Q".replace(" ", "")  # magic, ver, flags, seq(u32), total(u64)
 UDP_HEADER_LEN = struct.calcsize(UDP_HEADER_FORMAT)
 
 # UDP flags
@@ -437,6 +438,18 @@ DEFAULT_CHUNK_SIZE = 65536
 DEFAULT_UDP_CHUNK = 1200
 DEFAULT_WINDOW_SIZE = 32
 DEFAULT_RETRIES = 20
+
+# UDPSEQ protocol (simple, robust, explicit DONE, supports resume)
+_U_MAGIC = UDP_MAGIC                 # 4
+_U_VER = UDP_VERSION                 # 1 byte
+_U_HDR = UDP_HEADER_FORMAT           # magic, ver, flags, seq(u32), total(u64)
+_U_HDR_LEN = UDP_HEADER_LEN
+
+_UF_DATA   = UF_DATA
+_UF_ACK    = UF_ACK
+_UF_DONE   = UF_DONE
+_UF_RESUME = UF_RESUME
+_UF_META   = UF_META
 
 # --------------------------
 # Utility Functions
@@ -652,15 +665,14 @@ def _copy_fileobj_to_path(fileobj, path, overwrite=False):
             pass
         shutil.copyfileobj(fileobj, out)
 
+
 def _net_log(verbose, msg):
-    """Lightweight network debug logging."""
-    if not verbose:
-        return
-    try:
-        sys.stderr.write("[NET] " + str(msg).rstrip() + "\n")
-        sys.stderr.flush()
-    except Exception:
-        pass
+    if verbose:
+        try:
+            sys.stderr.write(msg + "\n")
+            sys.stderr.flush()
+        except Exception:
+            pass
 
 def _resolve_wait_timeout(scheme, mode, options):
     """Resolve effective wait timeout for sender-side wait/handshake."""
@@ -1331,25 +1343,24 @@ def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__):
 # UDP Packet Utilities
 # --------------------------
 
-def _u_pack(flags, seq, total):
-    """Pack UDP packet header."""
-    return struct.pack(UDP_HEADER_FORMAT, UDP_MAGIC, UDP_VERSION, 
-                      int(flags) & 0xFF, int(seq) & 0xFFFFFFFF, 
-                      int(total) & 0xFFFFFFFFFFFFFFFF)
+def _u_pack(flags, seq, total, tid):
+    return struct.pack(
+        _U_HDR,
+        _U_MAGIC,
+        _U_VER,
+        int(flags) & 0xFF,
+        int(seq) & 0xFFFFFFFF,
+        int(total) & 0xFFFFFFFFFFFFFFFF,
+        int(tid) & 0xFFFFFFFFFFFFFFFF,
+    )
 
 def _u_unpack(pkt):
-    """Unpack UDP packet header."""
-    if not pkt or len(pkt) < UDP_HEADER_LEN:
+    if not pkt or len(pkt) < _U_HDR_LEN:
         return None
-    
-    try:
-        magic, ver, flags, seq, total = struct.unpack(UDP_HEADER_FORMAT, 
-                                                     pkt[:UDP_HEADER_LEN])
-        if magic != UDP_MAGIC or ver != UDP_VERSION:
-            return None
-        return (flags, seq, total, pkt[UDP_HEADER_LEN:])
-    except struct.error:
+    magic, ver, flags, seq, total, tid = struct.unpack(_U_HDR, pkt[:_U_HDR_LEN])
+    if magic != _U_MAGIC or ver != _U_VER:
         return None
+    return (flags, seq, total, tid, pkt[_U_HDR_LEN:])
 
 # --------------------------
 # Network URL Parsing
@@ -1969,189 +1980,216 @@ def _udp_raw_recv(fileobj, host, port, **kwargs):
 # --------------------------
 
 def _udp_seq_recv(fileobj, host, port, **kwargs):
-    """UDP seq mode (reliable) receiver."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    
-    try:
-        sock.bind((host or "", int(port)))
-        chosen_port = sock.getsockname()[1]
-        
-        # Print listening URL
-        if kwargs.get("print_url"):
-            sys.stdout.write("Listening: udp://%s:%d/\n" % 
-                           (host or "0.0.0.0", chosen_port))
-            sys.stdout.flush()
-        
-        # Configure socket
-        timeout = float(kwargs.get("timeout", 1.0))
-        sock.settimeout(timeout)
-        
-        chunk = int(kwargs.get("chunk", DEFAULT_UDP_CHUNK))
-        window = int(kwargs.get("window", DEFAULT_WINDOW_SIZE))
-        total_timeout = float(kwargs.get("total_timeout", 0.0))
-        
-        framing = (kwargs.get("framing") or "").lower()
-        want_sha = bool(kwargs.get("sha256") or kwargs.get("sha") or kwargs.get("want_sha"))
-        
-        h = hashlib.sha256() if want_sha else None
-        
-        total_len = None
-        bytes_written = 0
-        got_digest = None
-        
-        # Resume offset
-        resume_off = 0
+    sock.bind((host or "", int(port)))
+    chosen_port = sock.getsockname()[1]
+    if kwargs.get("print_url"):
+        sys.stdout.write("Listening: udp://%s:%d/\n" % (host or "0.0.0.0", chosen_port))
         try:
-            resume_off = int(kwargs.get("resume_offset", 0) or 0)
+            sys.stdout.flush()
         except Exception:
-            resume_off = 0
-        
-        expected_seq = int(resume_off // chunk)
-        received = {}  # Out-of-order buffer
-        done = False
-        t0 = time.time()
-        
-        sender_addr = None
-        resume_sent = False
-        complete = False
-        
-        def _ack(addr, seq):
-            """Send ACK for received packet."""
-            try:
-                sock.sendto(_u_pack(UF_ACK, 0, 0) + 
-                          struct.pack("!I", int(seq) & 0xFFFFFFFF), addr)
-            except Exception:
-                pass
-        
-        while True:
-            # Check timeouts
-            if total_timeout and (time.time() - t0) > total_timeout:
-                _net_log(kwargs.get("verbose"), "Total timeout reached")
-                break
-            
-            try:
-                pkt, addr = sock.recvfrom(65536)
-                sender_addr = addr
-            except socket.timeout:
-                if complete and want_sha:
-                    continue
-                if done and not received:
-                    break
+            pass
+
+    timeout = float(kwargs.get("timeout", 1.0))
+    sock.settimeout(timeout)
+
+    chunk = int(kwargs.get("chunk", 1200))
+    window = int(kwargs.get("window", 32))
+    total_timeout = float(kwargs.get("total_timeout", 0.0))
+
+    framing = (kwargs.get("framing") or "").lower()
+    want_sha = bool(kwargs.get("sha256") or kwargs.get("sha") or kwargs.get("want_sha"))
+    _h = hashlib.sha256() if want_sha else None
+
+    total_len = None
+    bytes_written = 0
+    got_digest = None
+
+    # resume offset -> resume_seq (u32)
+    resume_off = 0
+    try:
+        resume_off = int(kwargs.get("resume_offset", 0) or 0)
+    except Exception:
+        resume_off = 0
+    resume_seq = int(max(0, resume_off) // chunk)
+    expected = resume_seq
+
+    received = {}   # out-of-order buffer: seq -> payload
+    done = False
+    complete = False
+    t0 = time.time()
+
+    # lock onto one transfer id
+    active_tid = None
+
+    def _ack(addr):
+        """
+        Cumulative ACK + SACK bitmap.
+
+        Payload layout:
+          ack_upto (u32)  = expected - 1
+          sack_mask(u64)  = bit i => have seq (expected + i), i = 0..63
+        """
+        ack_upto = int(expected - 1) & 0xFFFFFFFF
+        sack_mask = 0
+        base = int(expected)
+
+        # mark buffered out-of-order packets in next 64 sequence numbers
+        for s in received.keys():
+            d = int(s) - base
+            if 0 <= d < 64:
+                sack_mask |= (1 << d)
+
+        payload = struct.pack("!IQ", ack_upto, sack_mask)
+        sock.sendto(_u_pack(_UF_ACK, 0, 0, active_tid) + payload, addr)
+
+    def _send_resume(addr):
+        # payload = resume_seq (u32)
+        sock.sendto(
+            _u_pack(_UF_RESUME, 0xFFFFFFFE, 0, active_tid)
+            + struct.pack("!I", int(resume_seq) & 0xFFFFFFFF),
+            addr,
+        )
+
+    while True:
+        if total_timeout and (time.time() - t0) > total_timeout:
+            break
+        try:
+            pkt, addr = sock.recvfrom(65536)
+        except socket.timeout:
+            # if complete and want_sha, keep waiting for DONE/digest
+            if complete and want_sha:
                 continue
-            except Exception as e:
-                _net_log(kwargs.get("verbose"), "UDP seq recv error: %s" % str(e))
-                break
-            
-            up = _u_unpack(pkt)
-            if not up:
-                continue
-            
-            flags, seq, total, payload = up
-            
-            # Update total length if provided
-            if total_len is None and total:
-                try:
-                    total_len = int(total)
-                except Exception:
-                    pass
-            
-            # Send resume response if needed
-            if not resume_sent:
-                try:
-                    sock.sendto(_u_pack(UF_RESUME, 0xFFFFFFFE, 0) + 
-                              struct.pack("!Q", int(resume_off)), addr)
-                except Exception:
-                    pass
-                resume_sent = True
-            
-            # Handle META packets (resume requests from sender)
-            if flags & UF_META:
-                try:
-                    sock.sendto(_u_pack(UF_RESUME, 0xFFFFFFFE, 0) + 
-                              struct.pack("!Q", int(resume_off)), addr)
-                except Exception:
-                    pass
-                continue
-            
-            # Handle DONE packet
-            if flags & UF_DONE:
-                done = True
-                if payload.startswith(b"DONE") and len(payload) >= 4 + 32:
-                    got_digest = payload[4:4+32]
-                
-                if (framing == "len") and complete:
-                    break
-                if not received and not want_sha:
-                    break
-                continue
-            
-            # Only process DATA packets
-            if not (flags & UF_DATA):
-                continue
-            
-            # Send ACK
-            _ack(addr, seq)
-            
-            if complete:
-                continue
-            
-            # Check sequence number bounds
-            if seq < expected_seq:
-                continue
-            if seq >= expected_seq + window * 8:
-                continue
-            
-            # Process in-order packet
-            if seq == expected_seq:
-                fileobj.write(payload)
-                bytes_written += len(payload)
-                if h is not None:
-                    h.update(payload)
-                expected_seq += 1
-                
-                # Process any buffered packets that are now in-order
-                while expected_seq in received:
-                    buffered = received.pop(expected_seq)
-                    fileobj.write(buffered)
-                    bytes_written += len(buffered)
-                    if h is not None:
-                        h.update(buffered)
-                    expected_seq += 1
-            else:
-                # Buffer out-of-order packet
-                if seq not in received:
-                    received[seq] = payload
-            
-            # Check completion criteria
-            if (framing == "len") and (total_len is not None) and (bytes_written >= total_len):
-                complete = True
-                if not want_sha:
-                    break
-                if got_digest is not None:
-                    break
-            
             if done and not received:
                 break
-        
-        # Verify hash if requested
-        if want_sha:
-            if got_digest is None:
-                return False
-            if h is None or h.digest() != got_digest:
-                return False
-        
+            continue
+        except Exception:
+            break
+
+        up = _u_unpack(pkt)
+        if not up:
+            continue
+        flags, seq, total, tid, payload = up
+
+        if active_tid is None:
+            active_tid = tid
+        if tid != active_tid:
+            continue
+
+        if total_len is None and total:
+            try:
+                total_len = int(total)
+            except Exception:
+                total_len = None
+
+        if flags & _UF_META:
+            # sender is asking for resume info
+            try:
+                _send_resume(addr)
+            except Exception:
+                pass
+            continue
+
+        if flags & _UF_RESUME:
+            # receiver shouldn't normally receive RESUME from sender; ignore
+            continue
+
+        if flags & _UF_DONE:
+            done = True
+            if payload.startswith(b"DONE") and len(payload) >= 4 + 32:
+                got_digest = payload[4:4 + 32]
+
+            # if we're already complete (by length), we can finish now
+            if complete and ((not want_sha) or (got_digest is not None)):
+                break
+
+            # otherwise wait for missing buffered data / digest
+            if not received and not want_sha:
+                break
+            continue
+
+        if not (flags & _UF_DATA):
+            continue
+
+        if complete:
+            # still ACK so sender can finish cleanly
+            try:
+                _ack(addr)
+            except Exception:
+                pass
+            continue
+
+        # basic window sanity
+        if seq < expected:
+            # already have it; ACK where we are
+            try:
+                _ack(addr)
+            except Exception:
+                pass
+            continue
+        if seq >= expected + window * 8:
+            continue
+
+        # store or write
+        if seq == expected:
+            fileobj.write(payload)
+            bytes_written += len(payload)
+            if _h is not None:
+                _h.update(_to_bytes(payload))
+            expected += 1
+
+            while expected in received:
+                bufp = received.pop(expected)
+                fileobj.write(bufp)
+                bytes_written += len(bufp)
+                if _h is not None:
+                    _h.update(_to_bytes(bufp))
+                expected += 1
+        else:
+            if seq not in received:
+                received[seq] = payload
+
+        # cumulative ACK + SACK after progress
         try:
-            fileobj.seek(0, 0)
+            _ack(addr)
         except Exception:
             pass
-        
-        return True
-    
-    finally:
-        try:
-            sock.close()
-        except Exception:
-            pass
+
+        # completion by length, if enabled
+        if (framing == "len") and (total_len is not None) and (bytes_written >= total_len):
+            complete = True
+            if not want_sha:
+                break
+            if got_digest is not None:
+                break
+
+        if done and not received:
+            break
+
+    # verify sha if requested
+    if want_sha:
+        if got_digest is None:
+            try:
+                sock.close()
+            except Exception:
+                pass
+            return False
+        if _h is None or _h.digest() != got_digest:
+            try:
+                sock.close()
+            except Exception:
+                pass
+            return False
+
+    try:
+        sock.close()
+    except Exception:
+        pass
+    try:
+        fileobj.seek(0, 0)
+    except Exception:
+        pass
+    return True
 
 # --------------------------
 # TCP/UDP Sender Implementation
@@ -2681,159 +2719,185 @@ def _udp_raw_send_best_effort(sock, fileobj, addr, chunk):
 # UDP Seq Sender
 # --------------------------
 
-def _udp_seq_send(fileobj, host, port, **kwargs):
-    """UDP seq mode (reliable) sender."""
+def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
     addr = (host, int(port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    
+    timeout = float(kwargs.get("timeout", 1.0))
+    sock.settimeout(timeout)
+
+    chunk = int(kwargs.get("chunk", 1200))
+    window = int(kwargs.get("window", 32))
+    retries = int(kwargs.get("retries", 20))
+    total_timeout = float(kwargs.get("total_timeout", 0.0))
+
+    want_sha = bool(kwargs.get("sha256") or kwargs.get("sha") or kwargs.get("want_sha"))
+    _h = hashlib.sha256() if want_sha else None
+
+    # per-transfer session id
+    tid = int(kwargs.get("tid", 0) or 0)
+    if tid == 0:
+        tid = secrets.randbits(64)
+
+    # discover total length if possible
+    total = 0
     try:
-        # Configure socket
-        timeout = float(kwargs.get("timeout", 1.0))
-        sock.settimeout(timeout)
-        
-        chunk = int(kwargs.get("chunk", DEFAULT_UDP_CHUNK))
-        window = int(kwargs.get("window", DEFAULT_WINDOW_SIZE))
-        retries = int(kwargs.get("retries", DEFAULT_RETRIES))
-        total_timeout = float(kwargs.get("total_timeout", 0.0))
-        
-        want_sha = bool(kwargs.get("sha256") or kwargs.get("sha") or kwargs.get("want_sha"))
-        h = hashlib.sha256() if want_sha else None
-        
-        # Get file size
+        start_pos = fileobj.tell()
+        fileobj.seek(0, os.SEEK_END)
+        total = int(fileobj.tell())
+        fileobj.seek(start_pos, os.SEEK_SET)
+    except Exception:
         total = 0
-        start_pos = None
-        try:
-            start_pos = fileobj.tell()
-            fileobj.seek(0, os.SEEK_END)
-            total = int(fileobj.tell())
-            fileobj.seek(start_pos, os.SEEK_SET)
-        except Exception:
-            total = 0
-            start_pos = None
-        
-        # Resume handshake
-        start_seq = 0
-        resume = kwargs.get("resume", False)
-        
-        if resume:
-            sock.sendto(_u_pack(UF_META, 0xFFFFFFFF, total) + b"RESUME", addr)
-            t0 = time.time()
-            
-            while True:
-                if total_timeout and (time.time() - t0) > total_timeout:
-                    break
-                
+
+    # Resume handshake: ask receiver for resume_seq (u32)
+    start_seq = 0
+    if resume:
+        sock.sendto(_u_pack(_UF_META, 0xFFFFFFFF, total, tid) + b"RESUME", addr)
+        t0 = time.time()
+        while True:
+            if total_timeout and (time.time() - t0) > total_timeout:
+                break
+            try:
+                pkt, _peer = sock.recvfrom(2048)
+            except Exception:
+                break
+            up = _u_unpack(pkt)
+            if not up:
+                continue
+            flags, _seq, _t, r_tid, payload = up
+            if r_tid != tid:
+                continue
+            if (flags & _UF_RESUME) and len(payload) >= 4:
+                resume_seq = struct.unpack("!I", payload[:4])[0]
                 try:
-                    pkt, _ = sock.recvfrom(2048)
+                    fileobj.seek(int(resume_seq) * chunk, os.SEEK_SET)
+                    start_seq = int(resume_seq)
                 except Exception:
+                    start_seq = 0
+                break
+
+    next_seq = start_seq
+    in_flight = {}  # seq -> (data, ts, tries)
+    t_start = time.time()
+    failed = False
+
+    # (Optional) fast retransmit when SACK indicates holes
+    enable_fast_retx = bool(kwargs.get("fast_retx", True))
+
+    def _send_pkt(seq, data):
+        sock.sendto(_u_pack(_UF_DATA, seq, total, tid) + data, addr)
+
+    # Prime window
+    eof = False
+    while not eof and len(in_flight) < window:
+        data = fileobj.read(chunk)
+        if not data:
+            eof = True
+            break
+        data = _to_bytes(data)
+        if _h is not None:
+            _h.update(data)
+        _send_pkt(next_seq, data)
+        in_flight[next_seq] = (data, time.time(), 0)
+        next_seq += 1
+
+    while in_flight or not eof:
+        if total_timeout and (time.time() - t_start) > total_timeout:
+            failed = True
+            break
+
+        # receive cumulative ACKs + optional SACK bitmap
+        # payload:
+        #   ack_upto(u32) [+ sack_mask(u64)]
+        # sack_mask bit i means receiver has seq (ack_upto+1+i), i=0..63
+        try:
+            pkt, _peer = sock.recvfrom(2048)
+            up = _u_unpack(pkt)
+            if up:
+                flags, _seq, _t, r_tid, payload = up
+                if r_tid == tid and (flags & _UF_ACK) and len(payload) >= 4:
+                    ack_upto = None
+                    sack_mask = 0
+
+                    if len(payload) >= 12:
+                        ack_upto, sack_mask = struct.unpack("!IQ", payload[:12])
+                    else:
+                        (ack_upto,) = struct.unpack("!I", payload[:4])
+
+                    # remove all <= ack_upto
+                    for s in [s for s in list(in_flight.keys()) if s <= ack_upto]:
+                        del in_flight[s]
+
+                    # remove any SACKed packets in the next 64 sequence numbers
+                    if sack_mask:
+                        base = (ack_upto + 1) & 0xFFFFFFFF
+                        for i in range(64):
+                            if (sack_mask >> i) & 1:
+                                s = (base + i) & 0xFFFFFFFF
+                                if s in in_flight:
+                                    del in_flight[s]
+
+                        # Optional fast retransmit: resend the first missing (base) if it's still in flight
+                        if enable_fast_retx:
+                            missing = base
+                            if missing in in_flight:
+                                data, _ts, tries = in_flight[missing]
+                                if tries < retries:
+                                    _send_pkt(missing, data)
+                                    in_flight[missing] = (data, time.time(), tries + 1)
+        except socket.timeout:
+            pass
+        except Exception:
+            pass
+
+        # retransmit timed-out packets
+        now = time.time()
+        for seq in list(in_flight.keys()):
+            data, ts, tries = in_flight[seq]
+            if (now - ts) >= timeout:
+                if tries >= retries:
+                    failed = True
+                    in_flight.clear()
                     break
-                
-                up = _u_unpack(pkt)
-                if not up:
-                    continue
-                
-                flags, seq, _, payload = up
-                if flags & UF_RESUME and len(payload) >= 8:
-                    off = struct.unpack("!Q", payload[:8])[0]
-                    try:
-                        fileobj.seek(int(off), os.SEEK_SET)
-                        start_seq = int(off // chunk)
-                    except Exception:
-                        start_seq = 0
-                    break
-        
-        # Send data with sliding window
-        next_seq = start_seq
-        in_flight = {}  # seq -> (data, ts, tries)
-        t_start = time.time()
-        eof = False
-        
-        def _send_pkt(seq, data):
-            """Send a data packet."""
-            sock.sendto(_u_pack(UF_DATA, seq, total) + data, addr)
-        
-        # Prime window
+                _send_pkt(seq, data)
+                in_flight[seq] = (data, now, tries + 1)
+
+        if failed:
+            break
+
+        # fill window
         while not eof and len(in_flight) < window:
             data = fileobj.read(chunk)
             if not data:
                 eof = True
                 break
-            
             data = _to_bytes(data)
-            if h is not None:
-                h.update(data)
-            
+            if _h is not None:
+                _h.update(data)
             _send_pkt(next_seq, data)
             in_flight[next_seq] = (data, time.time(), 0)
             next_seq += 1
-        
-        # Main send loop
-        while in_flight or not eof:
-            if total_timeout and (time.time() - t_start) > total_timeout:
-                break
-            
-            # Receive ACKs
-            try:
-                pkt, _ = sock.recvfrom(2048)
-                up = _u_unpack(pkt)
-                if up:
-                    flags, seq, _, payload = up
-                    if flags & UF_ACK and len(payload) >= 4:
-                        ack_seq = struct.unpack("!I", payload[:4])[0]
-                        if ack_seq in in_flight:
-                            del in_flight[ack_seq]
-            except socket.timeout:
-                pass
-            except Exception:
-                pass
-            
-            # Retransmit timed-out packets
-            now = time.time()
-            for seq in list(in_flight.keys()):
-                data, ts, tries = in_flight[seq]
-                if (now - ts) >= timeout:
-                    if tries >= retries:
-                        del in_flight[seq]
-                        continue
-                    
-                    _send_pkt(seq, data)
-                    in_flight[seq] = (data, now, tries + 1)
-            
-            # Fill window with new data
-            while not eof and len(in_flight) < window:
-                data = fileobj.read(chunk)
-                if not data:
-                    eof = True
-                    break
-                
-                data = _to_bytes(data)
-                if h is not None:
-                    h.update(data)
-                
-                _send_pkt(next_seq, data)
-                in_flight[next_seq] = (data, now, 0)
-                next_seq += 1
-        
-        # Send DONE packet
-        payload = b"DONE"
-        if h is not None:
-            payload += h.digest()
-        
-        for _ in range(3):  # Send multiple times for reliability
-            sock.sendto(_u_pack(UF_DONE, 0xFFFFFFFE, total) + payload, addr)
-            time.sleep(0.02)
-        
-        return True
-    
-    except Exception as e:
-        _net_log(kwargs.get("verbose"), "UDP seq send error: %s" % str(e))
-        return False
-    
-    finally:
+
+    if failed:
         try:
             sock.close()
         except Exception:
             pass
+        return False
+
+    # DONE marker (send a few times). If sha requested, attach digest bytes.
+    payload = b"DONE"
+    if _h is not None:
+        payload += _h.digest()
+
+    for _i in range(3):
+        sock.sendto(_u_pack(_UF_DONE, 0xFFFFFFFE, total, tid) + payload, addr)
+        time.sleep(0.02)
+
+    try:
+        sock.close()
+    except Exception:
+        pass
+    return True
 
 # --------------------------
 # HTTP Server Implementation (for uploads)
