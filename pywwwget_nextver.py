@@ -71,6 +71,7 @@ import time
 import struct
 import hashlib
 import tempfile
+import zlib
 import gzip
 import ssl
 import mimetypes
@@ -1139,6 +1140,7 @@ _UF_ACK    = 0x02
 _UF_DONE   = 0x04
 _UF_RESUME = 0x08
 _UF_META   = 0x10
+_UF_CRC    = 0x20
 
 def _u_pack(flags, seq, total, tid):
     return struct.pack(
@@ -2226,21 +2228,51 @@ def _udp_raw_recv(fileobj, host, port, **kwargs):
 def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
     addr = (host, int(port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    timeout = float(kwargs.get("timeout", 1.0))
+
+    # --- RTT-based timeout params ---
+    base_timeout = float(kwargs.get("timeout", 1.0))
+    min_to = float(kwargs.get("min_timeout", 0.05))
+    max_to = float(kwargs.get("max_timeout", 3.0))
+
+    # Start with base timeout; will adapt
+    timeout = max(min_to, min(max_to, base_timeout))
     sock.settimeout(timeout)
 
     chunk = int(kwargs.get("chunk", 1200))
-    window = int(kwargs.get("window", 32))
+    max_window = int(kwargs.get("window", 32))          # cap
+    init_window = int(kwargs.get("init_window", max(1, min(4, max_window))))
     retries = int(kwargs.get("retries", 20))
     total_timeout = float(kwargs.get("total_timeout", 0.0))
+
+    enable_fast_retx = bool(kwargs.get("fast_retx", True))
+
+    # CRC option
+    use_crc = bool(kwargs.get("crc32", False))
 
     want_sha = bool(kwargs.get("sha256") or kwargs.get("sha") or kwargs.get("want_sha"))
     _h = hashlib.sha256() if want_sha else None
 
-    # per-transfer session id
     tid = int(kwargs.get("tid", 0) or 0)
     if tid == 0:
         tid = secrets.randbits(64)
+
+    # stats
+    stats = {
+        "tid": tid,
+        "bytes_sent_payload": 0,
+        "pkts_sent": 0,
+        "pkts_retx": 0,
+        "pkts_acked": 0,
+        "pkts_sacked": 0,
+        "loss_events": 0,
+        "duration_s": 0.0,
+        "throughput_Bps": 0.0,
+        "srtt": None,
+        "rttvar": None,
+        "timeout": timeout,
+        "cwnd_start": init_window,
+        "cwnd_end": init_window,
+    }
 
     # discover total length if possible
     total = 0
@@ -2252,7 +2284,7 @@ def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
     except Exception:
         total = 0
 
-    # Resume handshake: ask receiver for resume_seq (u32)
+    # Resume handshake
     start_seq = 0
     if resume:
         sock.sendto(_u_pack(_UF_META, 0xFFFFFFFF, total, tid) + b"RESUME", addr)
@@ -2279,29 +2311,82 @@ def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
                     start_seq = 0
                 break
 
+    # Congestion window (AIMD)
+    cwnd = max(1, min(max_window, init_window))
+    cwnd_float = float(cwnd)  # for additive increase smoothing
+
     next_seq = start_seq
-    in_flight = {}  # seq -> (data, ts, tries)
+    in_flight = {}  # seq -> (wire_payload, ts_sent, tries, data_len)
+
+    # RTT estimator (EWMA, TCP-like)
+    srtt = None
+    rttvar = None
+
+    def _update_rtt(sample):
+        nonlocal srtt, rttvar, timeout
+        if sample <= 0:
+            return
+        if srtt is None:
+            srtt = sample
+            rttvar = sample / 2.0
+        else:
+            # RFC6298-ish
+            alpha = 1 / 8
+            beta = 1 / 4
+            rttvar = (1 - beta) * rttvar + beta * abs(srtt - sample)
+            srtt = (1 - alpha) * srtt + alpha * sample
+        timeout = srtt + 4.0 * rttvar
+        timeout = max(min_to, min(max_to, timeout))
+        try:
+            sock.settimeout(timeout)
+        except Exception:
+            pass
+
+    def _loss_event():
+        nonlocal cwnd, cwnd_float
+        stats["loss_events"] += 1
+        cwnd = max(1, cwnd // 2)
+        cwnd_float = float(cwnd)
+
+    def _ai_increase(acked_count):
+        # additive increase: cwnd += acked/cwnd (smoothed)
+        nonlocal cwnd, cwnd_float
+        if acked_count <= 0:
+            return
+        cwnd_float += float(acked_count) / max(1.0, float(cwnd))
+        new_cwnd = int(cwnd_float)
+        if new_cwnd > cwnd:
+            cwnd = min(max_window, new_cwnd)
+            cwnd_float = float(cwnd)
+
+    def _send_pkt(seq, wire_payload, flags):
+        sock.sendto(_u_pack(flags, seq, total, tid) + wire_payload, addr)
+        stats["pkts_sent"] += 1
+
     t_start = time.time()
     failed = False
 
-    # (Optional) fast retransmit when SACK indicates holes
-    enable_fast_retx = bool(kwargs.get("fast_retx", True))
-
-    def _send_pkt(seq, data):
-        sock.sendto(_u_pack(_UF_DATA, seq, total, tid) + data, addr)
-
-    # Prime window
-    eof = False
-    while not eof and len(in_flight) < window:
+    def _read_chunk():
         data = fileobj.read(chunk)
         if not data:
-            eof = True
-            break
+            return None
         data = _to_bytes(data)
         if _h is not None:
             _h.update(data)
-        _send_pkt(next_seq, data)
-        in_flight[next_seq] = (data, time.time(), 0)
+        return data
+
+    # Prime window
+    eof = False
+    while not eof and len(in_flight) < cwnd:
+        data = _read_chunk()
+        if data is None:
+            eof = True
+            break
+        flags = _UF_DATA | (_UF_CRC if use_crc else 0)
+        wire = struct.pack("!I", zlib.crc32(data) & 0xFFFFFFFF) + data if use_crc else data
+        _send_pkt(next_seq, wire, flags)
+        in_flight[next_seq] = (wire, time.time(), 0, len(data))
+        stats["bytes_sent_payload"] += len(data)
         next_seq += 1
 
     while in_flight or not eof:
@@ -2309,10 +2394,7 @@ def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
             failed = True
             break
 
-        # receive cumulative ACKs + optional SACK bitmap
-        # payload:
-        #   ack_upto(u32) [+ sack_mask(u64)]
-        # sack_mask bit i means receiver has seq (ack_upto+1+i), i=0..63
+        # Receive ACKs + SACK
         try:
             pkt, _peer = sock.recvfrom(2048)
             up = _u_unpack(pkt)
@@ -2321,74 +2403,107 @@ def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
                 if r_tid == tid and (flags & _UF_ACK) and len(payload) >= 4:
                     ack_upto = None
                     sack_mask = 0
-
                     if len(payload) >= 12:
                         ack_upto, sack_mask = struct.unpack("!IQ", payload[:12])
                     else:
                         (ack_upto,) = struct.unpack("!I", payload[:4])
 
-                    # remove all <= ack_upto
-                    for s in [s for s in list(in_flight.keys()) if s <= ack_upto]:
-                        del in_flight[s]
+                    newly_acked = 0
+                    now = time.time()
 
-                    # remove any SACKed packets in the next 64 sequence numbers
+                    # Cumulative ACK: drop all <= ack_upto
+                    for s in [s for s in list(in_flight.keys()) if s <= ack_upto]:
+                        wire, ts, _tries, _dlen = in_flight[s]
+                        # RTT sample from original send timestamp (works best if not retransmitted)
+                        sample = now - ts
+                        _update_rtt(sample)
+                        del in_flight[s]
+                        stats["pkts_acked"] += 1
+                        newly_acked += 1
+
+                    # SACK: drop indicated packets after base=(ack_upto+1)
                     if sack_mask:
                         base = (ack_upto + 1) & 0xFFFFFFFF
                         for i in range(64):
                             if (sack_mask >> i) & 1:
                                 s = (base + i) & 0xFFFFFFFF
                                 if s in in_flight:
+                                    wire, ts, _tries, _dlen = in_flight[s]
+                                    sample = now - ts
+                                    _update_rtt(sample)
                                     del in_flight[s]
+                                    stats["pkts_sacked"] += 1
+                                    newly_acked += 1
 
-                        # Optional fast retransmit: resend the first missing (base) if it's still in flight
+                        # Optional fast retransmit: resend base if still outstanding
                         if enable_fast_retx:
                             missing = base
                             if missing in in_flight:
-                                data, _ts, tries = in_flight[missing]
+                                wire, _ts, tries, _dlen = in_flight[missing]
                                 if tries < retries:
-                                    _send_pkt(missing, data)
-                                    in_flight[missing] = (data, time.time(), tries + 1)
+                                    _send_pkt(missing, wire, _UF_DATA | (_UF_CRC if use_crc else 0))
+                                    in_flight[missing] = (wire, time.time(), tries + 1, _dlen)
+                                    stats["pkts_retx"] += 1
+                                    _loss_event()
+
+                    _ai_increase(newly_acked)
         except socket.timeout:
             pass
         except Exception:
             pass
 
-        # retransmit timed-out packets
+        # Retransmit timed-out packets
         now = time.time()
         for seq in list(in_flight.keys()):
-            data, ts, tries = in_flight[seq]
+            wire, ts, tries, dlen = in_flight[seq]
             if (now - ts) >= timeout:
                 if tries >= retries:
                     failed = True
                     in_flight.clear()
                     break
-                _send_pkt(seq, data)
-                in_flight[seq] = (data, now, tries + 1)
+                _send_pkt(seq, wire, _UF_DATA | (_UF_CRC if use_crc else 0))
+                in_flight[seq] = (wire, now, tries + 1, dlen)
+                stats["pkts_retx"] += 1
+                _loss_event()
 
         if failed:
             break
 
-        # fill window
-        while not eof and len(in_flight) < window:
-            data = fileobj.read(chunk)
-            if not data:
+        # Fill window based on cwnd
+        while not eof and len(in_flight) < cwnd:
+            data = _read_chunk()
+            if data is None:
                 eof = True
                 break
-            data = _to_bytes(data)
-            if _h is not None:
-                _h.update(data)
-            _send_pkt(next_seq, data)
-            in_flight[next_seq] = (data, time.time(), 0)
+            flags = _UF_DATA | (_UF_CRC if use_crc else 0)
+            wire = struct.pack("!I", zlib.crc32(data) & 0xFFFFFFFF) + data if use_crc else data
+            _send_pkt(next_seq, wire, flags)
+            in_flight[next_seq] = (wire, time.time(), 0, len(data))
+            stats["bytes_sent_payload"] += len(data)
             next_seq += 1
+
+    # finalize stats
+    dur = max(1e-9, time.time() - t_start)
+    stats["duration_s"] = dur
+    stats["throughput_Bps"] = float(stats["bytes_sent_payload"]) / dur
+    stats["timeout"] = timeout
+    stats["srtt"] = srtt
+    stats["rttvar"] = rttvar
+    stats["cwnd_end"] = cwnd
 
     if failed:
         try:
             sock.close()
         except Exception:
             pass
+        if kwargs.get("return_stats"):
+            return (False, stats)
+        so = kwargs.get("stats_obj")
+        if isinstance(so, dict):
+            so.update(stats)
         return False
 
-    # DONE marker (send a few times). If sha requested, attach digest bytes.
+    # DONE marker
     payload = b"DONE"
     if _h is not None:
         payload += _h.digest()
@@ -2401,13 +2516,20 @@ def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
         sock.close()
     except Exception:
         pass
+
+    so = kwargs.get("stats_obj")
+    if isinstance(so, dict):
+        so.update(stats)
+
+    if kwargs.get("return_stats"):
+        return (True, stats)
     return True
 def _udp_seq_recv(fileobj, host, port, **kwargs):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((host or "", int(port)))
-    chosen_port = sock.getsockname()[1]
+
     if kwargs.get("print_url"):
-        sys.stdout.write("Listening: udp://%s:%d/\n" % (host or "0.0.0.0", chosen_port))
+        sys.stdout.write("Listening: udp://%s:%d/\n" % (host or "0.0.0.0", sock.getsockname()[1]))
         try:
             sys.stdout.flush()
         except Exception:
@@ -2424,11 +2546,13 @@ def _udp_seq_recv(fileobj, host, port, **kwargs):
     want_sha = bool(kwargs.get("sha256") or kwargs.get("sha") or kwargs.get("want_sha"))
     _h = hashlib.sha256() if want_sha else None
 
+    # CRC option (must match sender)
+    use_crc = bool(kwargs.get("crc32", False))
+
     total_len = None
     bytes_written = 0
     got_digest = None
 
-    # resume offset -> resume_seq (u32)
     resume_off = 0
     try:
         resume_off = int(kwargs.get("resume_offset", 0) or 0)
@@ -2437,37 +2561,29 @@ def _udp_seq_recv(fileobj, host, port, **kwargs):
     resume_seq = int(max(0, resume_off) // chunk)
     expected = resume_seq
 
-    received = {}   # out-of-order buffer: seq -> payload
+    received = {}   # seq -> payload (data bytes only)
     done = False
     complete = False
     t0 = time.time()
 
-    # lock onto one transfer id
     active_tid = None
 
-    def _ack(addr):
-        """
-        Cumulative ACK + SACK bitmap.
+    # stats
+    crc_bad = 0
 
-        Payload layout:
-          ack_upto (u32)  = expected - 1
-          sack_mask(u64)  = bit i => have seq (expected + i), i = 0..63
-        """
+    def _ack(addr):
+        # Payload: ack_upto(u32) + sack_mask(u64)
         ack_upto = int(expected - 1) & 0xFFFFFFFF
         sack_mask = 0
         base = int(expected)
-
-        # mark buffered out-of-order packets in next 64 sequence numbers
         for s in received.keys():
             d = int(s) - base
             if 0 <= d < 64:
                 sack_mask |= (1 << d)
-
         payload = struct.pack("!IQ", ack_upto, sack_mask)
         sock.sendto(_u_pack(_UF_ACK, 0, 0, active_tid) + payload, addr)
 
     def _send_resume(addr):
-        # payload = resume_seq (u32)
         sock.sendto(
             _u_pack(_UF_RESUME, 0xFFFFFFFE, 0, active_tid)
             + struct.pack("!I", int(resume_seq) & 0xFFFFFFFF),
@@ -2480,7 +2596,6 @@ def _udp_seq_recv(fileobj, host, port, **kwargs):
         try:
             pkt, addr = sock.recvfrom(65536)
         except socket.timeout:
-            # if complete and want_sha, keep waiting for DONE/digest
             if complete and want_sha:
                 continue
             if done and not received:
@@ -2506,27 +2621,18 @@ def _udp_seq_recv(fileobj, host, port, **kwargs):
                 total_len = None
 
         if flags & _UF_META:
-            # sender is asking for resume info
             try:
                 _send_resume(addr)
             except Exception:
                 pass
             continue
 
-        if flags & _UF_RESUME:
-            # receiver shouldn't normally receive RESUME from sender; ignore
-            continue
-
         if flags & _UF_DONE:
             done = True
             if payload.startswith(b"DONE") and len(payload) >= 4 + 32:
                 got_digest = payload[4:4 + 32]
-
-            # if we're already complete (by length), we can finish now
             if complete and ((not want_sha) or (got_digest is not None)):
                 break
-
-            # otherwise wait for missing buffered data / digest
             if not received and not want_sha:
                 break
             continue
@@ -2535,16 +2641,14 @@ def _udp_seq_recv(fileobj, host, port, **kwargs):
             continue
 
         if complete:
-            # still ACK so sender can finish cleanly
             try:
                 _ack(addr)
             except Exception:
                 pass
             continue
 
-        # basic window sanity
+        # window sanity
         if seq < expected:
-            # already have it; ACK where we are
             try:
                 _ack(addr)
             except Exception:
@@ -2553,14 +2657,35 @@ def _udp_seq_recv(fileobj, host, port, **kwargs):
         if seq >= expected + window * 8:
             continue
 
-        # store or write
+        # CRC verify if enabled + flagged
+        if use_crc and (flags & _UF_CRC):
+            if len(payload) < 4:
+                crc_bad += 1
+                try:
+                    _ack(addr)
+                except Exception:
+                    pass
+                continue
+            want = struct.unpack("!I", payload[:4])[0]
+            data = payload[4:]
+            got = zlib.crc32(data) & 0xFFFFFFFF
+            if got != want:
+                crc_bad += 1
+                # drop packet, do not buffer/write; ACK current state
+                try:
+                    _ack(addr)
+                except Exception:
+                    pass
+                continue
+            payload = data  # strip CRC, keep data only
+
+        # store/write in order
         if seq == expected:
             fileobj.write(payload)
             bytes_written += len(payload)
             if _h is not None:
                 _h.update(_to_bytes(payload))
             expected += 1
-
             while expected in received:
                 bufp = received.pop(expected)
                 fileobj.write(bufp)
@@ -2572,13 +2697,11 @@ def _udp_seq_recv(fileobj, host, port, **kwargs):
             if seq not in received:
                 received[seq] = payload
 
-        # cumulative ACK + SACK after progress
         try:
             _ack(addr)
         except Exception:
             pass
 
-        # completion by length, if enabled
         if (framing == "len") and (total_len is not None) and (bytes_written >= total_len):
             complete = True
             if not want_sha:
@@ -2589,7 +2712,6 @@ def _udp_seq_recv(fileobj, host, port, **kwargs):
         if done and not received:
             break
 
-    # verify sha if requested
     if want_sha:
         if got_digest is None:
             try:
@@ -2612,6 +2734,12 @@ def _udp_seq_recv(fileobj, host, port, **kwargs):
         fileobj.seek(0, 0)
     except Exception:
         pass
+
+    # (optional) expose receiver CRC stats
+    so = kwargs.get("stats_obj")
+    if isinstance(so, dict):
+        so["crc_bad"] = crc_bad
+
     return True
 # --------------------------
 # Public "internet" API
