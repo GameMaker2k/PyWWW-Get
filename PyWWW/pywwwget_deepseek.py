@@ -3184,7 +3184,7 @@ def _serve_file_over_http(fileobj, url):
 # Main Public API Functions
 # --------------------------
 
-def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__):
+def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__, **kwargs):
     """
     Download file from any supported protocol.
     
@@ -3294,7 +3294,7 @@ def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__
     else:
         return False
 
-def download_file_from_internet_string(url, headers=None, usehttp=__use_http_lib__):
+def download_file_from_internet_string(url, headers=None, usehttp=__use_http_lib__, **kwargs):
     """Download file as string/bytes."""
     fp = download_file_from_internet_file(url, headers=headers, usehttp=usehttp)
     return fp.read() if fp else False

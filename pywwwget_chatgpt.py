@@ -2610,7 +2610,7 @@ def recv_to_path(url, out_path, auto_extract=False, extract_dir=None, keep_archi
             pass
     return out_path
 
-def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__):
+def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__, **kwargs):
     p = urlparse(url)
     if p.scheme in ("http", "https"):
         return download_file_from_http_file(url, headers=headers or {}, usehttp=usehttp)
@@ -2692,7 +2692,7 @@ def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__
 
     return False
 
-def download_file_from_internet_string(url, headers=None, usehttp=__use_http_lib__):
+def download_file_from_internet_string(url, headers=None, usehttp=__use_http_lib__, **kwargs):
     fp = download_file_from_internet_file(url, headers=headers, usehttp=usehttp)
     return fp.read() if fp else False
 

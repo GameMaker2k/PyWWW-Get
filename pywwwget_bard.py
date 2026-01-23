@@ -1332,11 +1332,11 @@ def upload_file_to_internet_file(fileobj, url):
         return send_from_fileobj(fileobj, p.hostname, p.port, p.scheme, **o)
     return False
 
-def download_file_from_internet_file(url, headers=None):
+def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__, **kwargs):
     """Downloads a file from URL and returns a file-like object."""
     p = urlparse(url)
     if p.scheme in ("http", "https"):
-        return download_file_from_http_file(url, headers)
+        return download_file_from_http_file(url, headers, usehttp)
     elif p.scheme in ("ftp", "ftps"):
         return download_file_from_ftp_file(url)
     elif p.scheme in ("sftp", "scp"):
