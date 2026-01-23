@@ -1213,6 +1213,33 @@ def upload_file_to_pysftp_string(data, url):
         return False
     return upload_file_to_sftp_string(data, url)
 
+def decoded_stream(resp):
+    # resp can be urllib response or anything file-like with headers
+    enc = None
+    try:
+        enc = resp.headers.get("Content-Encoding")
+    except Exception:
+        pass
+
+    if not enc:
+        return resp
+
+    enc = enc.lower().strip()
+
+    if enc == "gzip":
+        return gzip.GzipFile(fileobj=resp)
+    if enc == "deflate":
+        # deflate is ambiguous; try zlib header first, then raw deflate
+        data = resp.read()
+        try:
+            return io.BytesIO(zlib.decompress(data))
+        except zlib.error:
+            return io.BytesIO(zlib.decompress(data, -zlib.MAX_WBITS))
+
+    # br requires brotli package; zstd requires zstandard package.
+    # If you need these, handle here.
+    return resp
+
 # --------------------------
 # HTTP helpers (download only)
 # --------------------------
@@ -1305,7 +1332,8 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
         else:
             opener = build_opener()
         resp = opener.open(req)
-        shutil.copyfileobj(resp, httpfile)
+        resp2 = decoded_stream(resp)
+        shutil.copyfileobj(resp2, httpfile)
 
     try:
         httpfile.seek(0, 0)
