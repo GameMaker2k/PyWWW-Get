@@ -315,7 +315,7 @@ def MkTempFile(data=None,
 
             # Fallback: pure-Python in-memory objects
             if isbytes:
-                f = io.BytesIO(init if init is not None else b"")
+                f = io.MkTempFile(init if init is not None else b"")
                 if reset_to_start:
                     f.seek(0)
                 _created(f, "bytesio")
@@ -481,7 +481,7 @@ def download_file_from_ftp_file(url):
         use_cwd = detect_cwd(ftp, os.path.dirname(p.path or "/"))
         retr_path = os.path.basename(p.path) if use_cwd else p.path
         
-        bio = BytesIO()
+        bio = MkTempFile()
         ftp.retrbinary("RETR " + retr_path, bio.write)
         ftp.quit()
         bio.seek(0)
@@ -525,7 +525,7 @@ def download_file_from_sftp_file(url):
         ssh.connect(p.hostname, port=p.port or 22, username=p.username or "anonymous", 
                    password=p.password or "", timeout=10)
         sftp = ssh.open_sftp()
-        bio = BytesIO()
+        bio = MkTempFile()
         sftp.getfo(p.path or "/", bio)
         sftp.close()
         ssh.close()
@@ -1008,7 +1008,7 @@ def _serve_file_over_http(fileobj, url):
         if must_buffer:
             # Fallback for pipes with multiple clients
             data = fileobj.read()
-            fileobj = BytesIO(data)
+            fileobj = MkTempFile(data)
             
     class FileHandler(BaseHTTPRequestHandler):
         def log_message(self, fmt, *args): pass
@@ -1090,7 +1090,7 @@ def download_file_from_internet_file(url, headers=None):
 
 # Wrappers for string input/output
 def upload_file_to_internet_string(data, url):
-    return upload_file_to_internet_file(BytesIO(_to_bytes(data)), url)
+    return upload_file_to_internet_file(MkTempFile(_to_bytes(data)), url)
 
 def download_file_from_internet_string(url, headers=None):
     fp = download_file_from_internet_file(url, headers)

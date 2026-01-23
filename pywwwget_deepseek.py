@@ -24,6 +24,7 @@ Key fixes:
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
+import io
 import sys
 import socket
 import shutil
@@ -141,7 +142,7 @@ except NameError:
     basestring = str
 
 # Module metadata
-__program_name__ = "PyWWW-Get (optimized)"
+__program_name__ = "PyWWW-Get"
 __project__ = __program_name__
 __project_url__ = "https://github.com/GameMaker2k/PyWWW-Get"
 __version__ = "optimized-v1.0"
@@ -150,6 +151,32 @@ __license__ = "MIT"
 
 __use_http_lib__ = "httpx" if havehttpx else ("requests" if haverequests else "urllib")
 __use_pysftp__ = False  # can toggle
+
+__use_inmem__ = True
+__use_memfd__ = True
+__use_spoolfile__ = False
+__use_spooldir__ = tempfile.gettempdir()
+
+BYTES_PER_KiB = 1024
+BYTES_PER_MiB = 1024 * BYTES_PER_KiB
+
+DEFAULT_SPOOL_MAX = 4 * BYTES_PER_MiB      # 4 MiB per spooled temp file
+__spoolfile_size__ = DEFAULT_SPOOL_MAX
+
+DEFAULT_BUFFER_MAX = 256 * BYTES_PER_KiB   # 256 KiB copy buffer
+__filebuff_size__ = DEFAULT_BUFFER_MAX
+
+# ---- Py2/Py3 type helpers ----
+try:
+    text_type = unicode  # noqa: F821  (Py2)
+except NameError:
+    text_type = str      # Py3
+
+binary_types = (bytes, bytearray)
+try:
+    binary_types = (bytes, bytearray, memoryview)  # Py3 has memoryview; Py2 does too, but keep safe
+except NameError:
+    pass
 
 # --------------------------
 # Constants
@@ -428,37 +455,167 @@ def _resolve_wait_timeout(scheme, mode, options):
 # File-like Object Management
 # --------------------------
 
-class MkTempFile(object):
-    """Cross-platform temporary file factory."""
-    
-    @staticmethod
-    def create():
-        """Create a temporary file that works on both Windows and Unix."""
-        # On Windows, NamedTemporaryFile cannot be reopened while open
-        # So we create our own implementation
-        import tempfile
-        
-        if sys.platform == "win32":
-            # Windows workaround
-            fd, path = tempfile.mkstemp()
-            try:
-                os.close(fd)
-                return open(path, "w+b")
-            except Exception:
-                try:
-                    os.unlink(path)
-                except Exception:
-                    pass
-                raise
+def MkTempFile(data=None,
+               inmem=__use_inmem__, usememfd=__use_memfd__,
+               isbytes=True,
+               prefix=__program_name__,
+               delete=True,
+               encoding="utf-8",
+               newline=None,
+               text_errors="strict",
+               dir=None,
+               suffix="",
+               use_spool=__use_spoolfile__,
+               autoswitch_spool=False,
+               spool_max=__spoolfile_size__,
+               spool_dir=__use_spooldir__,
+               reset_to_start=True,
+               memfd_name=__program_name__,
+               memfd_allow_sealing=False,
+               memfd_flags_extra=0,
+               on_create=None):
+    """
+    Return a file-like handle with consistent behavior on Py2.7 and Py3.x.
+
+    Storage:
+      - inmem=True, usememfd=True, isbytes=True and memfd available
+            -> memfd-backed anonymous file (binary)
+      - inmem=True, otherwise
+            -> BytesIO (bytes) or StringIO (text)
+      - inmem=False, use_spool=True
+            -> SpooledTemporaryFile (binary), optionally TextIOWrapper for text
+      - inmem=False, use_spool=False
+            -> NamedTemporaryFile (binary), optionally TextIOWrapper for text
+
+    Text vs bytes:
+      - isbytes=True  -> file expects bytes; 'data' must be bytes-like (or str which will be encoded)
+      - isbytes=False -> file expects text; 'data' must be text (or bytes which will be decoded)
+
+    Notes:
+      - On Windows, NamedTemporaryFile(delete=True) keeps the file open and cannot be reopened by
+        other processes. Use delete=False if you need to pass the path elsewhere.
+      - For text: in-memory StringIO ignores 'newline' and 'text_errors' (as usual).
+      - When available, and if usememfd=True, memfd is used only for inmem=True and isbytes=True
+        (Linux-only).
+      - If autoswitch_spool=True and initial data size exceeds spool_max, in-memory storage is
+        skipped and a spooled file is used instead (if use_spool=True).
+      - If on_create is not None, it is called as on_create(fp, kind) where kind is one of:
+        "memfd", "bytesio", "stringio", "spool", "disk".
+    """
+
+    # ---- sanitize params (avoid None surprises) ----
+    prefix = prefix or ""
+    suffix = suffix or ""
+    # dir/spool_dir may be None (allowed)
+
+    # ---- normalize initial data to the right type early ----
+    init = None
+    if data is not None:
+        if isbytes:
+            # Require bytes-like; allow common safe conversions
+            if isinstance(data, binary_types):
+                # bytes / bytearray / memoryview
+                init = bytes(data) if not isinstance(data, bytes) else data
+            elif isinstance(data, text_type):
+                init = data.encode(encoding)
+            else:
+                raise TypeError("data must be bytes-like for isbytes=True")
         else:
-            # Unix-like systems
-            return tempfile.NamedTemporaryFile(mode="w+b", delete=False)
-    
-    @staticmethod
-    def spooled(max_size=8*1024*1024):
-        """Create spooled temporary file (memory first, disk on overflow)."""
-        import tempfile
-        return tempfile.SpooledTemporaryFile(max_size=max_size, mode="w+b")
+            # Require text; allow decoding from bytes-like
+            if isinstance(data, binary_types):
+                # NOTE: preserve original behavior: STRICT decode here (not text_errors)
+                init = bytes(data).decode(encoding, errors="strict")
+            elif isinstance(data, text_type):
+                init = data
+            else:
+                raise TypeError("data must be text (str/unicode) for isbytes=False")
+
+    init_len = len(init) if (init is not None and isbytes) else None
+
+    # ---- helper: callback ----
+    def _created(fp, kind):
+        if on_create is not None:
+            on_create(fp, kind)
+
+    # ---- helper: wrap binary handle as text with encoding/newline/errors ----
+    def _wrap_text(binary_handle):
+        # Prefer TextIOWrapper when available/usable.
+        # In Py2, io.TextIOWrapper exists and works with binary handles.
+        return io.TextIOWrapper(binary_handle, encoding=encoding,
+                                newline=newline, errors=text_errors)
+
+    # =========================
+    # In-memory branch
+    # =========================
+    if inmem:
+        # optional autoswitch to spool for large initial bytes payload
+        if autoswitch_spool and use_spool and init_len is not None and init_len > spool_max:
+            # fall through to spool/disk branches below
+            pass
+        else:
+            # memfd only for bytes and only where available (Linux + Python that exposes it)
+            memfd_create = getattr(os, "memfd_create", None)
+            if usememfd and isbytes and callable(memfd_create):
+                name = memfd_name or prefix or "MkTempFile"
+                flags = 0
+                # Close-on-exec is almost always what you want for temps
+                if hasattr(os, "MFD_CLOEXEC"):
+                    flags |= os.MFD_CLOEXEC
+                # Optional sealing support
+                if memfd_allow_sealing and hasattr(os, "MFD_ALLOW_SEALING"):
+                    flags |= os.MFD_ALLOW_SEALING
+                if memfd_flags_extra:
+                    flags |= int(memfd_flags_extra)
+
+                fd = memfd_create(name, flags)
+                f = os.fdopen(fd, "w+b")
+                if init is not None:
+                    f.write(init)
+                if reset_to_start:
+                    f.seek(0)
+                _created(f, "memfd")
+                return f
+
+            # Fallback: pure-Python in-memory objects
+            if isbytes:
+                f = io.MkTempFile(init if init is not None else b"")
+                if reset_to_start:
+                    f.seek(0)
+                _created(f, "bytesio")
+                return f
+            else:
+                # StringIO ignores newline/text_errors by design
+                f = io.StringIO(init if init is not None else u"")
+                if reset_to_start:
+                    f.seek(0)
+                _created(f, "stringio")
+                return f
+
+    # =========================
+    # Spooled (RAM then disk)
+    # =========================
+    if use_spool:
+        # Always create binary spooled file; wrap for text if needed
+        b = tempfile.SpooledTemporaryFile(max_size=spool_max, mode="w+b", dir=spool_dir)
+        f = b if isbytes else _wrap_text(b)
+        if init is not None:
+            f.write(init)
+        if reset_to_start:
+            f.seek(0)
+        _created(f, "spool")
+        return f
+
+    # =========================
+    # On-disk temp (NamedTemporaryFile)
+    # =========================
+    b = tempfile.NamedTemporaryFile(mode="w+b", prefix=prefix, suffix=suffix, dir=dir, delete=delete)
+    f = b if isbytes else _wrap_text(b)
+    if init is not None:
+        f.write(init)
+    if reset_to_start:
+        f.seek(0)
+    _created(f, "disk")
+    return f
 
 # --------------------------
 # FTP Protocol Implementation
@@ -520,7 +677,7 @@ def download_file_from_ftp_file(url):
         use_cwd = detect_cwd(ftp, file_dir)
         retr_path = os.path.basename(path) if use_cwd else path
         
-        bio = BytesIO()
+        bio = MkTempFile()
         
         def callback(data):
             bio.write(data)
@@ -602,7 +759,7 @@ def upload_file_to_ftp_file(fileobj, url):
 
 def upload_file_to_ftp_string(data, url):
     """Upload string to FTP/FTPS server."""
-    bio = BytesIO(_to_bytes(data))
+    bio = MkTempFile(_to_bytes(data))
     out = upload_file_to_ftp_file(bio, url)
     try:
         bio.close()
@@ -678,7 +835,7 @@ def download_file_from_sftp_file(url):
     path = p.path or "/"
     
     try:
-        bio = BytesIO()
+        bio = MkTempFile()
         
         # Get file size for progress reporting
         try:
@@ -770,7 +927,7 @@ def upload_file_to_sftp_file(fileobj, url):
 
 def upload_file_to_sftp_string(data, url):
     """Upload string to SFTP server."""
-    bio = BytesIO(_to_bytes(data))
+    bio = MkTempFile(_to_bytes(data))
     out = upload_file_to_sftp_file(bio, url)
     try:
         bio.close()
@@ -833,7 +990,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
     resume_to = _qstr(qs, "resume_to", None)
     
     # Handle resume
-    httpfile = MkTempFile.create()
+    httpfile = MkTempFile()
     resume_off = 0
     
     if resume and resume_to:
@@ -847,7 +1004,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
                 httpfile = open(resume_to, "wb+")
                 resume_off = 0
         except Exception:
-            httpfile = MkTempFile.create()
+            httpfile = MkTempFile()
             resume_off = 0
     
     if resume_off and "Range" not in headers and "range" not in headers:
@@ -2529,7 +2686,7 @@ def _serve_file_over_http(fileobj, url):
             return fileobj
         if can_reopen:
             return open(file_path, "rb")
-        return BytesIO(data_bytes)
+        return MkTempFile(data_bytes)
     
     class _Handler(BaseHTTPRequestHandler):
         """HTTP request handler for serving files."""
@@ -2838,7 +2995,7 @@ def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__
                     resume_off = 0
         
         if outfile is None:
-            outfile = MkTempFile.create()
+            outfile = MkTempFile()
         
         # Receive data
         ok = recv_to_fileobj(
@@ -2946,7 +3103,7 @@ def upload_file_to_internet_file(fileobj, url):
 
 def upload_file_to_internet_string(data, url):
     """Upload string/bytes to any supported protocol."""
-    bio = BytesIO(_to_bytes(data))
+    bio = MkTempFile(_to_bytes(data))
     out = upload_file_to_internet_file(bio, url)
     try:
         bio.close()

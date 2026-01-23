@@ -578,7 +578,7 @@ def MkTempFile(data=None,
 
             # Fallback: pure-Python in-memory objects
             if isbytes:
-                f = io.BytesIO(init if init is not None else b"")
+                f = io.MkTempFile(init if init is not None else b"")
                 if reset_to_start:
                     f.seek(0)
                 _created(f, "bytesio")
@@ -677,7 +677,7 @@ def download_file_from_ftp_file(url):
         use_cwd = detect_cwd(ftp, file_dir)
         retr_path = os.path.basename(path) if use_cwd else path
         
-        bio = BytesIO()
+        bio = MkTempFile()
         
         def callback(data):
             bio.write(data)
@@ -759,7 +759,7 @@ def upload_file_to_ftp_file(fileobj, url):
 
 def upload_file_to_ftp_string(data, url):
     """Upload string to FTP/FTPS server."""
-    bio = BytesIO(_to_bytes(data))
+    bio = MkTempFile(_to_bytes(data))
     out = upload_file_to_ftp_file(bio, url)
     try:
         bio.close()
@@ -835,7 +835,7 @@ def download_file_from_sftp_file(url):
     path = p.path or "/"
     
     try:
-        bio = BytesIO()
+        bio = MkTempFile()
         
         # Get file size for progress reporting
         try:
@@ -927,7 +927,7 @@ def upload_file_to_sftp_file(fileobj, url):
 
 def upload_file_to_sftp_string(data, url):
     """Upload string to SFTP server."""
-    bio = BytesIO(_to_bytes(data))
+    bio = MkTempFile(_to_bytes(data))
     out = upload_file_to_sftp_file(bio, url)
     try:
         bio.close()
@@ -2686,7 +2686,7 @@ def _serve_file_over_http(fileobj, url):
             return fileobj
         if can_reopen:
             return open(file_path, "rb")
-        return BytesIO(data_bytes)
+        return MkTempFile(data_bytes)
     
     class _Handler(BaseHTTPRequestHandler):
         """HTTP request handler for serving files."""
@@ -3103,7 +3103,7 @@ def upload_file_to_internet_file(fileobj, url):
 
 def upload_file_to_internet_string(data, url):
     """Upload string/bytes to any supported protocol."""
-    bio = BytesIO(_to_bytes(data))
+    bio = MkTempFile(_to_bytes(data))
     out = upload_file_to_internet_file(bio, url)
     try:
         bio.close()
