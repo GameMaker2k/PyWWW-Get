@@ -58,6 +58,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 import io
+import re
 import sys
 import socket
 import shutil
@@ -78,6 +79,181 @@ except ImportError:
         from cStringIO import StringIO as BytesIO  # py2 fallback
     except Exception:
         from StringIO import StringIO as BytesIO
+
+try:
+    # Py3
+    from urllib.parse import quote_from_bytes, unquote_to_bytes
+except ImportError:
+    # Py2
+    from urllib import quote as _quote
+    from urllib import unquote as _unquote
+
+    def quote_from_bytes(b, safe=''):
+        # Py2 urllib.quote expects "str" (bytes)
+        return _quote(b, safe=safe)
+
+    def unquote_to_bytes(s):
+        # Returns "str" (bytes) in Py2
+        return _unquote(s)
+
+
+_TEXT_MIME_DEFAULT = 'text/plain; charset=utf-8'
+_BIN_MIME_DEFAULT = 'application/octet-stream'
+
+
+def _is_probably_text(data_bytes):
+    """
+    Heuristic: treat as text if it decodes as UTF-8 and does not contain many
+    control bytes (except common whitespace).
+    """
+    if not data_bytes:
+        return True
+    # Fast path: NUL strongly suggests binary
+    if b'\x00' in data_bytes:
+        return False
+    try:
+        decoded = data_bytes.decode('utf-8')
+    except Exception:
+        return False
+
+    # Count "control" chars excluding common whitespace
+    control = 0
+    for ch in decoded:
+        o = ord(ch)
+        if (o < 32 and ch not in u'\t\n\r') or o == 127:
+            control += 1
+    # Allow a small fraction of control chars
+    return control <= max(1, len(decoded) // 200)
+
+
+def data_url_encode(fileobj,
+                    mime=None,
+                    is_text=None,
+                    charset='utf-8',
+                    base64_encode=None):
+    """
+    Read all bytes from a file-like object and return a data: URL string.
+
+    Args:
+        fileobj: file-like (must support read()) returning bytes/str.
+        mime: optional MIME type (e.g. 'image/png', 'text/plain').
+              If not provided, defaults to text/plain; charset=utf-8 for text
+              or application/octet-stream for binary.
+        is_text: force text/binary decision (True/False). If None, auto-detect.
+        charset: charset used when defaulting to text/* or when mime starts with text/
+                 and mime doesn't already declare a charset.
+        base64_encode: if True, always base64. If False, always percent-encode.
+                       If None, choose percent-encode for text and base64 for binary.
+
+    Returns:
+        A unicode/text string containing the full data URL.
+    """
+    raw = fileobj.read()
+    # Normalize to bytes
+    if isinstance(raw, text_type):
+        # If someone passed a text stream, encode it as utf-8 bytes
+        raw_bytes = raw.encode(charset)
+        detected_text = True
+    else:
+        raw_bytes = raw
+        detected_text = _is_probably_text(raw_bytes)
+
+    if is_text is None:
+        is_text = detected_text
+
+    if mime is None:
+        mime = _TEXT_MIME_DEFAULT if is_text else _BIN_MIME_DEFAULT
+    else:
+        # If it's a text/* mime and no charset declared, append one
+        mlow = mime.lower()
+        if mlow.startswith('text/') and 'charset=' not in mlow:
+            mime = mime + '; charset=' + charset
+
+    if base64_encode is None:
+        base64_encode = not is_text  # text => percent, binary => base64
+
+    if base64_encode:
+        b64 = base64.b64encode(raw_bytes)
+        if not isinstance(b64, text_type):
+            b64 = b64.decode('ascii')
+        return u'data:{0};base64,{1}'.format(mime, b64)
+    else:
+        # Percent-encode bytes
+        encoded = quote_from_bytes(raw_bytes, safe="!$&'()*+,;=:@-._~")
+        if not isinstance(encoded, text_type):
+            # Py2 quote returns bytes-str; ensure unicode
+            encoded = encoded.decode('ascii')
+        return u'data:{0},{1}'.format(mime, encoded)
+
+
+_DATA_URL_RE = re.compile(r'^data:(?P<meta>[^,]*?),(?P<data>.*)$', re.DOTALL)
+
+
+def data_url_decode(data_url):
+    """
+    Parse a data: URL and return (bytes_io, mime, is_base64).
+
+    Returns:
+        (MkTempFile(data_bytes), mime_string_or_None, is_base64_bool)
+
+    Notes:
+        - If no MIME is provided in the URL, mime will be None (per RFC 2397 default is text/plain;charset=US-ASCII).
+        - This function does not attempt charset transcoding; it returns raw bytes.
+    """
+    if not isinstance(data_url, text_type):
+        # Accept bytes input too
+        try:
+            data_url = data_url.decode('utf-8')
+        except Exception:
+            data_url = data_url.decode('ascii')
+
+    m = _DATA_URL_RE.match(data_url)
+    if not m:
+        raise ValueError('Not a valid data: URL')
+
+    meta = m.group('meta')
+    data_part = m.group('data')
+
+    meta_parts = [p for p in meta.split(';') if p] if meta else []
+    is_base64 = False
+    mime = None
+
+    if meta_parts:
+        # First part may be mime if it contains '/' or looks like type/subtype
+        if '/' in meta_parts[0]:
+            mime = meta_parts[0]
+            rest = meta_parts[1:]
+        else:
+            rest = meta_parts
+
+        for p in rest:
+            if p.lower() == 'base64':
+                is_base64 = True
+            else:
+                # keep parameters on mime if present (e.g. charset)
+                if mime is None:
+                    mime = p
+                else:
+                    mime = mime + ';' + p
+
+    if is_base64:
+        # data_part is base64 ascii text
+        try:
+            decoded_bytes = base64.b64decode(data_part.encode('ascii'))
+        except Exception:
+            # some inputs may include whitespace/newlines
+            cleaned = ''.join(data_part.split())
+            decoded_bytes = base64.b64decode(cleaned.encode('ascii'))
+    else:
+        # Percent-decoding; must operate on str, returns bytes in both py2/py3 wrapper
+        decoded_bytes = unquote_to_bytes(data_part)
+
+        # Py3 wrapper returns bytes; Py2 returns "str" bytes already.
+        if isinstance(decoded_bytes, text_type):
+            decoded_bytes = decoded_bytes.encode('latin-1')
+
+    return MkTempFile(decoded_bytes), mime, is_base64
+
 
 try:
     from urllib.parse import urlparse, urlunparse, parse_qs, unquote
@@ -2371,7 +2547,10 @@ def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__
         if __use_pysftp__ and havepysftp:
             return download_file_from_pysftp_file(url)
         return download_file_from_sftp_file(url)
-
+    if p.scheme in ("data"):
+        return data_url_decode(url)[0]
+    if p.scheme in ("file"):
+        return io.open(unquote(p.path), "rb")
     if p.scheme in ("tcp", "udp"):
         parts, o = _parse_net_url(url)
         host = o.get("bind") or parts.hostname or ""
@@ -3161,7 +3340,17 @@ def upload_file_to_internet_file(fileobj, url):
         if __use_pysftp__ and havepysftp:
             return upload_file_to_pysftp_file(fileobj, url)
         return upload_file_to_sftp_file(fileobj, url)
-
+    if p.scheme in ("file"):
+        outfile = io.open(unquote(p.path), "wb")
+        try:
+            fileobj.seek(0, 0)
+        except Exception:
+            pass
+        with io.open(unquote(p.path), "wb") as fdst:
+            shutil.copyfileobj(fileobj, fdst)
+        return fileobj
+    if p.scheme in ("data"):
+        return data_url_encode(fileobj)
     if p.scheme in ("tcp", "udp"):
         parts, o = _parse_net_url(url)
         host = parts.hostname
