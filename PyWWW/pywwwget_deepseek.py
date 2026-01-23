@@ -1214,41 +1214,34 @@ def upload_file_to_pysftp_string(data, url):
     return upload_file_to_sftp_string(data, url)
 
 # --------------------------
-# HTTP Protocol Implementation
+# HTTP helpers (download only)
 # --------------------------
 
 def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
-    """Download file from HTTP/HTTPS server."""
     if headers is None:
         headers = {}
-    
     p = urlparse(url)
-    
-    # Extract auth from URL
     username = unquote(p.username) if p.username else None
     password = unquote(p.password) if p.password else None
-    
-    # Remove auth from URL for libraries that don't support URL auth
+
+    # Strip auth from URL
     netloc = p.hostname or ""
     if p.port:
         netloc += ":" + str(p.port)
     rebuilt_url = urlunparse((p.scheme, netloc, p.path, p.params, p.query, p.fragment))
-    
-    # Parse query string for resume options
+
+    # HTTP resume: ?resume=1&resume_to=/path
     qs = parse_qs(p.query or "")
     resume = _qflag(qs, "resume", False)
     resume_to = _qstr(qs, "resume_to", None)
-    
-    # Handle resume
     httpfile = MkTempFile()
     resume_off = 0
-    
     if resume and resume_to:
         try:
             if os.path.exists(resume_to):
                 httpfile = open(resume_to, "ab+")
                 httpfile.seek(0, 2)
-                resume_off = httpfile.tell()
+                resume_off = int(httpfile.tell())
             else:
                 _ensure_dir(os.path.dirname(resume_to) or ".")
                 httpfile = open(resume_to, "wb+")
@@ -1256,89 +1249,71 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
         except Exception:
             httpfile = MkTempFile()
             resume_off = 0
-    
     if resume_off and "Range" not in headers and "range" not in headers:
         headers["Range"] = "bytes=%d-" % resume_off
-    
-    try:
-        # Requests library
-        if usehttp == "requests" and haverequests:
+
+    # Requests
+    if usehttp == "requests" and haverequests:
+        auth = (username, password) if (username and password) else None
+        r = requests.get(rebuilt_url, headers=headers, auth=auth, stream=True, timeout=(5, 60))
+        r.raise_for_status()
+        r.raw.decode_content = True
+        #shutil.copyfileobj(r.raw, httpfile)
+        for chunk in r.iter_content(chunk_size=1024 * 1024):
+            if chunk:
+                httpfile.write(chunk)
+
+    # HTTPX
+    elif usehttp == "httpx" and havehttpx:
+        with httpx.Client(follow_redirects=True, timeout=60.0) as client:
             auth = (username, password) if (username and password) else None
-            r = requests.get(rebuilt_url, headers=headers, auth=auth, 
-                            stream=True, timeout=(5, 60))
+            r = client.get(rebuilt_url, headers=headers, auth=auth)
             r.raise_for_status()
-            
-            for chunk in r.iter_content(chunk_size=8192):
+            for chunk in r.iter_bytes():
                 if chunk:
                     httpfile.write(chunk)
-        
-        # HTTPX library
-        elif usehttp == "httpx" and havehttpx:
-            with httpx.Client(follow_redirects=True, timeout=60.0) as client:
-                auth = (username, password) if (username and password) else None
-                r = client.get(rebuilt_url, headers=headers, auth=auth)
-                r.raise_for_status()
-                
-                for chunk in r.iter_bytes():
-                    if chunk:
-                        httpfile.write(chunk)
-        
-        # Mechanize library
-        elif usehttp == "mechanize" and havemechanize:
-            br = mechanize.Browser()
-            br.set_handle_robots(False)
-            
-            if headers:
-                br.addheaders = list(headers.items())
-            
-            if username and password:
-                br.add_password(rebuilt_url, username, password)
-            
-            resp = br.open(rebuilt_url)
-            shutil.copyfileobj(resp, httpfile)
 
-        # URLLib3
-        elif usehttp == "urllib3" and haveurllib3:
-            http = urllib3.PoolManager()
-            if username and password:
-                auth_headers = urllib3.make_headers(basic_auth="{}:{}".format(username, password))
-                headers.update(auth_headers)
-            # Request with preload_content=False to get a file-like object
-            resp = http.request("GET", rebuilt_url, headers=headers, preload_content=False)
-            shutil.copyfileobj(resp, httpfile)
-            resp.release_conn()
+    # Mechanize
+    elif usehttp == "mechanize" and havemechanize:
+        br = mechanize.Browser()
+        br.set_handle_robots(False)
+        if headers:
+            br.addheaders = list(headers.items())
+        if username and password:
+            br.add_password(rebuilt_url, username, password)
+        resp = br.open(rebuilt_url)
+        shutil.copyfileobj(resp, httpfile)
 
-        # urllib fallback
+    # URLLib3
+    elif usehttp == "urllib3" and haveurllib3:
+        http = urllib3.PoolManager()
+        if username and password:
+            auth_headers = urllib3.make_headers(basic_auth="{}:{}".format(username, password))
+            headers.update(auth_headers)
+        # Request with preload_content=False to get a file-like object
+        resp = http.request("GET", rebuilt_url, headers=headers, preload_content=False, decode_content=True)
+        shutil.copyfileobj(resp, httpfile)
+        resp.release_conn()
+
+    # urllib fallback
+    else:
+        req = Request(rebuilt_url, headers=headers)
+        if username and password:
+            mgr = HTTPPasswordMgrWithDefaultRealm()
+            mgr.add_password(None, rebuilt_url, username, password)
+            opener = build_opener(HTTPBasicAuthHandler(mgr))
         else:
-            req = Request(rebuilt_url, headers=headers)
-            
-            if username and password:
-                mgr = HTTPPasswordMgrWithDefaultRealm()
-                mgr.add_password(None, rebuilt_url, username, password)
-                opener = build_opener(HTTPBasicAuthHandler(mgr))
-            else:
-                opener = build_opener()
-            
-            resp = opener.open(req, timeout=60)
-            shutil.copyfileobj(resp, httpfile)
-        
-        try:
-            httpfile.seek(0, 0)
-        except Exception:
-            pass
-        
-        return httpfile
-    
-    except Exception as e:
-        _net_log(True, "HTTP download error: %s" % str(e))
-        try:
-            httpfile.close()
-        except Exception:
-            pass
-        return False
+            opener = build_opener()
+        resp = opener.open(req)
+        shutil.copyfileobj(resp, httpfile)
+
+    try:
+        httpfile.seek(0, 0)
+    except Exception:
+        pass
+    return httpfile
 
 def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__):
-    """Download from HTTP/HTTPS as string."""
     fp = download_file_from_http_file(url, headers=headers, usehttp=usehttp)
     return fp.read() if fp else False
 

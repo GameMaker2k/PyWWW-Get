@@ -1008,6 +1008,10 @@ def upload_file_to_pysftp_string(data, url):
 # HTTP helpers (download only)
 # --------------------------
 
+# --------------------------
+# HTTP helpers (download only)
+# --------------------------
+
 def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
     if headers is None:
         headers = {}
@@ -1048,7 +1052,11 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
         auth = (username, password) if (username and password) else None
         r = requests.get(rebuilt_url, headers=headers, auth=auth, stream=True, timeout=(5, 60))
         r.raise_for_status()
-        shutil.copyfileobj(r.raw, httpfile)
+        r.raw.decode_content = True
+        #shutil.copyfileobj(r.raw, httpfile)
+        for chunk in r.iter_content(chunk_size=1024 * 1024):
+            if chunk:
+                httpfile.write(chunk)
 
     # HTTPX
     elif usehttp == "httpx" and havehttpx:
@@ -1078,7 +1086,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
             auth_headers = urllib3.make_headers(basic_auth="{}:{}".format(username, password))
             headers.update(auth_headers)
         # Request with preload_content=False to get a file-like object
-        resp = http.request("GET", rebuilt_url, headers=headers, preload_content=False)
+        resp = http.request("GET", rebuilt_url, headers=headers, preload_content=False, decode_content=True)
         shutil.copyfileobj(resp, httpfile)
         resp.release_conn()
 
