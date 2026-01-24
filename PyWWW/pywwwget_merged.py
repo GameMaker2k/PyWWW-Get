@@ -69,6 +69,7 @@ import socket
 import shutil
 import time
 import struct
+import hmac
 import hashlib
 import tempfile
 import zlib
@@ -105,6 +106,7 @@ except ImportError:
 
 _TEXT_MIME_DEFAULT = 'text/plain; charset=utf-8'
 _BIN_MIME_DEFAULT = 'application/octet-stream'
+PY2 = (sys.version_info[0] == 2)
 
 
 def _is_probably_text(data_bytes):
@@ -701,6 +703,10 @@ def _to_text(x):
             return x.decode("latin-1", "replace")
     return x
 
+def _rand_u64():
+    # os.urandom works on py2/py3
+    return struct.unpack("!Q", os.urandom(8))[0]
+
 def _set_query_param(url, key, value):
     """Return url with query param key set to value (string)."""
     try:
@@ -1187,6 +1193,39 @@ _UF_RESUME = 0x08
 _UF_META   = 0x10
 _UF_CRC    = 0x20
 
+# ---- Protocol constants ----
+# Packet types
+_PT_INITIAL = 0x01
+_PT_HANDSHAKE = 0x02
+_PT_0RTT = 0x03
+_PT_1RTT = 0x04
+_PT_CLOSE = 0x1c
+
+# Frame types (very small subset, "QUIC-ish")
+_FT_STREAM = 0x10   # STREAM: offset(u32) + len(u16) + data
+_FT_ACK = 0x02      # ACK: largest(u32) + ack_upto(u32) + sack_mask(u64)
+_FT_META = 0x20     # META: total_len(u64) + flags(u8) + optional text
+_FT_RESUME = 0x21   # RESUME: next_offset(u64)
+_FT_DONE = 0x22     # DONE: "DONE" + sha256(32) optional
+
+# Meta flags
+_MF_RESUME_REQ = 0x01
+
+# Header:
+#   magic(4) b"UQIC"
+#   pt(1)
+#   flags(1) reserved
+#   cid(8)
+#   pn(4)
+#   body_len(2)
+#   [body...]
+#   [tag(16) if psk enabled]
+_MAGIC = b"UQIC"
+_HDR_FMT = "!4sBBQIH"
+_HDR_SZ = struct.calcsize(_HDR_FMT)
+_TAG_SZ = 16
+
+
 def _u_pack(flags, seq, total, tid):
     return struct.pack(
         _U_HDR,
@@ -1648,6 +1687,8 @@ def recv_to_fileobj(fileobj, host, port, proto="tcp", path_text=None, **kwargs):
     mode = (kwargs.get("mode") or "seq").lower()
     if mode == "raw":
         return _udp_raw_recv(fileobj, host, port, **kwargs)
+    elif mode == "quic":
+        return _udp_quic_recv(fileobj, host, port, **kwargs)
     return _udp_seq_recv(fileobj, host, port, **kwargs)
 
 def send_from_fileobj(fileobj, host, port, proto="tcp", path_text=None, **kwargs):
@@ -2088,6 +2129,9 @@ def send_from_fileobj(fileobj, host, port, proto="tcp", path_text=None, **kwargs
         except Exception:
             pass
         return True
+
+    elif mode == "quic":
+        return _udp_quic_send(fileobj, host, port, **kwargs)
 
     return _udp_seq_send(fileobj, host, port, **kwargs)
 
@@ -2786,6 +2830,608 @@ def _udp_seq_recv(fileobj, host, port, **kwargs):
         so["crc_bad"] = crc_bad
 
     return True
+
+def _make_tag(psk, header_and_body):
+    # Integrity only (NOT encryption).
+    # HMAC-SHA256 truncated to 16 bytes.
+    mac = hmac.new(_to_bytes(psk), header_and_body, hashlib.sha256).digest()
+    return mac[:_TAG_SZ]
+
+def _pack_pkt(pt, cid, pn, body, psk=None, flags=0):
+    body = _to_bytes(body)
+    if len(body) > 65535:
+        body = body[:65535]
+    hdr = struct.pack(_HDR_FMT, _MAGIC, int(pt) & 0xFF, int(flags) & 0xFF,
+                      int(cid) & 0xFFFFFFFFFFFFFFFF, int(pn) & 0xFFFFFFFF, len(body))
+    wire = hdr + body
+    if psk:
+        wire += _make_tag(psk, wire)
+    return wire
+
+def _unpack_pkt(wire, psk=None):
+    wire = _to_bytes(wire)
+    if len(wire) < _HDR_SZ:
+        return None
+    magic, pt, flags, cid, pn, blen = struct.unpack(_HDR_FMT, wire[:_HDR_SZ])
+    if magic != _MAGIC:
+        return None
+    need = _HDR_SZ + int(blen)
+    if len(wire) < need:
+        return None
+    body = wire[_HDR_SZ:need]
+    if psk:
+        if len(wire) < need + _TAG_SZ:
+            return None
+        tag = wire[need:need + _TAG_SZ]
+        calc = _make_tag(psk, wire[:need])
+        if tag != calc:
+            return None
+    return (pt, flags, cid, pn, body)
+
+def _pack_frame(ft, payload):
+    payload = _to_bytes(payload)
+    if len(payload) > 65535:
+        payload = payload[:65535]
+    return struct.pack("!BH", int(ft) & 0xFF, len(payload)) + payload
+
+def _iter_frames(body):
+    body = _to_bytes(body)
+    i = 0
+    n = len(body)
+    while i + 3 <= n:
+        ft, flen = struct.unpack("!BH", body[i:i+3])
+        i += 3
+        if i + flen > n:
+            return
+        yield (ft, body[i:i+flen])
+        i += flen
+
+def _udp_quic_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
+    addr = (host, int(port))
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    base_timeout = float(kwargs.get("timeout", 1.0))
+    min_to = float(kwargs.get("min_timeout", 0.05))
+    max_to = float(kwargs.get("max_timeout", 3.0))
+    timeout = max(min_to, min(max_to, base_timeout))
+    try:
+        sock.settimeout(timeout)
+    except Exception:
+        pass
+
+    chunk = int(kwargs.get("chunk", 1200))
+    max_window = int(kwargs.get("window", 32))
+    init_window = int(kwargs.get("init_window", max(1, min(4, max_window))))
+    retries = int(kwargs.get("retries", 20))
+    total_timeout = float(kwargs.get("total_timeout", 0.0))
+    fast_retx = bool(kwargs.get("fast_retx", True))
+
+    want_sha = bool(kwargs.get("sha256") or kwargs.get("sha") or kwargs.get("want_sha"))
+    _h = hashlib.sha256() if want_sha else None
+
+    psk = kwargs.get("psk", None)
+    if psk:
+        psk = _to_bytes(psk)
+
+    cid = int(kwargs.get("cid", 0) or 0)
+    if cid == 0:
+        cid = _rand_u64()
+
+    # stats
+    stats = {
+        "cid": cid,
+        "bytes_sent_payload": 0,
+        "pkts_sent": 0,
+        "pkts_retx": 0,
+        "pkts_acked": 0,
+        "pkts_sacked": 0,
+        "loss_events": 0,
+        "duration_s": 0.0,
+        "throughput_Bps": 0.0,
+        "srtt": None,
+        "rttvar": None,
+        "timeout": timeout,
+        "cwnd_start": init_window,
+        "cwnd_end": init_window,
+    }
+
+    # total length if possible
+    total_len = 0
+    try:
+        cur = fileobj.tell()
+        fileobj.seek(0, os.SEEK_END)
+        total_len = int(fileobj.tell())
+        fileobj.seek(cur, os.SEEK_SET)
+    except Exception:
+        total_len = 0
+
+    # RTT estimator state (RFC6298-ish)
+    rtt = {"srtt": None, "rttvar": None, "timeout": timeout}
+    def _update_rtt(sample):
+        if sample <= 0:
+            return
+        if rtt["srtt"] is None:
+            rtt["srtt"] = sample
+            rtt["rttvar"] = sample / 2.0
+        else:
+            alpha = 1.0 / 8.0
+            beta = 1.0 / 4.0
+            rtt["rttvar"] = (1 - beta) * rtt["rttvar"] + beta * abs(rtt["srtt"] - sample)
+            rtt["srtt"] = (1 - alpha) * rtt["srtt"] + alpha * sample
+        to = rtt["srtt"] + 4.0 * rtt["rttvar"]
+        to = max(min_to, min(max_to, to))
+        rtt["timeout"] = to
+        try:
+            sock.settimeout(to)
+        except Exception:
+            pass
+
+    # congestion window (AIMD)
+    cwnd = max(1, min(max_window, init_window))
+    cwnd_f = float(cwnd)
+    def _loss_event():
+        stats["loss_events"] += 1
+        # multiplicative decrease
+        # (very simple; "QUIC-like" only)
+        # halve cwnd, floor to >= 1
+        nonlocal_cwnd = max(1, int(cwnd // 2))
+        return nonlocal_cwnd
+
+    def _ai_increase(acked_cnt, cwnd, cwnd_f):
+        if acked_cnt <= 0:
+            return (cwnd, cwnd_f)
+        cwnd_f += float(acked_cnt) / max(1.0, float(cwnd))
+        new_cwnd = int(cwnd_f)
+        if new_cwnd > cwnd:
+            cwnd = min(max_window, new_cwnd)
+            cwnd_f = float(cwnd)
+        return (cwnd, cwnd_f)
+
+    # packet number
+    pn = 1
+
+    # ---- Handshake / resume ----
+    start_offset = 0
+    meta_flags = 0
+    if resume:
+        meta_flags |= _MF_RESUME_REQ
+
+    meta_payload = struct.pack("!QB", int(total_len) & 0xFFFFFFFFFFFFFFFF, int(meta_flags) & 0xFF)
+    if path_text:
+        meta_payload += _to_bytes(path_text)[:512]
+
+    body = _pack_frame(_FT_META, meta_payload)
+    sock.sendto(_pack_pkt(_PT_INITIAL, cid, pn, body, psk=psk), addr)
+    stats["pkts_sent"] += 1
+    pn = (pn + 1) & 0xFFFFFFFF
+
+    t0 = time.time()
+    if resume:
+        # wait briefly for RESUME response (server tells next_offset)
+        while True:
+            if total_timeout and (time.time() - t0) > total_timeout:
+                break
+            try:
+                pkt, _ = sock.recvfrom(4096)
+            except socket.timeout:
+                break
+            except Exception:
+                break
+            up = _unpack_pkt(pkt, psk=psk)
+            if not up:
+                continue
+            _pt, _fl, rcid, _rpn, rbody = up
+            if rcid != cid:
+                continue
+            for ft, fp in _iter_frames(rbody):
+                if ft == _FT_RESUME and len(fp) >= 8:
+                    (start_offset,) = struct.unpack("!Q", fp[:8])
+                    try:
+                        fileobj.seek(int(start_offset), os.SEEK_SET)
+                    except Exception:
+                        start_offset = 0
+                    break
+            if start_offset:
+                break
+
+    # ---- Sender loop (offset-based) ----
+    # We'll send STREAM frames with explicit offsets, and ACK with cum-ack + SACK mask.
+    # Maintain "in_flight": pn -> (sent_ts, tries, offset, data)
+    in_flight = {}  # packet_number -> tuple
+    acked_offsets = set()  # coarse bookkeeping for stats only
+
+    # next offset
+    next_off = int(start_offset)
+    eof = False
+    failed = False
+    t_start = time.time()
+
+    def _read_chunk():
+        data = fileobj.read(chunk)
+        if not data:
+            return None
+        data = _to_bytes(data)
+        if _h is not None:
+            _h.update(data)
+        return data
+
+    def _send_stream(pn, off, data):
+        # STREAM: offset(u32) + len(u16) + data (offset truncated to u32 for simplicity)
+        off32 = int(off) & 0xFFFFFFFF
+        if len(data) > 65535:
+            data = data[:65535]
+        fp = struct.pack("!IH", off32, len(data)) + data
+        body = _pack_frame(_FT_STREAM, fp)
+        sock.sendto(_pack_pkt(_PT_1RTT, cid, pn, body, psk=psk), addr)
+        stats["pkts_sent"] += 1
+
+    # prime cwnd
+    while not eof and len(in_flight) < cwnd:
+        data = _read_chunk()
+        if data is None:
+            eof = True
+            break
+        _send_stream(pn, next_off, data)
+        in_flight[pn] = (time.time(), 0, next_off, data)
+        stats["bytes_sent_payload"] += len(data)
+        next_off += len(data)
+        pn = (pn + 1) & 0xFFFFFFFF
+
+    # ack state from receiver
+    largest_acked = -1
+
+    while in_flight or not eof:
+        if total_timeout and (time.time() - t_start) > total_timeout:
+            failed = True
+            break
+
+        # receive ACKs
+        try:
+            pkt, _ = sock.recvfrom(4096)
+            up = _unpack_pkt(pkt, psk=psk)
+            if up:
+                _pt, _fl, rcid, _rpn, rbody = up
+                if rcid == cid:
+                    for ft, fp in _iter_frames(rbody):
+                        if ft != _FT_ACK:
+                            continue
+                        if len(fp) < 16:
+                            continue
+                        largest, ack_upto, sack_mask = struct.unpack("!IIQ", fp[:16])
+                        # treat ack_upto as "cumulative pn ack"
+                        newly_acked = 0
+                        now = time.time()
+
+                        # cumulative ack
+                        for p in [p for p in list(in_flight.keys()) if p <= int(ack_upto)]:
+                            ts, _tries, off, data = in_flight.pop(p)
+                            _update_rtt(now - ts)
+                            stats["pkts_acked"] += 1
+                            newly_acked += 1
+                            acked_offsets.add(off)
+
+                        # sack after base = ack_upto + 1
+                        base = (int(ack_upto) + 1) & 0xFFFFFFFF
+                        if sack_mask:
+                            for i in range(64):
+                                if (sack_mask >> i) & 1:
+                                    p = (base + i) & 0xFFFFFFFF
+                                    if p in in_flight:
+                                        ts, _tries, off, data = in_flight.pop(p)
+                                        _update_rtt(now - ts)
+                                        stats["pkts_sacked"] += 1
+                                        newly_acked += 1
+                                        acked_offsets.add(off)
+
+                            # "fast retransmit" for base if missing
+                            if fast_retx and (base in in_flight):
+                                ts, tries, off, data = in_flight[base]
+                                if tries < retries:
+                                    _send_stream(base, off, data)
+                                    in_flight[base] = (time.time(), tries + 1, off, data)
+                                    stats["pkts_retx"] += 1
+                                    # loss event halves cwnd
+                                    cwnd = max(1, cwnd // 2)
+                                    cwnd_f = float(cwnd)
+
+                        # additive increase
+                        cwnd, cwnd_f = _ai_increase(newly_acked, cwnd, cwnd_f)
+
+                        if int(largest) > largest_acked:
+                            largest_acked = int(largest)
+        except socket.timeout:
+            pass
+        except Exception:
+            pass
+
+        # RTO retransmit
+        now = time.time()
+        to = float(rtt["timeout"]) if rtt["timeout"] else timeout
+        for p in list(in_flight.keys()):
+            ts, tries, off, data = in_flight[p]
+            if (now - ts) >= to:
+                if tries >= retries:
+                    failed = True
+                    in_flight.clear()
+                    break
+                _send_stream(p, off, data)
+                in_flight[p] = (now, tries + 1, off, data)
+                stats["pkts_retx"] += 1
+                # loss event halves cwnd
+                cwnd = max(1, cwnd // 2)
+                cwnd_f = float(cwnd)
+
+        if failed:
+            break
+
+        # fill window
+        while not eof and len(in_flight) < cwnd:
+            data = _read_chunk()
+            if data is None:
+                eof = True
+                break
+            _send_stream(pn, next_off, data)
+            in_flight[pn] = (time.time(), 0, next_off, data)
+            stats["bytes_sent_payload"] += len(data)
+            next_off += len(data)
+            pn = (pn + 1) & 0xFFFFFFFF
+
+    dur = max(1e-9, time.time() - t_start)
+    stats["duration_s"] = dur
+    stats["throughput_Bps"] = float(stats["bytes_sent_payload"]) / dur
+    stats["srtt"] = rtt["srtt"]
+    stats["rttvar"] = rtt["rttvar"]
+    stats["timeout"] = rtt["timeout"]
+    stats["cwnd_end"] = cwnd
+
+    if failed:
+        try:
+            sock.close()
+        except Exception:
+            pass
+        so = kwargs.get("stats_obj")
+        if isinstance(so, dict):
+            so.update(stats)
+        if kwargs.get("return_stats"):
+            return (False, stats)
+        return False
+
+    # DONE
+    done_payload = b"DONE"
+    if _h is not None:
+        done_payload += _h.digest()
+    body = _pack_frame(_FT_DONE, done_payload)
+    for _i in range(3):
+        try:
+            sock.sendto(_pack_pkt(_PT_1RTT, cid, pn, body, psk=psk), addr)
+            stats["pkts_sent"] += 1
+        except Exception:
+            pass
+        time.sleep(0.02)
+
+    try:
+        sock.close()
+    except Exception:
+        pass
+
+    so = kwargs.get("stats_obj")
+    if isinstance(so, dict):
+        so.update(stats)
+    if kwargs.get("return_stats"):
+        return (True, stats)
+    return True
+
+
+def _udp_quic_recv(fileobj, host, port, **kwargs):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind((host or "", int(port)))
+
+    if kwargs.get("print_url"):
+        sys.stdout.write("Listening: udp://%s:%d/\n" % (host or "0.0.0.0", sock.getsockname()[1]))
+        try:
+            sys.stdout.flush()
+        except Exception:
+            pass
+
+    timeout = float(kwargs.get("timeout", 1.0))
+    try:
+        sock.settimeout(timeout)
+    except Exception:
+        pass
+
+    chunk = int(kwargs.get("chunk", 1200))
+    window = int(kwargs.get("window", 32))
+    total_timeout = float(kwargs.get("total_timeout", 0.0))
+
+    framing = (kwargs.get("framing") or "").lower()
+    want_sha = bool(kwargs.get("sha256") or kwargs.get("sha") or kwargs.get("want_sha"))
+    _h = hashlib.sha256() if want_sha else None
+
+    psk = kwargs.get("psk", None)
+    if psk:
+        psk = _to_bytes(psk)
+
+    total_len = None
+    bytes_written = 0
+    got_digest = None
+
+    resume_off = 0
+    try:
+        resume_off = int(kwargs.get("resume_offset", 0) or 0)
+    except Exception:
+        resume_off = 0
+
+    # connection id decided by client; receiver locks to first cid seen
+    active_cid = None
+
+    # receive reordering buffer: offset -> data
+    received = {}
+    expected_off = int(max(0, resume_off))
+
+    # ack bookkeeping on packet numbers
+    expected_pn = 0
+    seen_pn = set()
+
+    done = False
+    complete = False
+    t0 = time.time()
+
+    def _send_ack(addr, cid, largest, ack_upto, sack_mask):
+        body = _pack_frame(_FT_ACK, struct.pack("!IIQ",
+                                               int(largest) & 0xFFFFFFFF,
+                                               int(ack_upto) & 0xFFFFFFFF,
+                                               int(sack_mask) & 0xFFFFFFFFFFFFFFFF))
+        try:
+            sock.sendto(_pack_pkt(_PT_1RTT, cid, 0, body, psk=psk), addr)
+        except Exception:
+            pass
+
+    def _build_sack_mask(base_pn):
+        # build SACK mask for pn in (base_pn .. base_pn+63)
+        mask = 0
+        for pn in seen_pn:
+            d = int(pn) - int(base_pn)
+            if 0 <= d < 64:
+                mask |= (1 << d)
+        return mask
+
+    while True:
+        if total_timeout and (time.time() - t0) > total_timeout:
+            break
+        try:
+            pkt, addr = sock.recvfrom(65536)
+        except socket.timeout:
+            if complete and want_sha:
+                continue
+            if done and not received:
+                break
+            continue
+        except Exception:
+            break
+
+        up = _unpack_pkt(pkt, psk=psk)
+        if not up:
+            continue
+        pt, _flags, cid, pn, body = up
+
+        if active_cid is None:
+            active_cid = cid
+        if cid != active_cid:
+            continue
+
+        # Initial/meta handling
+        if pt == _PT_INITIAL:
+            for ft, fp in _iter_frames(body):
+                if ft == _FT_META and len(fp) >= 9:
+                    (tlen, mflags) = struct.unpack("!QB", fp[:9])
+                    if tlen:
+                        try:
+                            total_len = int(tlen)
+                        except Exception:
+                            total_len = None
+
+                    # if resume requested, respond with current expected offset
+                    if int(mflags) & _MF_RESUME_REQ:
+                        resp = _pack_frame(_FT_RESUME, struct.pack("!Q", int(expected_off) & 0xFFFFFFFFFFFFFFFF))
+                        try:
+                            sock.sendto(_pack_pkt(_PT_HANDSHAKE, cid, 1, resp, psk=psk), addr)
+                        except Exception:
+                            pass
+            continue
+
+        # process frames
+        largest_seen = pn
+        seen_pn.add(int(pn) & 0xFFFFFFFF)
+
+        for ft, fp in _iter_frames(body):
+            if ft == _FT_DONE:
+                done = True
+                if fp.startswith(b"DONE") and len(fp) >= 4 + 32:
+                    got_digest = fp[4:4+32]
+                # if already complete, we can stop
+                if complete and ((not want_sha) or (got_digest is not None)):
+                    break
+                continue
+
+            if ft != _FT_STREAM:
+                continue
+            if len(fp) < 6:
+                continue
+            off32, dlen = struct.unpack("!IH", fp[:6])
+            data = fp[6:6+int(dlen)]
+            # reconstruct full offset:
+            # We only carry u32 on the wire; use "expected_off" window to disambiguate.
+            # This is simplistic but works for typical transfers <4GiB or within nearby windows.
+            off = int(off32)
+            # accept only near the current expected range
+            if off + len(data) < expected_off:
+                continue
+            if off > expected_off + window * chunk * 8:
+                continue
+
+            if off == expected_off:
+                fileobj.write(data)
+                bytes_written += len(data)
+                if _h is not None:
+                    _h.update(_to_bytes(data))
+                expected_off += len(data)
+
+                # flush any contiguous buffered
+                while expected_off in received:
+                    buf = received.pop(expected_off)
+                    fileobj.write(buf)
+                    bytes_written += len(buf)
+                    if _h is not None:
+                        _h.update(_to_bytes(buf))
+                    expected_off += len(buf)
+            else:
+                if off not in received:
+                    received[off] = data
+
+        # ACK logic (pn-based)
+        # Maintain "cumulative" pn ack as: smallest missing starting at 0
+        # Since client pn starts at 1, this is approximate; but consistent for this mini-proto.
+        while expected_pn in seen_pn:
+            expected_pn += 1
+        ack_upto = expected_pn - 1
+        base = expected_pn
+        sack_mask = _build_sack_mask(base)
+        _send_ack(addr, cid, largest_seen, ack_upto, sack_mask)
+
+        # completion checks
+        if (framing == "len") and (total_len is not None) and (bytes_written >= total_len):
+            complete = True
+            if not want_sha:
+                break
+            if got_digest is not None:
+                break
+        if done and not received and (not want_sha or got_digest is not None):
+            break
+
+    if want_sha:
+        if got_digest is None:
+            try:
+                sock.close()
+            except Exception:
+                pass
+            return False
+        if _h is None or _h.digest() != got_digest:
+            try:
+                sock.close()
+            except Exception:
+                pass
+            return False
+
+    try:
+        sock.close()
+    except Exception:
+        pass
+    try:
+        fileobj.seek(0, 0)
+    except Exception:
+        pass
+    return True
+
 # --------------------------
 # Public "internet" API
 # --------------------------
