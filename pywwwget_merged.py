@@ -1524,7 +1524,10 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             httpmethodout = resp._method
         httpurlout = resp.geturl()
         httpheaderout = resp.info()
-        httpheadersentout = headers
+        try:
+            httpheadersentout =  req.unredirected_hdrs | req.headers
+        except AttributeError:
+            httpheadersentout = req.header_items()
     fulldatasize = httpfile.tell()
     try:
         httpfile.seek(0, 0)
