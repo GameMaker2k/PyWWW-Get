@@ -4060,7 +4060,7 @@ def recv_to_path(url, out_path, auto_extract=False, extract_dir=None, keep_archi
 def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__, **kwargs):
     p = urlparse(url)
     if p.scheme in ("http", "https"):
-        return download_file_from_http_file(url, headers=headers or {}, usehttp=usehttp)
+        return download_file_from_http_file(url, headers=headers or {}, usehttp=usehttp, **kwargs)
     if p.scheme in ("ftp", "ftps"):
         return download_file_from_ftp_file(url)
     if p.scheme in ("sftp", "scp"):

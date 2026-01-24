@@ -4560,7 +4560,7 @@ def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__
     
     # HTTP/HTTPS
     if p.scheme in ("http", "https"):
-        return download_file_from_http_file(url, headers=headers or {}, usehttp=usehttp)
+        return download_file_from_http_file(url, headers=headers or {}, usehttp=usehttp, **kwargs)
     
     # FTP/FTPS
     elif p.scheme in ("ftp", "ftps"):
