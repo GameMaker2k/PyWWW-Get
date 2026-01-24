@@ -64,7 +64,10 @@ import io
 import re
 import sys
 import platform
-import secrets
+try:
+    import secrets
+except ImportError:
+    secrets = False
 import socket
 import shutil
 import time
@@ -1494,7 +1497,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         try:
             httpcodereason = resp.reason
         except AttributeError:
-            httpcodereason = http_status_to_reason(geturls_text.getcode())
+            httpcodereason = http_status_to_reason(resp.getcode())
         try:
             httpversionout = resp.version
         except AttributeError:
@@ -1502,11 +1505,19 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         try:
             httpmethodout = resp.get_method()
         except AttributeError:
-            httpmethodout = resp._method
+            try:
+                httpmethodout = resp._method
+            except AttributeError:
+                httpmethodout = httpmethod
         httpurlout = resp.geturl()
-        httpheaderout = resp.info()
+        httpheaderout = dict(resp.info())
+        #httpheaderout = dict(resp.headers)
         try:
-            httpheadersentout =  req.unredirected_hdrs | req.headers
+            try:
+                httpheadersentout = req.unredirected_hdrs | req.headers
+            except TypeError:
+                httpheadersentout = req.unredirected_hdrs
+                httpheadersentout.update(req.headers)
         except AttributeError:
             httpheadersentout = req.header_items()
     fulldatasize = httpfile.tell()
@@ -2669,7 +2680,10 @@ def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
 
     # Start with base timeout; will adapt
     timeout = max(min_to, min(max_to, base_timeout))
-    sock.settimeout(timeout)
+    try:
+        sock.settimeout(timeout)
+    except Exception:
+        pass
 
     chunk = int(kwargs.get("chunk", 1200))
     max_window = int(kwargs.get("window", 32))          # cap
@@ -2687,7 +2701,11 @@ def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
 
     tid = int(kwargs.get("tid", 0) or 0)
     if tid == 0:
-        tid = secrets.randbits(64)
+        # py2/py3 compatible random 64b
+        try:
+            tid = secrets.randbits(64)  # py3.6+
+        except Exception:
+            tid = struct.unpack("!Q", os.urandom(8))[0]
 
     # stats
     stats = {
@@ -2755,42 +2773,49 @@ def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
     srtt = None
     rttvar = None
 
+    # PY2/3 replacement for "nonlocal": store mutable state in dict
+    _st = {
+        "srtt": srtt,
+        "rttvar": rttvar,
+        "timeout": timeout,
+        "cwnd": cwnd,
+        "cwnd_float": cwnd_float,
+    }
+
     def _update_rtt(sample):
-        nonlocal srtt, rttvar, timeout
         if sample <= 0:
             return
-        if srtt is None:
-            srtt = sample
-            rttvar = sample / 2.0
+        if _st["srtt"] is None:
+            _st["srtt"] = sample
+            _st["rttvar"] = sample / 2.0
         else:
             # RFC6298-ish
-            alpha = 1 / 8
-            beta = 1 / 4
-            rttvar = (1 - beta) * rttvar + beta * abs(srtt - sample)
-            srtt = (1 - alpha) * srtt + alpha * sample
-        timeout = srtt + 4.0 * rttvar
-        timeout = max(min_to, min(max_to, timeout))
+            alpha = 1.0 / 8.0
+            beta = 1.0 / 4.0
+            _st["rttvar"] = (1 - beta) * _st["rttvar"] + beta * abs(_st["srtt"] - sample)
+            _st["srtt"] = (1 - alpha) * _st["srtt"] + alpha * sample
+
+        _st["timeout"] = _st["srtt"] + 4.0 * _st["rttvar"]
+        _st["timeout"] = max(min_to, min(max_to, _st["timeout"]))
         try:
-            sock.settimeout(timeout)
+            sock.settimeout(_st["timeout"])
         except Exception:
             pass
 
     def _loss_event():
-        nonlocal cwnd, cwnd_float
         stats["loss_events"] += 1
-        cwnd = max(1, cwnd // 2)
-        cwnd_float = float(cwnd)
+        _st["cwnd"] = max(1, int(_st["cwnd"]) // 2)
+        _st["cwnd_float"] = float(_st["cwnd"])
 
     def _ai_increase(acked_count):
         # additive increase: cwnd += acked/cwnd (smoothed)
-        nonlocal cwnd, cwnd_float
         if acked_count <= 0:
             return
-        cwnd_float += float(acked_count) / max(1.0, float(cwnd))
-        new_cwnd = int(cwnd_float)
-        if new_cwnd > cwnd:
-            cwnd = min(max_window, new_cwnd)
-            cwnd_float = float(cwnd)
+        _st["cwnd_float"] += float(acked_count) / max(1.0, float(_st["cwnd"]))
+        new_cwnd = int(_st["cwnd_float"])
+        if new_cwnd > _st["cwnd"]:
+            _st["cwnd"] = min(max_window, new_cwnd)
+            _st["cwnd_float"] = float(_st["cwnd"])
 
     def _send_pkt(seq, wire_payload, flags):
         sock.sendto(_u_pack(flags, seq, total, tid) + wire_payload, addr)
@@ -2810,7 +2835,7 @@ def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
 
     # Prime window
     eof = False
-    while not eof and len(in_flight) < cwnd:
+    while not eof and len(in_flight) < _st["cwnd"]:
         data = _read_chunk()
         if data is None:
             eof = True
@@ -2847,7 +2872,6 @@ def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
                     # Cumulative ACK: drop all <= ack_upto
                     for s in [s for s in list(in_flight.keys()) if s <= ack_upto]:
                         wire, ts, _tries, _dlen = in_flight[s]
-                        # RTT sample from original send timestamp (works best if not retransmitted)
                         sample = now - ts
                         _update_rtt(sample)
                         del in_flight[s]
@@ -2889,7 +2913,7 @@ def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
         now = time.time()
         for seq in list(in_flight.keys()):
             wire, ts, tries, dlen = in_flight[seq]
-            if (now - ts) >= timeout:
+            if (now - ts) >= _st["timeout"]:
                 if tries >= retries:
                     failed = True
                     in_flight.clear()
@@ -2903,7 +2927,7 @@ def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
             break
 
         # Fill window based on cwnd
-        while not eof and len(in_flight) < cwnd:
+        while not eof and len(in_flight) < _st["cwnd"]:
             data = _read_chunk()
             if data is None:
                 eof = True
@@ -2919,10 +2943,10 @@ def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
     dur = max(1e-9, time.time() - t_start)
     stats["duration_s"] = dur
     stats["throughput_Bps"] = float(stats["bytes_sent_payload"]) / dur
-    stats["timeout"] = timeout
-    stats["srtt"] = srtt
-    stats["rttvar"] = rttvar
-    stats["cwnd_end"] = cwnd
+    stats["timeout"] = _st["timeout"]
+    stats["srtt"] = _st["srtt"]
+    stats["rttvar"] = _st["rttvar"]
+    stats["cwnd_end"] = _st["cwnd"]
 
     if failed:
         try:
