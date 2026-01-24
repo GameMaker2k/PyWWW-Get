@@ -935,7 +935,7 @@ def MkTempFile(data=None,
 
             # Fallback: pure-Python in-memory objects
             if isbytes:
-                f = io.MkTempFile(init if init is not None else b"")
+                f = BytesIO(init if init is not None else b"")
                 if reset_to_start:
                     f.seek(0)
                 _created(f, "bytesio")
@@ -1513,17 +1513,16 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
     if resume_off and "Range" not in headers and "range" not in headers:
         headers["Range"] = "bytes=%d-" % resume_off
 
-    headers = fix_header_names(headers)
     if(httpuseragent is not None):
         if('User-Agent' in headers):
             headers['User-Agent'] = httpuseragent
         else:
-            httpuseragent.update({'User-Agent': httpuseragent})
+            headers.update({'User-Agent': httpuseragent})
     if(httpreferer is not None):
         if('Referer' in headers):
             headers['Referer'] = httpreferer
         else:
-            httpuseragent.update({'Referer': httpreferer})
+            headers.update({'Referer': httpreferer})
 
     # Requests
     if usehttp == "requests" and haverequests:
@@ -1626,7 +1625,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         httpmethodout = httpmethod
         httpurlout = resp.geturl()
         httpheaderout = resp.info()
-        httpheadersentout = httpheaders
+        httpheadersentout = headers
         resp.release_conn()
 
     # urllib fallback
@@ -1656,10 +1655,13 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             httpversionout = resp.version
         except AttributeError:
             httpversionout = "1.1"
-        httpmethodout = resp.get_method()
+        try:
+            httpmethodout = resp.get_method()
+        except AttributeError:
+            httpmethodout = resp._method
         httpurlout = resp.geturl()
         httpheaderout = resp.info()
-        httpheadersentout = httpheaders
+        httpheadersentout = headers
     try:
         httpfile.seek(0, 0)
     except Exception:
@@ -1668,7 +1670,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         if(isinstance(httpheaderout, list)):
             httpheaderout = make_http_headers_from_list_to_dict(httpheaderout)
         httpheaderout = fix_header_names(httpheaderout)
-        returnval = {'Type': "Content", 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': headers, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': usehttp}
+        returnval = {'Type': "Content", 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': usehttp}
         return returnval
     else:
         return httpfile
