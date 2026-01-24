@@ -1386,6 +1386,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             headers['Referer'] = httpreferer
         else:
             headers.update({'Referer': httpreferer})
+
     # Requests
     if usehttp == "requests" and haverequests:
         auth = (username, password) if (username and password) else None
@@ -1524,6 +1525,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         httpurlout = resp.geturl()
         httpheaderout = resp.info()
         httpheadersentout = headers
+    fulldatasize = httpfile.tell()
     try:
         httpfile.seek(0, 0)
     except Exception:
@@ -1532,7 +1534,8 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         if(isinstance(httpheaderout, list)):
             httpheaderout = make_http_headers_from_list_to_dict(httpheaderout)
         httpheaderout = fix_header_names(httpheaderout)
-        returnval = {'Type': "Buffer", 'Buffer': httpfile, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': usehttp}
+        returnval = {'Type': "Buffer", 'Buffer': httpfile, 'ContentSize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(
+            fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': usehttp}
         return returnval
     else:
         return httpfile
