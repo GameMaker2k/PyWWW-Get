@@ -1160,32 +1160,24 @@ _UF_META   = 0x10
 _UF_CRC    = 0x20
 
 # ---- Protocol constants ----
-# Packet types
-_PT_INITIAL = 0x01
+_PT_INITIAL   = 0x01
 _PT_HANDSHAKE = 0x02
-_PT_0RTT = 0x03
-_PT_1RTT = 0x04
-_PT_CLOSE = 0x1c
+_PT_0RTT      = 0x03
+_PT_1RTT      = 0x04
+_PT_RETRY     = 0x05
+_PT_CLOSE     = 0x1c
 
-# Frame types (very small subset, "QUIC-ish")
-_FT_STREAM = 0x10   # STREAM: offset(u32) + len(u16) + data
-_FT_ACK = 0x02      # ACK: largest(u32) + ack_upto(u32) + sack_mask(u64)
-_FT_META = 0x20     # META: total_len(u64) + flags(u8) + optional text
+# Frames
+_FT_STREAM = 0x10   # STREAM: stream_id(u16) + off(u32) + len(u16) + data
+_FT_ACK    = 0x02   # ACK: largest(u32) + ack_upto(u32) + sack_mask(u64)
+_FT_META   = 0x20   # META: total_len(u64) + flags(u8) + optional text + token?
 _FT_RESUME = 0x21   # RESUME: next_offset(u64)
-_FT_DONE = 0x22     # DONE: "DONE" + sha256(32) optional
+_FT_DONE   = 0x22   # DONE: "DONE" + sha256(32) optional
+_FT_RETRY  = 0x23   # RETRY: token_len(u16) + token(bytes)
 
-# Meta flags
 _MF_RESUME_REQ = 0x01
+_MF_HAS_TOKEN  = 0x02
 
-# Header:
-#   magic(4) b"UQIC"
-#   pt(1)
-#   flags(1) reserved
-#   cid(8)
-#   pn(4)
-#   body_len(2)
-#   [body...]
-#   [tag(16) if psk enabled]
 _MAGIC = b"UQIC"
 _HDR_FMT = "!4sBBQIH"
 _HDR_SZ = struct.calcsize(_HDR_FMT)
@@ -2102,8 +2094,6 @@ def send_from_fileobj(fileobj, host, port, proto="tcp", path_text=None, **kwargs
     return _udp_seq_send(fileobj, host, port, **kwargs)
 
 def _make_tag(psk, header_and_body):
-    # Integrity only (NOT encryption).
-    # HMAC-SHA256 truncated to 16 bytes.
     mac = hmac.new(_to_bytes(psk), header_and_body, hashlib.sha256).digest()
     return mac[:_TAG_SZ]
 
@@ -2156,6 +2146,72 @@ def _iter_frames(body):
         yield (ft, body[i:i+flen])
         i += flen
 
+# ---- Stateless retry cookie ----
+def _retry_token(retry_secret, addr, cid):
+    # HMAC(secret, "ip:port" + cid) trunc16
+    # NOTE: This is *authentication* of client address only; not encryption.
+    secret = _to_bytes(retry_secret)
+    ip = addr[0]
+    port = int(addr[1])
+    msg = _to_bytes("%s:%d|" % (ip, port)) + struct.pack("!Q", int(cid) & 0xFFFFFFFFFFFFFFFF)
+    mac = hmac.new(secret, msg, hashlib.sha256).digest()
+    return mac[:16]
+
+def _token_valid(retry_secret, addr, cid, token):
+    if not retry_secret:
+        return True
+    token = _to_bytes(token)
+    return token == _retry_token(retry_secret, addr, cid)
+
+# ---- Congestion control helpers (sender-side) ----
+def _cc_init(cc, init_cwnd, max_cwnd):
+    cc = (cc or "reno").lower()
+    if cc == "fixed":
+        cwnd = max_cwnd
+        cwnd_f = float(cwnd)
+    else:
+        cwnd = max(1, min(max_cwnd, int(init_cwnd)))
+        cwnd_f = float(cwnd)
+    return cc, cwnd, cwnd_f
+
+def _cc_on_ack(cc, cwnd, cwnd_f, acked, max_cwnd):
+    if acked <= 0:
+        return cwnd, cwnd_f
+    if cc == "fixed":
+        return max_cwnd, float(max_cwnd)
+    if cc == "cubic":
+        # Not real CUBIC; just a more aggressive growth curve.
+        # Grow by ~acked * 0.4 + (acked/cwnd) to keep it bounded.
+        cwnd_f += 0.4 * float(acked) + (float(acked) / max(1.0, float(cwnd)))
+        new_cwnd = int(cwnd_f)
+        if new_cwnd > cwnd:
+            cwnd = min(max_cwnd, new_cwnd)
+            cwnd_f = float(cwnd)
+        return cwnd, cwnd_f
+
+    # reno-ish additive increase: cwnd += acked/cwnd
+    cwnd_f += float(acked) / max(1.0, float(cwnd))
+    new_cwnd = int(cwnd_f)
+    if new_cwnd > cwnd:
+        cwnd = min(max_cwnd, new_cwnd)
+        cwnd_f = float(cwnd)
+    return cwnd, cwnd_f
+
+def _cc_on_loss(cc, cwnd, cwnd_f, max_cwnd):
+    if cc == "fixed":
+        return max_cwnd, float(max_cwnd)
+    if cc == "cubic":
+        # more gentle reduction than reno
+        cwnd = max(1, int(float(cwnd) * 0.7))
+        return cwnd, float(cwnd)
+    # reno
+    cwnd = max(1, cwnd // 2)
+    return cwnd, float(cwnd)
+
+# =============================================================================
+# Sender
+# =============================================================================
+
 def _udp_quic_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
     addr = (host, int(port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -2176,6 +2232,8 @@ def _udp_quic_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
     total_timeout = float(kwargs.get("total_timeout", 0.0))
     fast_retx = bool(kwargs.get("fast_retx", True))
 
+    cc = kwargs.get("cc", "reno")
+
     want_sha = bool(kwargs.get("sha256") or kwargs.get("sha") or kwargs.get("want_sha"))
     _h = hashlib.sha256() if want_sha else None
 
@@ -2186,6 +2244,13 @@ def _udp_quic_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
     cid = int(kwargs.get("cid", 0) or 0)
     if cid == 0:
         cid = _rand_u64()
+
+    stream_id = int(kwargs.get("stream_id", 0) or 0) & 0xFFFF
+
+    enable_0rtt = bool(kwargs.get("enable_0rtt", True))
+    token = kwargs.get("token", None)
+    if token is not None:
+        token = _to_bytes(token)
 
     # stats
     stats = {
@@ -2203,6 +2268,10 @@ def _udp_quic_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
         "timeout": timeout,
         "cwnd_start": init_window,
         "cwnd_end": init_window,
+        "cc": cc,
+        "retry_used": False,
+        "server_token": None,
+        "start_offset": 0,
     }
 
     # total length if possible
@@ -2215,7 +2284,7 @@ def _udp_quic_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
     except Exception:
         total_len = 0
 
-    # RTT estimator state (RFC6298-ish)
+    # RTT estimator
     rtt = {"srtt": None, "rttvar": None, "timeout": timeout}
     def _update_rtt(sample):
         if sample <= 0:
@@ -2236,50 +2305,114 @@ def _udp_quic_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
         except Exception:
             pass
 
-    # congestion window (AIMD)
-    cwnd = max(1, min(max_window, init_window))
-    cwnd_f = float(cwnd)
-    def _loss_event():
-        stats["loss_events"] += 1
-        # multiplicative decrease
-        # (very simple; "QUIC-like" only)
-        # halve cwnd, floor to >= 1
-        nonlocal_cwnd = max(1, int(cwnd // 2))
-        return nonlocal_cwnd
+    # congestion control init
+    cc, cwnd, cwnd_f = _cc_init(cc, init_window, max_window)
 
-    def _ai_increase(acked_cnt, cwnd, cwnd_f):
-        if acked_cnt <= 0:
-            return (cwnd, cwnd_f)
-        cwnd_f += float(acked_cnt) / max(1.0, float(cwnd))
-        new_cwnd = int(cwnd_f)
-        if new_cwnd > cwnd:
-            cwnd = min(max_window, new_cwnd)
-            cwnd_f = float(cwnd)
-        return (cwnd, cwnd_f)
-
-    # packet number
+    # pn space
     pn = 1
 
-    # ---- Handshake / resume ----
+    # ---- Handshake (with retry support) ----
     start_offset = 0
     meta_flags = 0
     if resume:
         meta_flags |= _MF_RESUME_REQ
+    if token is not None:
+        meta_flags |= _MF_HAS_TOKEN
 
     meta_payload = struct.pack("!QB", int(total_len) & 0xFFFFFFFFFFFFFFFF, int(meta_flags) & 0xFF)
     if path_text:
         meta_payload += _to_bytes(path_text)[:512]
+    if token is not None:
+        # append token_len + token
+        meta_payload += struct.pack("!H", len(token) & 0xFFFF) + token
 
     body = _pack_frame(_FT_META, meta_payload)
     sock.sendto(_pack_pkt(_PT_INITIAL, cid, pn, body, psk=psk), addr)
     stats["pkts_sent"] += 1
     pn = (pn + 1) & 0xFFFFFFFF
 
-    t0 = time.time()
-    if resume:
-        # wait briefly for RESUME response (server tells next_offset)
+    # helper to send STREAM
+    def _send_stream(pkt_pn, off, data, pt=_PT_1RTT):
+        off32 = int(off) & 0xFFFFFFFF
+        if len(data) > 65535:
+            data = data[:65535]
+        fp = struct.pack("!HIH", int(stream_id) & 0xFFFF, off32, len(data)) + data
+        b = _pack_frame(_FT_STREAM, fp)
+        sock.sendto(_pack_pkt(pt, cid, pkt_pn, b, psk=psk), addr)
+        stats["pkts_sent"] += 1
+
+    # If doing 0-RTT resume, we may start sending _PT_0RTT immediately,
+    # but server can ignore until token validated.
+    # We'll still listen for RETRY/RESUME and adapt.
+    t_hand = time.time()
+    server_allows_0rtt = bool(resume and enable_0rtt)
+    pending_retry = False
+
+    # Wait for RETRY/RESUME briefly (but don't block forever)
+    # If RETRY arrives, resend INITIAL with token.
+    while True:
+        if total_timeout and (time.time() - t_hand) > total_timeout:
+            break
+        try:
+            pkt, _ = sock.recvfrom(4096)
+        except socket.timeout:
+            break
+        except Exception:
+            break
+        up = _unpack_pkt(pkt, psk=psk)
+        if not up:
+            continue
+        rpt, _fl, rcid, _rpn, rbody = up
+        if rcid != cid:
+            continue
+
+        if rpt == _PT_RETRY:
+            # parse token
+            for ft, fp in _iter_frames(rbody):
+                if ft == _FT_RETRY and len(fp) >= 2:
+                    (tlen,) = struct.unpack("!H", fp[:2])
+                    tok = fp[2:2 + int(tlen)]
+                    if tok:
+                        stats["retry_used"] = True
+                        stats["server_token"] = tok
+                        token = tok
+                        pending_retry = True
+            break
+
+        # RESUME is delivered in HANDSHAKE/1RTT; accept it anywhere
+        for ft, fp in _iter_frames(rbody):
+            if ft == _FT_RESUME and len(fp) >= 8:
+                (start_offset,) = struct.unpack("!Q", fp[:8])
+                try:
+                    fileobj.seek(int(start_offset), os.SEEK_SET)
+                except Exception:
+                    start_offset = 0
+                break
+        if start_offset:
+            break
+
+    # If server requested RETRY, resend INITIAL with token and wait for RESUME again.
+    if pending_retry and token is not None:
+        pn_retry = pn
+        pn = (pn + 1) & 0xFFFFFFFF
+
+        meta_flags = 0
+        if resume:
+            meta_flags |= _MF_RESUME_REQ
+        meta_flags |= _MF_HAS_TOKEN
+        meta_payload = struct.pack("!QB", int(total_len) & 0xFFFFFFFFFFFFFFFF, int(meta_flags) & 0xFF)
+        if path_text:
+            meta_payload += _to_bytes(path_text)[:512]
+        meta_payload += struct.pack("!H", len(token) & 0xFFFF) + token
+
+        body = _pack_frame(_FT_META, meta_payload)
+        sock.sendto(_pack_pkt(_PT_INITIAL, cid, pn_retry, body, psk=psk), addr)
+        stats["pkts_sent"] += 1
+
+        # wait a bit for RESUME (optional)
+        t2 = time.time()
         while True:
-            if total_timeout and (time.time() - t0) > total_timeout:
+            if total_timeout and (time.time() - t2) > total_timeout:
                 break
             try:
                 pkt, _ = sock.recvfrom(4096)
@@ -2304,13 +2437,11 @@ def _udp_quic_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
             if start_offset:
                 break
 
-    # ---- Sender loop (offset-based) ----
-    # We'll send STREAM frames with explicit offsets, and ACK with cum-ack + SACK mask.
-    # Maintain "in_flight": pn -> (sent_ts, tries, offset, data)
-    in_flight = {}  # packet_number -> tuple
-    acked_offsets = set()  # coarse bookkeeping for stats only
+    stats["start_offset"] = int(start_offset)
 
-    # next offset
+    # ---- Sender loop (offset-based) ----
+    in_flight = {}  # pn -> (sent_ts, tries, offset, data, pt_used)
+
     next_off = int(start_offset)
     eof = False
     failed = False
@@ -2325,90 +2456,80 @@ def _udp_quic_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
             _h.update(data)
         return data
 
-    def _send_stream(pn, off, data):
-        # STREAM: offset(u32) + len(u16) + data (offset truncated to u32 for simplicity)
-        off32 = int(off) & 0xFFFFFFFF
-        if len(data) > 65535:
-            data = data[:65535]
-        fp = struct.pack("!IH", off32, len(data)) + data
-        body = _pack_frame(_FT_STREAM, fp)
-        sock.sendto(_pack_pkt(_PT_1RTT, cid, pn, body, psk=psk), addr)
-        stats["pkts_sent"] += 1
+    # ACK state
+    # receiver sends: largest pn observed, ack_upto cumulative, sack_mask for next 64
+    largest_acked = 0
 
-    # prime cwnd
+    # prime window
     while not eof and len(in_flight) < cwnd:
         data = _read_chunk()
         if data is None:
             eof = True
             break
-        _send_stream(pn, next_off, data)
-        in_flight[pn] = (time.time(), 0, next_off, data)
+        pt_use = _PT_0RTT if server_allows_0rtt else _PT_1RTT
+        _send_stream(pn, next_off, data, pt=pt_use)
+        in_flight[pn] = (time.time(), 0, next_off, data, pt_use)
         stats["bytes_sent_payload"] += len(data)
         next_off += len(data)
         pn = (pn + 1) & 0xFFFFFFFF
-
-    # ack state from receiver
-    largest_acked = -1
 
     while in_flight or not eof:
         if total_timeout and (time.time() - t_start) > total_timeout:
             failed = True
             break
 
-        # receive ACKs
+        # receive ACKs / possible late RETRY (rare but handle)
         try:
             pkt, _ = sock.recvfrom(4096)
             up = _unpack_pkt(pkt, psk=psk)
             if up:
-                _pt, _fl, rcid, _rpn, rbody = up
+                rpt, _fl, rcid, _rpn, rbody = up
                 if rcid == cid:
+                    if rpt == _PT_RETRY:
+                        # server rejected token / address validation; stop 0-RTT and wait
+                        server_allows_0rtt = False
+
                     for ft, fp in _iter_frames(rbody):
                         if ft != _FT_ACK:
                             continue
                         if len(fp) < 16:
                             continue
                         largest, ack_upto, sack_mask = struct.unpack("!IIQ", fp[:16])
-                        # treat ack_upto as "cumulative pn ack"
-                        newly_acked = 0
+                        largest_acked = max(largest_acked, int(largest))
                         now = time.time()
+                        newly_acked = 0
 
                         # cumulative ack
                         for p in [p for p in list(in_flight.keys()) if p <= int(ack_upto)]:
-                            ts, _tries, off, data = in_flight.pop(p)
+                            ts, _tries, _off, _data, _pt_use = in_flight.pop(p)
                             _update_rtt(now - ts)
                             stats["pkts_acked"] += 1
                             newly_acked += 1
-                            acked_offsets.add(off)
 
-                        # sack after base = ack_upto + 1
+                        # sack beyond ack_upto
                         base = (int(ack_upto) + 1) & 0xFFFFFFFF
                         if sack_mask:
                             for i in range(64):
                                 if (sack_mask >> i) & 1:
                                     p = (base + i) & 0xFFFFFFFF
                                     if p in in_flight:
-                                        ts, _tries, off, data = in_flight.pop(p)
+                                        ts, _tries, _off, _data, _pt_use = in_flight.pop(p)
                                         _update_rtt(now - ts)
                                         stats["pkts_sacked"] += 1
                                         newly_acked += 1
-                                        acked_offsets.add(off)
 
-                            # "fast retransmit" for base if missing
+                            # fast retransmit of base (if still outstanding)
                             if fast_retx and (base in in_flight):
-                                ts, tries, off, data = in_flight[base]
+                                ts, tries, off, data, pt_use = in_flight[base]
                                 if tries < retries:
-                                    _send_stream(base, off, data)
-                                    in_flight[base] = (time.time(), tries + 1, off, data)
+                                    _send_stream(base, off, data, pt=pt_use if pt_use != _PT_0RTT else _PT_1RTT)
+                                    in_flight[base] = (time.time(), tries + 1, off, data, _PT_1RTT)
                                     stats["pkts_retx"] += 1
-                                    # loss event halves cwnd
-                                    cwnd = max(1, cwnd // 2)
-                                    cwnd_f = float(cwnd)
+                                    stats["loss_events"] += 1
+                                    cwnd, cwnd_f = _cc_on_loss(cc, cwnd, cwnd_f, max_window)
 
-                        # additive increase
-                        cwnd, cwnd_f = _ai_increase(newly_acked, cwnd, cwnd_f)
+                        cwnd, cwnd_f = _cc_on_ack(cc, cwnd, cwnd_f, newly_acked, max_window)
 
-                        if int(largest) > largest_acked:
-                            largest_acked = int(largest)
         except socket.timeout:
             pass
         except Exception:
@@ -2418,18 +2539,18 @@ def _udp_quic_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
         now = time.time()
         to = float(rtt["timeout"]) if rtt["timeout"] else timeout
         for p in list(in_flight.keys()):
-            ts, tries, off, data = in_flight[p]
+            ts, tries, off, data, pt_use = in_flight[p]
             if (now - ts) >= to:
                 if tries >= retries:
                     failed = True
                     in_flight.clear()
                     break
-                _send_stream(p, off, data)
-                in_flight[p] = (now, tries + 1, off, data)
+                # retransmit as 1-RTT (safer)
+                _send_stream(p, off, data, pt=_PT_1RTT)
+                in_flight[p] = (now, tries + 1, off, data, _PT_1RTT)
                 stats["pkts_retx"] += 1
-                # loss event halves cwnd
-                cwnd = max(1, cwnd // 2)
-                cwnd_f = float(cwnd)
+                stats["loss_events"] += 1
+                cwnd, cwnd_f = _cc_on_loss(cc, cwnd, cwnd_f, max_window)
 
         if failed:
             break
@@ -2440,8 +2561,9 @@ def _udp_quic_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
             if data is None:
                 eof = True
                 break
-            _send_stream(pn, next_off, data)
-            in_flight[pn] = (time.time(), 0, next_off, data)
+            pt_use = _PT_0RTT if server_allows_0rtt else _PT_1RTT
+            _send_stream(pn, next_off, data, pt=pt_use)
+            in_flight[pn] = (time.time(), 0, next_off, data, pt_use)
             stats["bytes_sent_payload"] += len(data)
             next_off += len(data)
             pn = (pn + 1) & 0xFFFFFFFF
@@ -2491,6 +2613,9 @@ def _udp_quic_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
         return (True, stats)
     return True
 
+# =============================================================================
+# Receiver
+# =============================================================================
 
 def _udp_quic_recv(fileobj, host, port, **kwargs):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -2521,8 +2646,22 @@ def _udp_quic_recv(fileobj, host, port, **kwargs):
     if psk:
         psk = _to_bytes(psk)
 
+    # multi-stream outputs
+    stream_map = kwargs.get("stream_map", None)  # {stream_id:int -> fileobj}
+    # default stream 0 -> provided fileobj
+    if not isinstance(stream_map, dict):
+        stream_map = {}
+    if 0 not in stream_map:
+        stream_map[0] = fileobj
+
+    # retry
+    stateless_retry = bool(kwargs.get("stateless_retry", False))
+    retry_secret = kwargs.get("retry_secret", None)
+    if retry_secret is not None:
+        retry_secret = _to_bytes(retry_secret)
+
     total_len = None
-    bytes_written = 0
+    bytes_written = {}  # per stream_id -> bytes
     got_digest = None
 
     resume_off = 0
@@ -2531,39 +2670,60 @@ def _udp_quic_recv(fileobj, host, port, **kwargs):
     except Exception:
         resume_off = 0
 
-    # connection id decided by client; receiver locks to first cid seen
     active_cid = None
 
-    # receive reordering buffer: offset -> data
+    # per-stream reorder buffers: stream_id -> {offset->data}
     received = {}
-    expected_off = int(max(0, resume_off))
+    expected_off = {}  # stream_id -> expected offset
+    # initialize stream 0 expected offset with resume_offset
+    expected_off[0] = int(max(0, resume_off))
 
-    # ack bookkeeping on packet numbers
-    expected_pn = 0
-    seen_pn = set()
+    # pn ACK state (much cleaner than v1):
+    # ack_upto is the largest contiguous pn we've seen starting from 0.
+    ack_upto = 0
+    seen_pn = set([0])  # treat pn=0 as already "seen" to allow ack_upto to advance from 0
+    largest_pn = 0
 
     done = False
     complete = False
     t0 = time.time()
 
-    def _send_ack(addr, cid, largest, ack_upto, sack_mask):
-        body = _pack_frame(_FT_ACK, struct.pack("!IIQ",
-                                               int(largest) & 0xFFFFFFFF,
-                                               int(ack_upto) & 0xFFFFFFFF,
-                                               int(sack_mask) & 0xFFFFFFFFFFFFFFFF))
+    # whether 0-RTT is allowed for this connection (validated token or retry disabled)
+    allow_0rtt = not stateless_retry  # if no retry, allow
+
+    def _send_ack(addr, cid):
+        # Build sack mask for pn in (ack_upto+1 .. ack_upto+64)
+        base = (int(ack_upto) + 1) & 0xFFFFFFFF
+        mask = 0
+        for p in seen_pn:
+            d = int(p) - int(base)
+            if 0 <= d < 64:
+                mask |= (1 << d)
+        payload = struct.pack("!IIQ",
+                              int(largest_pn) & 0xFFFFFFFF,
+                              int(ack_upto) & 0xFFFFFFFF,
+                              int(mask) & 0xFFFFFFFFFFFFFFFF)
+        body = _pack_frame(_FT_ACK, payload)
         try:
             sock.sendto(_pack_pkt(_PT_1RTT, cid, 0, body, psk=psk), addr)
         except Exception:
             pass
 
-    def _build_sack_mask(base_pn):
-        # build SACK mask for pn in (base_pn .. base_pn+63)
-        mask = 0
-        for pn in seen_pn:
-            d = int(pn) - int(base_pn)
-            if 0 <= d < 64:
-                mask |= (1 << d)
-        return mask
+    def _send_retry(addr, cid, token):
+        token = _to_bytes(token)
+        fp = struct.pack("!H", len(token) & 0xFFFF) + token
+        body = _pack_frame(_FT_RETRY, fp)
+        try:
+            sock.sendto(_pack_pkt(_PT_RETRY, cid, 1, body, psk=psk), addr)
+        except Exception:
+            pass
+
+    def _send_resume(addr, cid, stream_id, off):
+        body = _pack_frame(_FT_RESUME, struct.pack("!Q", int(off) & 0xFFFFFFFFFFFFFFFF))
+        try:
+            sock.sendto(_pack_pkt(_PT_HANDSHAKE, cid, 2, body, psk=psk), addr)
+        except Exception:
+            pass
 
     while True:
         if total_timeout and (time.time() - t0) > total_timeout:
@@ -2571,9 +2731,10 @@ def _udp_quic_recv(fileobj, host, port, **kwargs):
         try:
             pkt, addr = sock.recvfrom(65536)
         except socket.timeout:
+            # if receiver thinks complete, keep waiting for DONE/digest briefly
             if complete and want_sha:
                 continue
-            if done and not received:
+            if done:
                 break
             continue
         except Exception:
@@ -2589,93 +2750,154 @@ def _udp_quic_recv(fileobj, host, port, **kwargs):
         if cid != active_cid:
             continue
 
-        # Initial/meta handling
+        # pn tracking
+        pn_i = int(pn) & 0xFFFFFFFF
+        largest_pn = max(largest_pn, pn_i)
+        seen_pn.add(pn_i)
+        # advance cumulative ack_upto
+        while ((ack_upto + 1) & 0xFFFFFFFF) in seen_pn:
+            ack_upto = (ack_upto + 1) & 0xFFFFFFFF
+
+        # INITIAL handling (META + retry token + resume)
         if pt == _PT_INITIAL:
             for ft, fp in _iter_frames(body):
-                if ft == _FT_META and len(fp) >= 9:
-                    (tlen, mflags) = struct.unpack("!QB", fp[:9])
-                    if tlen:
-                        try:
-                            total_len = int(tlen)
-                        except Exception:
-                            total_len = None
+                if ft != _FT_META or len(fp) < 9:
+                    continue
+                (tlen, mflags) = struct.unpack("!QB", fp[:9])
+                if tlen:
+                    try:
+                        total_len = int(tlen)
+                    except Exception:
+                        total_len = None
 
-                    # if resume requested, respond with current expected offset
-                    if int(mflags) & _MF_RESUME_REQ:
-                        resp = _pack_frame(_FT_RESUME, struct.pack("!Q", int(expected_off) & 0xFFFFFFFFFFFFFFFF))
-                        try:
-                            sock.sendto(_pack_pkt(_PT_HANDSHAKE, cid, 1, resp, psk=psk), addr)
-                        except Exception:
-                            pass
+                # parse optional token
+                token = None
+                if int(mflags) & _MF_HAS_TOKEN:
+                    # token_len + token, after optional text; we can't perfectly split text,
+                    # so we search from the end: last 2 bytes before token could be len.
+                    # BUT we encoded as: [text<=512][u16 len][token]. We'll decode that:
+                    if len(fp) >= 9 + 2:
+                        # token_len is at the end minus token bytes; so read len from (end - token_len - 2)
+                        # can't know token_len; easiest: read u16 at last 2+N? not possible.
+                        # So we adopt a simple rule: token_len is stored in the last 2 bytes BEFORE token,
+                        # and token is at the end. We'll interpret the final u16 as token_len if plausible.
+                        # Format we wrote: ... + u16 + token. So u16 is at position - (2+token_len).
+                        # We guess token_len by reading last 2 bytes as len if token_len==0, else fail.
+                        # To avoid ambiguity, we also accept "len then token at end" by scanning.
+                        # We'll scan for a plausible token_len in the last 64 bytes.
+                        buf = fp[9:]
+                        found = None
+                        scan_max = min(len(buf), 64)
+                        # Try each possible split where u16 sits at i and token at i+2 to end.
+                        for i in range(max(0, len(buf) - scan_max), len(buf) - 1):
+                            if i + 2 > len(buf):
+                                continue
+                            (tl,) = struct.unpack("!H", buf[i:i+2])
+                            if tl == (len(buf) - (i + 2)) and tl > 0:
+                                found = buf[i+2:]
+                                break
+                        if found is not None:
+                            token = found
+
+                # stateless retry decision
+                if stateless_retry and retry_secret:
+                    if (token is None) or (not _token_valid(retry_secret, addr, cid, token)):
+                        # send retry token and do not allow 0-RTT until valid token arrives
+                        tok = _retry_token(retry_secret, addr, cid)
+                        allow_0rtt = False
+                        _send_retry(addr, cid, tok)
+                        # still ACK so sender sees liveness
+                        _send_ack(addr, cid)
+                        continue
+                    else:
+                        allow_0rtt = True
+
+                # resume response (stream 0 only for now)
+                if int(mflags) & _MF_RESUME_REQ:
+                    # tell client where to resume for stream 0
+                    off0 = int(expected_off.get(0, 0))
+                    _send_resume(addr, cid, 0, off0)
+
+            _send_ack(addr, cid)
+            continue
+
+        # If 0-RTT not allowed, ignore 0-RTT packets (but ACK pns so sender can progress)
+        if pt == _PT_0RTT and not allow_0rtt:
+            _send_ack(addr, cid)
             continue
 
         # process frames
-        largest_seen = pn
-        seen_pn.add(int(pn) & 0xFFFFFFFF)
-
         for ft, fp in _iter_frames(body):
             if ft == _FT_DONE:
                 done = True
                 if fp.startswith(b"DONE") and len(fp) >= 4 + 32:
                     got_digest = fp[4:4+32]
-                # if already complete, we can stop
-                if complete and ((not want_sha) or (got_digest is not None)):
-                    break
                 continue
 
             if ft != _FT_STREAM:
                 continue
-            if len(fp) < 6:
+            if len(fp) < 2 + 4 + 2:
                 continue
-            off32, dlen = struct.unpack("!IH", fp[:6])
-            data = fp[6:6+int(dlen)]
-            # reconstruct full offset:
-            # We only carry u32 on the wire; use "expected_off" window to disambiguate.
-            # This is simplistic but works for typical transfers <4GiB or within nearby windows.
+
+            sid, off32, dlen = struct.unpack("!HIH", fp[:8])
+            sid = int(sid) & 0xFFFF
+            data = fp[8:8+int(dlen)]
+
+            # only write streams we have an output for
+            out = stream_map.get(sid, None)
+            if out is None:
+                continue
+
+            if sid not in received:
+                received[sid] = {}
+            if sid not in expected_off:
+                expected_off[sid] = 0
+            if sid not in bytes_written:
+                bytes_written[sid] = 0
+
+            # offset u32 is ambiguous for >4GiB; we accept within a "near window" of expected.
+            exp = int(expected_off[sid])
             off = int(off32)
-            # accept only near the current expected range
-            if off + len(data) < expected_off:
+            if off + len(data) < exp:
                 continue
-            if off > expected_off + window * chunk * 8:
+            if off > exp + window * chunk * 8:
                 continue
 
-            if off == expected_off:
-                fileobj.write(data)
-                bytes_written += len(data)
-                if _h is not None:
+            if off == exp:
+                out.write(data)
+                bytes_written[sid] += len(data)
+                if _h is not None and sid == 0:
+                    # digest applies to stream 0 (common case); customize if you want per-stream digests
                     _h.update(_to_bytes(data))
-                expected_off += len(data)
+                expected_off[sid] = exp + len(data)
 
-                # flush any contiguous buffered
-                while expected_off in received:
-                    buf = received.pop(expected_off)
-                    fileobj.write(buf)
-                    bytes_written += len(buf)
-                    if _h is not None:
+                # flush contiguous buffered
+                while int(expected_off[sid]) in received[sid]:
+                    buf = received[sid].pop(int(expected_off[sid]))
+                    out.write(buf)
+                    bytes_written[sid] += len(buf)
+                    if _h is not None and sid == 0:
                         _h.update(_to_bytes(buf))
-                    expected_off += len(buf)
+                    expected_off[sid] = int(expected_off[sid]) + len(buf)
             else:
-                if off not in received:
-                    received[off] = data
+                if off not in received[sid]:
+                    received[sid][off] = data
 
-        # ACK logic (pn-based)
-        # Maintain "cumulative" pn ack as: smallest missing starting at 0
-        # Since client pn starts at 1, this is approximate; but consistent for this mini-proto.
-        while expected_pn in seen_pn:
-            expected_pn += 1
-        ack_upto = expected_pn - 1
-        base = expected_pn
-        sack_mask = _build_sack_mask(base)
-        _send_ack(addr, cid, largest_seen, ack_upto, sack_mask)
+        _send_ack(addr, cid)
 
-        # completion checks
-        if (framing == "len") and (total_len is not None) and (bytes_written >= total_len):
+        # completion checks (stream 0 framing)
+        bw0 = int(bytes_written.get(0, 0))
+        if (framing == "len") and (total_len is not None) and (bw0 >= int(total_len)):
             complete = True
             if not want_sha:
                 break
             if got_digest is not None:
                 break
-        if done and not received and (not want_sha or got_digest is not None):
+
+        if done:
+            # if done and stream0 has no gaps, end (or wait for digest)
+            if want_sha and got_digest is None:
+                continue
             break
 
     if want_sha:
@@ -2696,11 +2918,15 @@ def _udp_quic_recv(fileobj, host, port, **kwargs):
         sock.close()
     except Exception:
         pass
+
+    # rewind stream 0 output
     try:
-        fileobj.seek(0, 0)
+        stream_map.get(0, fileobj).seek(0, 0)
     except Exception:
         pass
+
     return True
+
 
 def _udp_raw_recv(fileobj, host, port, **kwargs):
     """
