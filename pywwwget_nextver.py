@@ -395,6 +395,13 @@ try:
 except Exception:
     pass
 
+havehttpcore = False
+try:
+    import httpcore
+    havehttpcore = True
+except ImportError:
+    pass
+
 havemechanize = False
 try:
     import mechanize  # noqa
@@ -1407,7 +1414,12 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
 
     # HTTPX
     elif usehttp == "httpx" and havehttpx:
-        with httpx.Client(follow_redirects=True, http1=True, http2=True, trust_env=True, timeout=60.0) as client:
+        try:
+            import h2
+            usehttp2 = True
+        except ImportError:
+            usehttp2 = False
+        with httpx.Client(follow_redirects=True, http1=True, http2=usehttp2, trust_env=True, timeout=60.0) as client:
             auth = (username, password) if (username and password) else None
             if(httpmethod == "GET"):
                 r = client.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie)
@@ -1429,6 +1441,31 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             httpurlout = str(r.url)
             httpheaderout = r.headers
             httpheadersentout = r.request.headers
+
+
+    # HTTPCore
+    elif usehttp == "httpcore" and havehttpcore:
+        try:
+            import h2
+            usehttp2 = True
+        except ImportError:
+            usehttp2 = False
+        with httpcore.ConnectionPool(http1=True, http2=usehttp2) as client:
+            auth = (username, password) if (username and password) else None
+            if(httpmethod == "GET"):
+                r = client.request("GET", rebuilt_url, headers=headers)
+            if(httpmethod == "POST"):
+                r = client.request("POST", rebuilt_url, data=postdata, headers=headers)
+            else:
+                r = client.request("GET", rebuilt_url, headers=headers)
+            httpfile.write(r.content)
+        httpcodeout = r.status
+        httpcodereason = http_status_to_reason(r.status)
+        httpversionout = "1.1"
+        httpmethodout = httpmethod
+        httpurlout = str(rebuilt_url)
+        httpheaderout = r.headers
+        httpheadersentout = headers
 
     # Mechanize
     elif usehttp == "mechanize" and havemechanize:
@@ -1495,7 +1532,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                     usehttpver = geturls_text.CURL_HTTP_VERSION_2_0
                 else:
                     usehttpver = geturls_text.CURL_HTTP_VERSION_1_1
-                geturls_text.setopt(geturls_text.URL, url)
+                geturls_text.setopt(geturls_text.URL, rebuilt_url)
                 geturls_text.setopt(geturls_text.HTTP_VERSION,
                                     geturls_text.CURL_HTTP_VERSION_1_1)
                 geturls_text.setopt(
@@ -1514,7 +1551,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                     usehttpver = geturls_text.CURL_HTTP_VERSION_2_0
                 else:
                     usehttpver = geturls_text.CURL_HTTP_VERSION_1_1
-                geturls_text.setopt(geturls_text.URL, url)
+                geturls_text.setopt(geturls_text.URL, rebuilt_url)
                 geturls_text.setopt(geturls_text.HTTP_VERSION,
                                     geturls_text.CURL_HTTP_VERSION_1_1)
                 geturls_text.setopt(
@@ -1535,7 +1572,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                     usehttpver = geturls_text.CURL_HTTP_VERSION_2_0
                 else:
                     usehttpver = geturls_text.CURL_HTTP_VERSION_1_1
-                geturls_text.setopt(geturls_text.URL, url)
+                geturls_text.setopt(geturls_text.URL, rebuilt_url)
                 geturls_text.setopt(geturls_text.HTTP_VERSION,
                                     geturls_text.CURL_HTTP_VERSION_1_1)
                 geturls_text.setopt(
