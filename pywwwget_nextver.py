@@ -86,6 +86,11 @@ import base64
 import threading
 
 try:
+    import cookielib
+except ImportError:
+    import http.cookiejar as cookielib
+
+try:
     from io import BytesIO
 except ImportError:
     try:
@@ -271,7 +276,7 @@ def data_url_decode(data_url):
 
 try:
     from urllib.parse import urlparse, urlunparse, parse_qs, unquote
-    from urllib.request import Request, build_opener, HTTPBasicAuthHandler
+    from urllib.request import Request, build_opener, HTTPBasicAuthHandler, HTTPCookieProcessor
     from urllib.error import URLError, HTTPError
     from urllib.request import HTTPPasswordMgrWithDefaultRealm
     try:
@@ -280,7 +285,7 @@ try:
         HTTPException = Exception
 except Exception:
     from urlparse import urlparse, urlunparse, parse_qs  # type: ignore
-    from urllib2 import Request, build_opener, HTTPBasicAuthHandler, URLError, HTTPError  # type: ignore
+    from urllib2 import Request, build_opener, HTTPBasicAuthHandler, HTTPCookieProcessor, URLError, HTTPError  # type: ignore
     from urllib2 import HTTPPasswordMgrWithDefaultRealm  # type: ignore
     try:
         from httplib import HTTPException  # type: ignore
@@ -405,6 +410,7 @@ elif(PyBitness == "64bit" or PyBitness == "64"):
 else:
     PyBitness = "32"
 
+geturls_cj = cookielib.CookieJar()
 geturls_ua_pywwwget_python = "Mozilla/5.0 (compatible; {proname}/{prover}; +{prourl})".format(
     proname=__project__, prover=__version__, prourl=__project_url__)
 if(platform.python_implementation() != ""):
@@ -423,6 +429,70 @@ geturls_headers_googlebot_google = {'Referer': "http://google.com/", 'User-Agent
                                     'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"}
 geturls_headers_googlebot_google_old = {'Referer': "http://google.com/", 'User-Agent': geturls_ua_googlebot_google_old, 'Accept-Encoding': "none", 'Accept-Language': "en-US,en;q=0.8,en-CA,en-GB;q=0.6",
                                         'Accept-Charset': "ISO-8859-1,ISO-8859-15,utf-8;q=0.7,*;q=0.7", 'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 'Connection': "close"}
+
+def fix_header_names(header_dict):
+    if(sys.version[0] == "2"):
+        header_dict = {k.title(): v for k, v in header_dict.iteritems()}
+    if(sys.version[0] >= "3"):
+        header_dict = {k.title(): v for k, v in header_dict.items()}
+    return header_dict
+
+def make_http_headers_from_dict_to_list(headers):
+    if isinstance(headers, dict):
+        returnval = []
+        if(sys.version[0] == "2"):
+            for headkey, headvalue in headers.iteritems():
+                returnval.append((headkey, headvalue))
+        if(sys.version[0] >= "3"):
+            for headkey, headvalue in headers.items():
+                returnval.append((headkey, headvalue))
+    elif isinstance(headers, list):
+        returnval = headers
+    else:
+        returnval = False
+    return returnval
+
+
+def make_http_headers_from_dict_to_pycurl(headers):
+    if isinstance(headers, dict):
+        returnval = []
+        if(sys.version[0] == "2"):
+            for headkey, headvalue in headers.iteritems():
+                returnval.append(headkey+": "+headvalue)
+        if(sys.version[0] >= "3"):
+            for headkey, headvalue in headers.items():
+                returnval.append(headkey+": "+headvalue)
+    elif isinstance(headers, list):
+        returnval = headers
+    else:
+        returnval = False
+    return returnval
+
+
+def make_http_headers_from_pycurl_to_dict(headers):
+    header_dict = {}
+    headers = headers.strip().split('\r\n')
+    for header in headers:
+        parts = header.split(': ', 1)
+        if(len(parts) == 2):
+            key, value = parts
+            header_dict[key.title()] = value
+    return header_dict
+
+
+def make_http_headers_from_list_to_dict(headers):
+    if isinstance(headers, list):
+        returnval = {}
+        mli = 0
+        mlil = len(headers)
+        while(mli < mlil):
+            returnval.update({headers[mli][0]: headers[mli][1]})
+            mli = mli + 1
+    elif isinstance(headers, dict):
+        returnval = headers
+    else:
+        returnval = False
+    return returnval
 
 __use_inmem__ = True
 __use_memfd__ = True
@@ -1062,9 +1132,136 @@ def decoded_stream(resp):
 # HTTP helpers (download only)
 # --------------------------
 
-def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
+def http_status_to_reason(code):
+    reasons = {
+        100: 'Continue',
+        101: 'Switching Protocols',
+        102: 'Processing',
+        200: 'OK',
+        201: 'Created',
+        202: 'Accepted',
+        203: 'Non-Authoritative Information',
+        204: 'No Content',
+        205: 'Reset Content',
+        206: 'Partial Content',
+        207: 'Multi-Status',
+        208: 'Already Reported',
+        226: 'IM Used',
+        300: 'Multiple Choices',
+        301: 'Moved Permanently',
+        302: 'Found',
+        303: 'See Other',
+        304: 'Not Modified',
+        305: 'Use Proxy',
+        307: 'Temporary Redirect',
+        308: 'Permanent Redirect',
+        400: 'Bad Request',
+        401: 'Unauthorized',
+        402: 'Payment Required',
+        403: 'Forbidden',
+        404: 'Not Found',
+        405: 'Method Not Allowed',
+        406: 'Not Acceptable',
+        407: 'Proxy Authentication Required',
+        408: 'Request Timeout',
+        409: 'Conflict',
+        410: 'Gone',
+        411: 'Length Required',
+        412: 'Precondition Failed',
+        413: 'Payload Too Large',
+        414: 'URI Too Long',
+        415: 'Unsupported Media Type',
+        416: 'Range Not Satisfiable',
+        417: 'Expectation Failed',
+        421: 'Misdirected Request',
+        422: 'Unprocessable Entity',
+        423: 'Locked',
+        424: 'Failed Dependency',
+        426: 'Upgrade Required',
+        428: 'Precondition Required',
+        429: 'Too Many Requests',
+        431: 'Request Header Fields Too Large',
+        451: 'Unavailable For Legal Reasons',
+        500: 'Internal Server Error',
+        501: 'Not Implemented',
+        502: 'Bad Gateway',
+        503: 'Service Unavailable',
+        504: 'Gateway Timeout',
+        505: 'HTTP Version Not Supported',
+        506: 'Variant Also Negotiates',
+        507: 'Insufficient Storage',
+        508: 'Loop Detected',
+        510: 'Not Extended',
+        511: 'Network Authentication Required'
+    }
+    return reasons.get(code, 'Unknown Status Code')
+
+
+def ftp_status_to_reason(code):
+    reasons = {
+        110: 'Restart marker reply',
+        120: 'Service ready in nnn minutes',
+        125: 'Data connection already open; transfer starting',
+        150: 'File status okay; about to open data connection',
+        200: 'Command okay',
+        202: 'Command not implemented, superfluous at this site',
+        211: 'System status, or system help reply',
+        212: 'Directory status',
+        213: 'File status',
+        214: 'Help message',
+        215: 'NAME system type',
+        220: 'Service ready for new user',
+        221: 'Service closing control connection',
+        225: 'Data connection open; no transfer in progress',
+        226: 'Closing data connection',
+        227: 'Entering Passive Mode',
+        230: 'User logged in, proceed',
+        250: 'Requested file action okay, completed',
+        257: '"PATHNAME" created',
+        331: 'User name okay, need password',
+        332: 'Need account for login',
+        350: 'Requested file action pending further information',
+        421: 'Service not available, closing control connection',
+        425: 'Can\'t open data connection',
+        426: 'Connection closed; transfer aborted',
+        450: 'Requested file action not taken',
+        451: 'Requested action aborted. Local error in processing',
+        452: 'Requested action not taken. Insufficient storage space in system',
+        500: 'Syntax error, command unrecognized',
+        501: 'Syntax error in parameters or arguments',
+        502: 'Command not implemented',
+        503: 'Bad sequence of commands',
+        504: 'Command not implemented for that parameter',
+        530: 'Not logged in',
+        532: 'Need account for storing files',
+        550: 'Requested action not taken. File unavailable',
+        551: 'Requested action aborted. Page type unknown',
+        552: 'Requested file action aborted. Exceeded storage allocation',
+        553: 'Requested action not taken. File name not allowed'
+    }
+    return reasons.get(code, 'Unknown Status Code')
+
+
+def sftp_status_to_reason(code):
+    reasons = {
+        0: 'SSH_FX_OK',
+        1: 'SSH_FX_EOF',
+        2: 'SSH_FX_NO_SUCH_FILE',
+        3: 'SSH_FX_PERMISSION_DENIED',
+        4: 'SSH_FX_FAILURE',
+        5: 'SSH_FX_BAD_MESSAGE',
+        6: 'SSH_FX_NO_CONNECTION',
+        7: 'SSH_FX_CONNECTION_LOST',
+        8: 'SSH_FX_OP_UNSUPPORTED'
+    }
+    return reasons.get(code, 'Unknown Status Code')
+
+def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", returnstat=False):
     if headers is None:
         headers = {}
+    else:
+        if(isinstance(headers, list)):
+            headers = make_http_headers_from_list_to_dict(headers)
     p = urlparse(url)
     username = unquote(p.username) if p.username else None
     password = unquote(p.password) if p.password else None
@@ -1097,37 +1294,95 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
     if resume_off and "Range" not in headers and "range" not in headers:
         headers["Range"] = "bytes=%d-" % resume_off
 
+    headers = fix_header_names(headers)
+    if(httpuseragent is not None):
+        if('User-Agent' in headers):
+            headers['User-Agent'] = httpuseragent
+        else:
+            httpuseragent.update({'User-Agent': httpuseragent})
+    if(httpreferer is not None):
+        if('Referer' in headers):
+            headers['Referer'] = httpreferer
+        else:
+            httpuseragent.update({'Referer': httpreferer})
+
     # Requests
     if usehttp == "requests" and haverequests:
         auth = (username, password) if (username and password) else None
-        r = requests.get(rebuilt_url, headers=headers, auth=auth, stream=True, timeout=(5, 60))
+        if(httpmethod == "GET"):
+            r = requests.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(5, 60))
+        elif(httpmethod == "POST"):
+            r = requests.post(rebuilt_url, data=postdata, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(5, 60))
+        else:
+            r = requests.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(5, 60))
         r.raise_for_status()
         r.raw.decode_content = True
         #shutil.copyfileobj(r.raw, httpfile)
         for chunk in r.iter_content(chunk_size=1024 * 1024):
             if chunk:
                 httpfile.write(chunk)
+        httpcodeout = r.status_code
+        httpcodereason = r.reason
+        if(r.raw.version == "10"):
+            httpversionout = "1.0"
+        else:
+            httpversionout = "1.1"
+        httpmethodout = httpmethod
+        httpurlout = r.url
+        httpheaderout = r.headers
+        httpheadersentout = r.request.headers
 
     # HTTPX
     elif usehttp == "httpx" and havehttpx:
-        with httpx.Client(follow_redirects=True, timeout=60.0) as client:
+        with httpx.Client(follow_redirects=True, http1=True, http2=True, trust_env=True, timeout=60.0) as client:
             auth = (username, password) if (username and password) else None
-            r = client.get(rebuilt_url, headers=headers, auth=auth)
+            if(httpmethod == "GET"):
+                r = client.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie)
+            if(httpmethod == "POST"):
+                r = client.post(rebuilt_url, data=postdata, headers=headers, auth=auth, cookies=httpcookie)
+            else:
+                r = client.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie)
             r.raise_for_status()
             for chunk in r.iter_bytes():
                 if chunk:
                     httpfile.write(chunk)
+            httpcodeout = r.status_code
+            try:
+                httpcodereason = r.reason_phrase
+            except:
+                httpcodereason = http_status_to_reason(r.status_code)
+            httpversionout = r.http_version
+            httpmethodout = httpmethod
+            httpurlout = str(r.url)
+            httpheaderout = r.headers
+            httpheadersentout = r.request.headers
 
     # Mechanize
     elif usehttp == "mechanize" and havemechanize:
         br = mechanize.Browser()
+        br.set_cookiejar(httpcookie)
         br.set_handle_robots(False)
         if headers:
             br.addheaders = list(headers.items())
         if username and password:
             br.add_password(rebuilt_url, username, password)
-        resp = br.open(rebuilt_url)
+        if(postdata is not None and not isinstance(postdata, dict)):
+            postdata = urlencode(postdata)
+        if(httpmethod == "GET"):
+            resp = br.open(rebuilt_url)
+        elif(httpmethod == "POST"):
+            resp = br.open(rebuilt_url, data=postdata)
+        else:
+            resp = br.open(rebuilt_url)
         shutil.copyfileobj(resp, httpfile)
+        httpcodeout = resp.code
+        httpcodereason = resp.msg
+        httpversionout = "1.1"
+        httpmethodout = httpmethod
+        httpurlout = resp.geturl()
+        httpheaderout = resp.info()
+        reqhead = br.request
+        httpheadersentout = reqhead.header_items()
 
     # URLLib3
     elif usehttp == "urllib3" and haveurllib3:
@@ -1136,8 +1391,23 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
             auth_headers = urllib3.make_headers(basic_auth="{}:{}".format(username, password))
             headers.update(auth_headers)
         # Request with preload_content=False to get a file-like object
-        resp = http.request("GET", rebuilt_url, headers=headers, preload_content=False, decode_content=True)
+        if(httpmethod == "GET"):
+            resp = http.request("GET", rebuilt_url, headers=headers, preload_content=False, decode_content=True)
+        if(httpmethod == "POST"):
+            resp = http.request("POST", rebuilt_url, body=postdata, headers=headers, preload_content=False, decode_content=True)
+        else:
+            resp = http.request("GET", rebuilt_url, headers=headers, preload_content=False, decode_content=True)
         shutil.copyfileobj(resp, httpfile)
+        httpcodeout = resp.status
+        httpcodereason = resp.reason
+        if(resp.version == "10"):
+            httpversionout = "1.0"
+        else:
+            httpversionout = "1.1"
+        httpmethodout = httpmethod
+        httpurlout = resp.geturl()
+        httpheaderout = resp.info()
+        httpheadersentout = httpheaders
         resp.release_conn()
 
     # urllib fallback
@@ -1146,21 +1416,46 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__):
         if username and password:
             mgr = HTTPPasswordMgrWithDefaultRealm()
             mgr.add_password(None, rebuilt_url, username, password)
-            opener = build_opener(HTTPBasicAuthHandler(mgr))
+            opener = build_opener(HTTPBasicAuthHandler(mgr), HTTPCookieProcessor(httpcookie))
         else:
             opener = build_opener()
-        resp = opener.open(req)
+        if(httpmethod == "GET"):
+            resp = opener.open(req)
+        elif(httpmethod == "POST"):
+            postdata = urlencode(postdata)
+            geturls_text = geturls_opener.open(req, data=postdata)
+        else:
+            resp = opener.open(req)
         resp2 = decoded_stream(resp)
         shutil.copyfileobj(resp2, httpfile)
-
+        httpcodeout = resp.getcode()
+        try:
+            httpcodereason = resp.reason
+        except AttributeError:
+            httpcodereason = http_status_to_reason(geturls_text.getcode())
+        try:
+            httpversionout = resp.version
+        except AttributeError:
+            httpversionout = "1.1"
+        httpmethodout = resp.get_method()
+        httpurlout = resp.geturl()
+        httpheaderout = resp.info()
+        httpheadersentout = httpheaders
     try:
         httpfile.seek(0, 0)
     except Exception:
         pass
-    return httpfile
+    if(returnstat):
+        if(isinstance(httpheaderout, list)):
+            httpheaderout = make_http_headers_from_list_to_dict(httpheaderout)
+        httpheaderout = fix_header_names(httpheaderout)
+        returnval = {'Type': "Content", 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': headers, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': usehttp}
+        return returnval
+    else:
+        return httpfile
 
-def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__):
-    fp = download_file_from_http_file(url, headers=headers, usehttp=usehttp)
+def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", returnstat=False):
+    fp = download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, returnstat)
     return fp.read() if fp else False
 
 # --------------------------
