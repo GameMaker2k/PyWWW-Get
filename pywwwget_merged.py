@@ -1352,6 +1352,254 @@ def sftp_status_to_reason(code):
     }
     return reasons.get(code, 'Unknown Status Code')
 
+def read_all(fileobj, encoding='utf-8', errors='replace'):
+    data = fileobj.read()
+    if data is None:
+        return u'' if PY2 else ''
+    if isinstance(data, bytes):
+        return data.decode(encoding, errors)
+    return data  # already text (unicode on py2 or str on py3)
+
+# ---------------- Parsing primitives ----------------
+
+_req_line_http1 = re.compile(r'^(?P<method>[A-Z]+)\s+(?P<path>\S+)\s+HTTP/(?P<version>\d+\.\d)\s*$')
+_req_line_h2    = re.compile(r'^(?P<method>[A-Z]+)\s+(?P<path>\S+)\s+HTTP/(?P<version>2(?:\.0)?)\s*$')
+_status_line_v1 = re.compile(r'^HTTP/(?P<version>\d+\.\d)\s+(?P<code>\d{3})(?:\s+(?P<reason>.*))?$')
+_status_line_h2 = re.compile(r'^HTTP/(?P<version>2(?:\.0)?)\s+(?P<code>\d{3})(?:\s+(?P<reason>.*))?$')
+
+def _normalize(text):
+    return text.replace('\r\n', '\n').replace('\r', '\n')
+
+def _split_header_block(block_text):
+    block_text = _normalize(block_text)
+    lines = block_text.split('\n')
+    while lines and lines[-1] == '':
+        lines.pop()
+
+    # unfold obs-fold (space/tab continuation)
+    out = []
+    for line in lines:
+        if out and (line.startswith(' ') or line.startswith('\t')):
+            out[-1] += ' ' + line.lstrip()
+        else:
+            out.append(line)
+    return out
+
+def _parse_headers(lines):
+    headers = {}
+    for line in lines:
+        if not line or ':' not in line:
+            continue
+        name, value = line.split(':', 1)
+        name = name.strip()
+        value = value.strip()
+        key = name.lower()
+
+        if key in headers:
+            if isinstance(headers[key], list):
+                headers[key].append(value)
+            else:
+                headers[key] = [headers[key], value]
+        else:
+            headers[key] = value
+    return headers
+
+def parse_request_block(block_text):
+    if not block_text:
+        return None
+    lines = _split_header_block(block_text)
+    if not lines:
+        return None
+
+    m = _req_line_http1.match(lines[0]) or _req_line_h2.match(lines[0])
+    if not m:
+        return None
+
+    return {
+        'method': m.group('method'),
+        'path': m.group('path'),
+        'version': m.group('version'),
+        'headers': _parse_headers(lines[1:]),
+    }
+
+def parse_response_block(block_text):
+    if not block_text:
+        return None
+    lines = _split_header_block(block_text)
+    if not lines:
+        return None
+
+    m = _status_line_v1.match(lines[0]) or _status_line_h2.match(lines[0])
+    if not m:
+        return None
+
+    code = int(m.group('code'))
+    reason = (m.group('reason') or '').strip()
+    return {
+        'version': m.group('version'),
+        'status_code': code,
+        'reason': reason,
+        'headers': _parse_headers(lines[1:]),
+    }
+
+# ---------------- Extraction from verbose output ----------------
+
+# HTTP/1.x request block: "GET / HTTP/1.1" ... blank line
+_HTTP1_REQ_BLOCK = re.compile(
+    r'(?ms)^(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE|CONNECT)\s+\S+\s+HTTP/\d\.\d\s*\n'
+    r'(?:.*?\n)*?\n'
+)
+
+# HTTP/2 synthesized request block: "GET / HTTP/2" ... blank line
+_HTTP2_SYN_REQ_BLOCK = re.compile(
+    r'(?ms)^(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE|CONNECT)\s+\S+\s+HTTP/2(?:\.0)?\s*\n'
+    r'(?:.*?\n)*?\n'
+)
+
+# HTTP/2 bracket pseudo-headers:
+# [HTTP/2] [1] [:method: GET]
+# [HTTP/2] [1] [:path: /]
+# [HTTP/2] [1] [user-agent: ...]
+_HTTP2_BRACKET_LINE = re.compile(
+    r'^\[HTTP/2\]\s*\[(?P<stream>\d+)\]\s*\[(?P<kv>.+?)\]\s*$'
+)
+
+def _extract_http2_bracket_request(text):
+    """
+    Build a synthetic request block from the [HTTP/2] [stream] [key: value] lines.
+    Returns (block_text, used_stream) or (None, None).
+    """
+    t = _normalize(text)
+    lines = t.split('\n')
+
+    # Collect per stream
+    per_stream = {}
+    order = []  # stream appearance order
+    for line in lines:
+        m = _HTTP2_BRACKET_LINE.match(line)
+        if not m:
+            continue
+        stream = m.group('stream')
+        kv = m.group('kv')
+        if stream not in per_stream:
+            per_stream[stream] = []
+            order.append(stream)
+        per_stream[stream].append(kv)
+
+    if not order:
+        return (None, None)
+
+    # pick first stream that has :method and :path
+    for stream in order:
+        kvs = per_stream[stream]
+        pseudo = {}
+        normal = []
+        for kv in kvs:
+            # kv is like ":method: GET" or "user-agent: blah"
+            if ':' not in kv:
+                continue
+            name, value = kv.split(':', 1)
+            name = name.strip()
+            value = value.strip()
+
+            # special case: pseudo headers start with empty name because kv starts ":method..."
+            # our split gives name="" and value="method: GET" if we split at first ':'
+            if name == '' and value:
+                # now split "method: GET"
+                if ':' in value:
+                    n2, v2 = value.split(':', 1)
+                    pseudo[':' + n2.strip()] = v2.strip()
+                continue
+
+            # regular "host: github.com"
+            normal.append((name, value))
+
+        # also handle case where pseudo lines came as "[:method: GET]" (already handled)
+        if ':method' in pseudo and ':path' in pseudo:
+            method = pseudo[':method']
+            path = pseudo[':path']
+            # prefer :authority for Host if present
+            authority = pseudo.get(':authority')
+
+            block_lines = []
+            block_lines.append('%s %s HTTP/2' % (method, path))
+            if authority:
+                block_lines.append('Host: %s' % authority)
+
+            # add other pseudo? scheme isn't a header line usually; skip it.
+            # add bracketed normal headers
+            for (name, value) in normal:
+                block_lines.append('%s: %s' % (name, value))
+            block_lines.append('')  # blank line terminator
+
+            return ('\n'.join(block_lines), stream)
+
+    return (None, None)
+
+# Response blocks
+_HTTP1_RESP_BLOCK = re.compile(
+    r'(?ms)^HTTP/\d\.\d\s+\d{3}.*\n(?:.*?\n)*?\n'
+)
+_HTTP2_RESP_BLOCK = re.compile(
+    r'(?ms)^HTTP/2(?:\.0)?\s+\d{3}.*\n(?:.*?\n)*?\n'
+)
+
+def extract_request_and_response(debug_text):
+    """
+    Returns (request_block_text, response_block_text).
+    Supports:
+      - HTTP/1 request blocks
+      - HTTP/2 synthesized request blocks
+      - HTTP/2 bracket pseudo-header sequences (converted to synthetic block)
+      - HTTP/1 and HTTP/2 response blocks
+    """
+    t = _normalize(debug_text)
+
+    # Try request in priority order:
+    # 1) HTTP/1 request block
+    m = _HTTP1_REQ_BLOCK.search(t)
+    if m:
+        req_block = m.group(0)
+    else:
+        # 2) HTTP/2 synthesized request block
+        m2 = _HTTP2_SYN_REQ_BLOCK.search(t)
+        if m2:
+            req_block = m2.group(0)
+        else:
+            # 3) HTTP/2 bracket pseudo headers -> synthesize
+            req_block, _stream = _extract_http2_bracket_request(t)
+
+    # Try response in priority order:
+    mr2 = _HTTP2_RESP_BLOCK.search(t)
+    mr1 = _HTTP1_RESP_BLOCK.search(t)
+    if mr2 and mr1:
+        # choose whichever appears first
+        resp_block = mr2.group(0) if mr2.start() < mr1.start() else mr1.group(0)
+    elif mr2:
+        resp_block = mr2.group(0)
+    elif mr1:
+        resp_block = mr1.group(0)
+    else:
+        resp_block = None
+
+    return req_block, resp_block
+
+def parse_pycurl_verbose(fileobj_or_text):
+    if hasattr(fileobj_or_text, 'read'):
+        text = read_all(fileobj_or_text)
+    else:
+        if isinstance(fileobj_or_text, bytes):
+            text = fileobj_or_text.decode('utf-8', 'replace')
+        else:
+            text = fileobj_or_text
+
+    req_block, resp_block = extract_request_and_response(text)
+    return {
+        'raw': {'request': req_block, 'response': resp_block},
+        'request': parse_request_block(req_block) if req_block else None,
+        'response': parse_response_block(resp_block) if resp_block else None,
+    }
+
 def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", returnstat=False):
     if headers is None:
         headers = {}
@@ -1482,7 +1730,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         httpcodereason = http_status_to_reason(r.status)
         httpversionout = "1.1"
         httpmethodout = httpmethod
-        httpurlout = str(httpurl)
+        httpurlout = str(rebuilt_url)
         httpheaderout = r.headers
         httpheadersentout = headers
 
@@ -1542,6 +1790,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
     elif(usehttp == "pycurl"):
         retrieved_body = MkTempFile()
         retrieved_headers = MkTempFile()
+        sentout_headers = MkTempFile()
         try:
             if(httpmethod == "GET"):
                 geturls_text = pycurl.Curl()
@@ -1552,13 +1801,12 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                 else:
                     usehttpver = geturls_text.CURL_HTTP_VERSION_1_1
                 geturls_text.setopt(geturls_text.URL, rebuilt_url)
-                geturls_text.setopt(geturls_text.HTTP_VERSION,
-                                    geturls_text.CURL_HTTP_VERSION_1_1)
-                geturls_text.setopt(
-                    geturls_text.WRITEFUNCTION, retrieved_body.write)
+                geturls_text.setopt(geturls_text.HTTP_VERSION, usehttpver)
+                geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write)
                 geturls_text.setopt(geturls_text.HTTPHEADER, headers)
-                geturls_text.setopt(
-                    geturls_text.HEADERFUNCTION, retrieved_headers.write)
+                geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write)
+                geturls_text.setopt(pycurl.VERBOSE, 1)
+                geturls_text.setopt(pycurl.DEBUGFUNCTION, lambda t, m: sentout_headers.write(m))
                 geturls_text.setopt(geturls_text.FOLLOWLOCATION, True)
                 geturls_text.setopt(geturls_text.TIMEOUT, 60)
                 geturls_text.perform()
@@ -1571,13 +1819,12 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                 else:
                     usehttpver = geturls_text.CURL_HTTP_VERSION_1_1
                 geturls_text.setopt(geturls_text.URL, rebuilt_url)
-                geturls_text.setopt(geturls_text.HTTP_VERSION,
-                                    geturls_text.CURL_HTTP_VERSION_1_1)
-                geturls_text.setopt(
-                    geturls_text.WRITEFUNCTION, retrieved_body.write)
+                geturls_text.setopt(geturls_text.HTTP_VERSION, usehttpver)
+                geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write)
                 geturls_text.setopt(geturls_text.HTTPHEADER, headers)
-                geturls_text.setopt(
-                    geturls_text.HEADERFUNCTION, retrieved_headers.write)
+                geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write)
+                geturls_text.setopt(pycurl.VERBOSE, 1)
+                geturls_text.setopt(pycurl.DEBUGFUNCTION, lambda t, m: sentout_headers.write(m))
                 geturls_text.setopt(geturls_text.FOLLOWLOCATION, True)
                 geturls_text.setopt(geturls_text.TIMEOUT, 60)
                 geturls_text.setopt(geturls_text.POST, True)
@@ -1592,25 +1839,25 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                 else:
                     usehttpver = geturls_text.CURL_HTTP_VERSION_1_1
                 geturls_text.setopt(geturls_text.URL, rebuilt_url)
-                geturls_text.setopt(geturls_text.HTTP_VERSION,
-                                    geturls_text.CURL_HTTP_VERSION_1_1)
-                geturls_text.setopt(
-                    geturls_text.WRITEFUNCTION, retrieved_body.write)
+                geturls_text.setopt(geturls_text.HTTP_VERSION, usehttpver)
+                geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write)
+                geturls_text.setopt(pycurl.VERBOSE, 1)
+                geturls_text.setopt(pycurl.DEBUGFUNCTION, lambda t, m: sentout_headers.write(m))
                 geturls_text.setopt(geturls_text.HTTPHEADER, headers)
-                geturls_text.setopt(
-                    geturls_text.HEADERFUNCTION, retrieved_headers.write)
+                geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write)
                 geturls_text.setopt(geturls_text.FOLLOWLOCATION, True)
                 geturls_text.setopt(geturls_text.TIMEOUT, 60)
                 geturls_text.perform()
             retrieved_headers.seek(0, 0)
+            sentout_headers.seek(0, 0)
+            httpheadersentpre = parse_pycurl_verbose(sentout_headers)
+            sentout_headers.close()
             if(sys.version[0] == "2"):
                 pycurlhead = retrieved_headers.read()
             if(sys.version[0] >= "3"):
                 pycurlhead = retrieved_headers.read().decode('UTF-8')
-            pyhttpverinfo = re.findall(
-                r'^HTTP/([0-9.]+) (\d+)(?: ([A-Za-z\s]+))?$', pycurlhead.splitlines()[0].strip().rstrip('\r\n'))[0]
-            pycurlheadersout = make_http_headers_from_pycurl_to_dict(
-                pycurlhead)
+            pyhttpverinfo = re.findall(r'^HTTP/([0-9.]+) (\d+)(?: ([A-Za-z\s]+))?$', pycurlhead.splitlines()[0].strip().rstrip('\r\n'))[0]
+            pycurlheadersout = make_http_headers_from_pycurl_to_dict(pycurlhead)
             retrieved_body.seek(0, 0)
             httpfile = retrieved_body
             retrieved_headers.close()
@@ -1621,13 +1868,15 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         except ValueError:
             return False
         httpcodeout = geturls_text.getinfo(geturls_text.HTTP_CODE)
-        httpcodereason = http_status_to_reason(
-            geturls_text.getinfo(geturls_text.HTTP_CODE))
+        httpcodereason = http_status_to_reason(geturls_text.getinfo(geturls_text.HTTP_CODE))
         httpversionout = pyhttpverinfo[0]
         httpmethodout = httpmethod
         httpurlout = geturls_text.getinfo(geturls_text.EFFECTIVE_URL)
         httpheaderout = pycurlheadersout
-        httpheadersentout = headers
+        try:
+            httpheadersentout = httpheadersentpre['request']['headers']
+        except TypeError:
+            httpheadersentout = headers
 
     # urllib fallback
     else:
