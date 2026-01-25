@@ -1695,6 +1695,19 @@ def parse_pycurl_verbose(fileobj_or_text):
         'response': parse_response_block(resp_block) if resp_block else None,
     }
 
+def decode_headers_any(headers):
+    # Accepts: dict-like (has .items()) OR list/tuple of pairs
+    if hasattr(headers, "items"):
+        pairs = headers.items()
+    else:
+        pairs = headers  # assume iterable of (k, v)
+
+    return {
+        (k.decode("ascii", "replace") if isinstance(k, (bytes, bytearray)) else str(k)):
+        (v.decode("latin-1", "replace") if isinstance(v, (bytes, bytearray)) else str(v))
+        for k, v in pairs
+    }
+
 def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, timeout=60, returnstats=False):
     if headers is None:
         headers = {}
@@ -1813,7 +1826,13 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         httpversionout = r.http_version
         httpmethodout = httpmethod
         httpurlout = str(r.url)
-        httpheaderout = r.headers
+        httpheaderout = {
+            k.decode("ascii", errors="replace")
+            if isinstance(k, (bytes, bytearray)) else str(k):
+            v.decode("ascii", errors="replace")
+            if isinstance(v, (bytes, bytearray)) else str(v)
+            for k, v in r.headers.items()
+        }
         httpheadersentout = r.request.headers
 
 
@@ -1849,13 +1868,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             httpversionout = httpversionout.decode("ascii", errors="replace")
         httpmethodout = httpmethod
         httpurlout = str(rebuilt_url)
-        httpheaderout = {
-            k.decode("ascii", errors="replace")
-            if isinstance(k, (bytes, bytearray)) else str(k):
-            v.decode("ascii", errors="replace")
-            if isinstance(v, (bytes, bytearray)) else str(v)
-            for k, v in r.headers.items()
-        }
+        httpheaderout = decode_headers_any(r.headers)
         httpheadersentout = headers
 
     # Mechanize
