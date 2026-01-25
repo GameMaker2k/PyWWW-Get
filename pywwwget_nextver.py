@@ -975,7 +975,7 @@ def _ftp_login(ftp, user, pw):
         pw = "anonymous" if user == "anonymous" else ""
     ftp.login(user, pw)
 
-def download_file_from_ftp_file(url):
+def download_file_from_ftp_file(url, returnstats=False):
     p = urlparse(url)
     if p.scheme not in ("ftp", "ftps"):
         return False
@@ -1006,8 +1006,12 @@ def download_file_from_ftp_file(url):
         bio = MkTempFile()
         ftp.retrbinary("RETR " + retr_path, bio.write)
         ftp.quit()
+        fulldatasize = bio.tell()
         bio.seek(0, 0)
-        return bio
+        if(returnstats):
+            returnval = {'Type': "Buffer", 'Buffer': bio, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': None, 'Version': None, 'Method': None, 'HeadersSent': None, 'URL': url, 'Code': None, 'FTPLib': 'pyftp'}
+        else:
+            return bio
     except Exception:
         try:
             ftp.close()
@@ -1015,8 +1019,8 @@ def download_file_from_ftp_file(url):
             pass
         return False
 
-def download_file_from_ftp_string(url):
-    fp = download_file_from_ftp_file(url)
+def download_file_from_ftp_string(url, returnstats=False):
+    fp = download_file_from_ftp_file(url, returnstats)
     return fp.read() if fp else False
 
 def upload_file_to_ftp_file(fileobj, url):
@@ -1078,7 +1082,7 @@ def upload_file_to_ftp_string(data, url):
 # SFTP helpers
 # --------------------------
 
-def download_file_from_sftp_file(url):
+def download_file_from_sftp_file(url, returnstats=False):
     if not haveparamiko:
         return False
     p = urlparse(url)
@@ -1099,8 +1103,12 @@ def download_file_from_sftp_file(url):
         sftp.getfo(path, bio)
         sftp.close()
         ssh.close()
+        fulldatasize = bio.tell()
         bio.seek(0, 0)
-        return bio
+        if(returnstats):
+            returnval = {'Type': "Buffer", 'Buffer': bio, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': None, 'Version': None, 'Method': None, 'HeadersSent': None, 'URL': url, 'Code': None, 'SFTPLib': 'paramiko'}
+        else:
+            return bio
     except Exception:
         try:
             ssh.close()
@@ -1108,8 +1116,8 @@ def download_file_from_sftp_file(url):
             pass
         return False
 
-def download_file_from_sftp_string(url):
-    fp = download_file_from_sftp_file(url)
+def download_file_from_sftp_string(url, returnstats=False):
+    fp = download_file_from_sftp_file(url, returnstats)
     return fp.read() if fp else False
 
 def upload_file_to_sftp_file(fileobj, url):
@@ -1157,12 +1165,51 @@ def upload_file_to_sftp_string(data, url):
         pass
     return out
 
-# Optional pysftp shims (kept for compatibility)
-def download_file_from_pysftp_file(url):
+# --------------------------
+# Pysftp Compatibility Layer
+# --------------------------
+
+def download_file_from_pysftp_file(url, returnstats=False):
     if not havepysftp:
         return False
-    # pysftp is a thin wrapper over paramiko; keep behavior similar by delegating.
-    return download_file_from_sftp_file(url)
+    p = urlparse(url)
+    if p.scheme not in ("sftp", "scp"):
+        return False
+
+    host = p.hostname
+    port = p.port or 22
+    user = p.username or "anonymous"
+    pw = p.password or ("anonymous" if user == "anonymous" else "")
+    path = p.path or "/"
+
+    conn = None
+    try:
+        # NOTE: pysftp host key checking is strict by default.
+        # If you need AutoAddPolicy-like behavior, set cnopts (see note below).
+        conn = pysftp.Connection(host=host, port=port, username=user, password=pw)
+
+        sftp = conn.sftp_client
+        bio = BytesIO()
+        sftp.getfo(path, bio)
+
+        fulldatasize = bio.tell()
+        bio.seek(0, 0)
+
+        fulldatasize = bio.tell()
+        bio.seek(0, 0)
+        if(returnstats):
+            returnval = {'Type': "Buffer", 'Buffer': bio, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': None, 'Version': None, 'Method': None, 'HeadersSent': None, 'URL': url, 'Code': None, 'SFTPLib': 'pysftp'}
+        else:
+            return bio
+
+    except Exception:
+        return False
+    finally:
+        try:
+            if conn is not None:
+                conn.close()
+        except Exception:
+            pass
 
 def download_file_from_pysftp_string(url):
     fp = download_file_from_pysftp_file(url)
@@ -1171,7 +1218,43 @@ def download_file_from_pysftp_string(url):
 def upload_file_to_pysftp_file(fileobj, url):
     if not havepysftp:
         return False
-    return upload_file_to_sftp_file(fileobj, url)
+    p = urlparse(url)
+    if p.scheme not in ("sftp", "scp"):
+        return False
+
+    host = p.hostname
+    port = p.port or 22
+    user = p.username or "anonymous"
+    pw = p.password or ("anonymous" if user == "anonymous" else "")
+    path = p.path or "/"
+
+    conn = None
+    try:
+        conn = pysftp.Connection(host=host, port=port, username=user, password=pw)
+
+        sftp = conn.sftp_client
+        try:
+            fileobj.seek(0, 0)
+        except Exception:
+            pass
+
+        sftp.putfo(fileobj, path)
+
+        try:
+            fileobj.seek(0, 0)
+        except Exception:
+            pass
+
+        return fileobj
+
+    except Exception:
+        return False
+    finally:
+        try:
+            if conn is not None:
+                conn.close()
+        except Exception:
+            pass
 
 def upload_file_to_pysftp_string(data, url):
     if not havepysftp:
@@ -1581,7 +1664,7 @@ def parse_pycurl_verbose(fileobj_or_text):
         'response': parse_response_block(resp_block) if resp_block else None,
     }
 
-def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, returnstat=False):
+def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, returnstats=False):
     if headers is None:
         headers = {}
     else:
@@ -1941,8 +2024,8 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
     else:
         return httpfile
 
-def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", returnstat=False):
-    fp = download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, returnstat)
+def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", returnstats=False):
+    fp = download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, returnstats)
     return fp.read() if fp else False
 
 # --------------------------
