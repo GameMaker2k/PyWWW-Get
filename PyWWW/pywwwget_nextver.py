@@ -1581,7 +1581,7 @@ def parse_pycurl_verbose(fileobj_or_text):
         'response': parse_response_block(resp_block) if resp_block else None,
     }
 
-def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", returnstat=False):
+def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, returnstat=False):
     if headers is None:
         headers = {}
     else:
@@ -1651,10 +1651,14 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                 httpfile.write(chunk)
         httpcodeout = r.status_code
         httpcodereason = r.reason
-        if(r.raw.version == "10"):
-            httpversionout = "1.0"
-        else:
-            httpversionout = "1.1"
+        vertostr = {
+                    10: "HTTP/1.0",
+                    11: "HTTP/1.1"
+        }
+        try:
+            httpversionout = vertostr[r.raw.version]
+        except AttributeError:
+            httpversionout = "HTTP/1.1"
         httpmethodout = httpmethod
         httpurlout = r.url
         httpheaderout = r.headers
@@ -1709,7 +1713,8 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             httpfile.write(r.content)
         httpcodeout = r.status
         httpcodereason = http_status_to_reason(r.status)
-        httpversionout = "1.1"
+        raw_version = r.extensions.get(b"http_version", b"HTTP/1.1")
+        httpversionout = raw_version.decode("ascii")
         httpmethodout = httpmethod
         httpurlout = str(rebuilt_url)
         httpheaderout = r.headers
@@ -1735,7 +1740,14 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         shutil.copyfileobj(resp, httpfile)
         httpcodeout = resp.code
         httpcodereason = resp.msg
-        httpversionout = "1.1"
+        vertostr = {
+                    10: "HTTP/1.0",
+                    11: "HTTP/1.1"
+        }
+        try:
+            httpversionout = vertostr[br.version]
+        except AttributeError:
+            httpversionout = "HTTP/1.1"
         httpmethodout = httpmethod
         httpurlout = resp.geturl()
         httpheaderout = resp.info()
@@ -1758,10 +1770,14 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         shutil.copyfileobj(resp, httpfile)
         httpcodeout = resp.status
         httpcodereason = resp.reason
-        if(resp.version == "10"):
-            httpversionout = "1.0"
-        else:
-            httpversionout = "1.1"
+        vertostr = {
+                    10: "HTTP/1.0",
+                    11: "HTTP/1.1"
+        }
+        try:
+            httpversionout = vertostr[resp.version]
+        except AttributeError:
+            httpversionout = "HTTP/1.1"
         httpmethodout = httpmethod
         httpurlout = resp.geturl()
         httpheaderout = resp.info()
@@ -1837,7 +1853,6 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                 pycurlhead = retrieved_headers.read()
             if(sys.version[0] >= "3"):
                 pycurlhead = retrieved_headers.read().decode('UTF-8')
-            pyhttpverinfo = re.findall(r'^HTTP/([0-9.]+) (\d+)(?: ([A-Za-z\s]+))?$', pycurlhead.splitlines()[0].strip().rstrip('\r\n'))[0]
             pycurlheadersout = make_http_headers_from_pycurl_to_dict(pycurlhead)
             retrieved_body.seek(0, 0)
             httpfile = retrieved_body
@@ -1848,9 +1863,20 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             return False
         except ValueError:
             return False
+        HTTP_VERSION_MAP = {
+            pycurl.CURL_HTTP_VERSION_1_0: "HTTP/1.0",
+            pycurl.CURL_HTTP_VERSION_1_1: "HTTP/1.1",
+        }
+        # Optional HTTP/3 (only if compiled in)
+        if hasattr(pycurl, "CURL_HTTP_VERSION_2"):
+            HTTP_VERSION_MAP[pycurl.CURL_HTTP_VERSION_2] = "HTTP/2.0"
+        # Optional HTTP/3 (only if compiled in)
+        if hasattr(pycurl, "CURL_HTTP_VERSION_3"):
+            HTTP_VERSION_MAP[pycurl.CURL_HTTP_VERSION_3] = "HTTP/3.0"
+        ver_enum = geturls_text.getinfo(pycurl.INFO_HTTP_VERSION)
         httpcodeout = geturls_text.getinfo(geturls_text.HTTP_CODE)
         httpcodereason = http_status_to_reason(geturls_text.getinfo(geturls_text.HTTP_CODE))
-        httpversionout = pyhttpverinfo[0]
+        httpversionout = HTTP_VERSION_MAP.get(ver_enum, "HTTP/1.1")
         httpmethodout = httpmethod
         httpurlout = geturls_text.getinfo(geturls_text.EFFECTIVE_URL)
         httpheaderout = pycurlheadersout
@@ -1882,10 +1908,14 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             httpcodereason = resp.reason
         except AttributeError:
             httpcodereason = http_status_to_reason(geturls_text.getcode())
+        vertostr = {
+                    10: "HTTP/1.0",
+                    11: "HTTP/1.1"
+        }
         try:
-            httpversionout = resp.version
+            httpversionout = vertostr[resp.version]
         except AttributeError:
-            httpversionout = "1.1"
+            httpversionout = "HTTP/1.1"
         try:
             httpmethodout = resp.get_method()
         except AttributeError:
