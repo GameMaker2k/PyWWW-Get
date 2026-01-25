@@ -986,6 +986,7 @@ def download_file_from_ftp_file(url, timeout=60, returnstats=False):
     pw = p.password
     path = p.path or "/"
     file_dir = os.path.dirname(path)
+    start_time = time.time()
     socket.setdefaulttimeout(float(timeout))
     ftp = FTP_TLS() if (p.scheme == "ftps") else FTP()
     try:
@@ -1006,8 +1007,10 @@ def download_file_from_ftp_file(url, timeout=60, returnstats=False):
         ftp.quit()
         fulldatasize = bio.tell()
         bio.seek(0, 0)
+        end_time = time.time()
+        total_time = end_time - start_time
         if(returnstats):
-            returnval = {'Type': "Buffer", 'Buffer': bio, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': None, 'Version': None, 'Method': None, 'HeadersSent': None, 'URL': url, 'Code': None, 'FTPLib': 'pyftp'}
+            returnval = {'Type': "Buffer", 'Buffer': bio, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': None, 'Version': None, 'Method': None, 'HeadersSent': None, 'URL': url, 'Code': None, 'RequestTime': {'StartTime': start_time, 'EndTime': end_time, 'TotalTime': total_time}, 'FTPLib': 'pyftp'}
         else:
             return bio
     except Exception:
@@ -1117,6 +1120,7 @@ def download_file_from_sftp_file(url, timeout=60, returnstats=False):
     pw = p.password or ("anonymous" if user == "anonymous" else "")
     path = p.path or "/"
     socket.setdefaulttimeout(float(timeout))
+    start_time = time.time()
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
@@ -1130,8 +1134,10 @@ def download_file_from_sftp_file(url, timeout=60, returnstats=False):
         ssh.close()
         fulldatasize = bio.tell()
         bio.seek(0, 0)
+        end_time = time.time()
+        total_time = end_time - start_time
         if(returnstats):
-            returnval = {'Type': "Buffer", 'Buffer': bio, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': None, 'Version': None, 'Method': None, 'HeadersSent': None, 'URL': url, 'Code': None, 'SFTPLib': 'paramiko'}
+            returnval = {'Type': "Buffer", 'Buffer': bio, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': None, 'Version': None, 'Method': None, 'HeadersSent': None, 'URL': url, 'Code': None, 'RequestTime': {'StartTime': start_time, 'EndTime': end_time, 'TotalTime': total_time}, 'SFTPLib': 'paramiko'}
         else:
             return bio
     except Exception:
@@ -1212,6 +1218,7 @@ def download_file_from_pysftp_file(url, timeout=60, returnstats=False):
     fname = os.path.basename(path) or "upload.bin"
 
     conn = None
+    start_time = time.time()
     try:
         # NOTE: pysftp host key checking is strict by default.
         # If you need AutoAddPolicy-like behavior, set cnopts (see note below).
@@ -1226,10 +1233,10 @@ def download_file_from_pysftp_file(url, timeout=60, returnstats=False):
         fulldatasize = bio.tell()
         bio.seek(0, 0)
 
-        fulldatasize = bio.tell()
-        bio.seek(0, 0)
+        end_time = time.time()
+        total_time = end_time - start_time
         if(returnstats):
-            returnval = {'Type': "Buffer", 'Buffer': bio, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': None, 'Version': None, 'Method': None, 'HeadersSent': None, 'URL': url, 'Code': None, 'SFTPLib': 'pysftp'}
+            returnval = {'Type': "Buffer", 'Buffer': bio, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': None, 'Version': None, 'Method': None, 'HeadersSent': None, 'URL': url, 'Code': None, 'RequestTime': {'StartTime': start_time, 'EndTime': end_time, 'TotalTime': total_time}, 'SFTPLib': 'pysftp'}
         else:
             return bio
 
