@@ -4638,10 +4638,10 @@ def download_file_from_internet_file(url, **kwargs):
             return download_file_from_pysftp_file(url, **kwargs)
         return download_file_from_sftp_file(url, **kwargs)
 
-    if p.scheme in ("data"):
+    if p.scheme in ("data", ):
         return data_url_decode(url)[0]
 
-    if p.scheme in ("file"):
+    if p.scheme in ("file" or ""):
         return io.open(unquote(p.path), "rb")
 
     if p.scheme in ("tcp", "udp"):
@@ -5433,7 +5433,7 @@ def upload_file_to_internet_file(fileobj, url):
         if __use_pysftp__ and havepysftp:
             return upload_file_to_pysftp_file(fileobj, url)
         return upload_file_to_sftp_file(fileobj, url)
-    if p.scheme in ("file"):
+    if p.scheme in ("file" or ""):
         outfile = io.open(unquote(p.path), "wb")
         try:
             fileobj.seek(0, 0)
@@ -5442,7 +5442,7 @@ def upload_file_to_internet_file(fileobj, url):
         with io.open(unquote(p.path), "wb") as fdst:
             shutil.copyfileobj(fileobj, fdst)
         return fileobj
-    if p.scheme in ("data"):
+    if p.scheme in ("data", ):
         return data_url_encode(fileobj)
     if p.scheme in ("tcp", "udp"):
         parts, o = _parse_net_url(url)
