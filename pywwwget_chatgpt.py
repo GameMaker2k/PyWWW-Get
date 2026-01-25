@@ -1747,7 +1747,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             else:
                 r = client.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie)
             r.raise_for_status()
-            for chunk in r.iter_bytes():
+            for chunk in r.iter_bytes(chunk_size=1024 * 1024):
                 if chunk:
                     httpfile.write(chunk)
             httpcodeout = r.status_code
@@ -1805,7 +1805,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             resp = br.open(rebuilt_url, data=postdata)
         else:
             resp = br.open(rebuilt_url)
-        shutil.copyfileobj(resp, httpfile)
+        shutil.copyfileobj(resp, httpfile, length=1024 * 1024)
         httpcodeout = resp.code
         httpcodereason = resp.msg
         vertostr = {
@@ -1835,7 +1835,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             resp = http.request("POST", rebuilt_url, body=postdata, headers=headers, preload_content=False, decode_content=True)
         else:
             resp = http.request("GET", rebuilt_url, headers=headers, preload_content=False, decode_content=True)
-        shutil.copyfileobj(resp, httpfile)
+        shutil.copyfileobj(resp, httpfile, length=1024 * 1024)
         httpcodeout = resp.status
         httpcodereason = resp.reason
         vertostr = {
@@ -1970,7 +1970,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         else:
             resp = opener.open(req)
         resp2 = decoded_stream(resp)
-        shutil.copyfileobj(resp2, httpfile)
+        shutil.copyfileobj(resp2, httpfile, length=1024 * 1024)
         httpcodeout = resp.getcode()
         try:
             httpcodereason = resp.reason
