@@ -5422,6 +5422,17 @@ __all__ = [
     '__project_url__',
 ]
 
+# DNS record types
+QTYPE = {
+    'A': 1,
+    'NS': 2,
+    'CNAME': 5,
+    'MX': 15,
+    'TXT': 16,
+    'AAAA': 28,
+}
+QCLASS_IN = 1
+
 def encode_qname(domain):
     """
     Encode a domain name into DNS QNAME format:
