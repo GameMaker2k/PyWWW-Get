@@ -27,6 +27,7 @@ import os
 import io
 import re
 import sys
+import random
 import platform
 import secrets
 import socket
@@ -636,6 +637,11 @@ _TAG_SZ = 16
 # Utility Functions
 # --------------------------
 
+def _byte_at(b, i):
+    """Get integer value of byte at index i for Py2/Py3."""
+    v = b[i]
+    return v if isinstance(v, int) else ord(v)
+
 def _to_bytes(x, encoding='utf-8'):
     """Convert input to bytes, handling None and various types."""
     if x is None:
@@ -1050,10 +1056,10 @@ def MkTempFile(data=None,
     return f
 
 # --------------------------
-# FTP Protocol Implementation
+# FTP helpers
 # --------------------------
 
-def detect_cwd(ftp, file_dir):
+def detect_cwd_ftp(ftp, file_dir):
     """
     Test whether cwd into file_dir works. Returns True if it does,
     False if not (so absolute paths should be used).
@@ -1067,12 +1073,11 @@ def detect_cwd(ftp, file_dir):
         return False
 
 def _ftp_login(ftp, user, pw):
-    """Handle FTP login with proper defaults."""
+    # ftplib wants empty string for anonymous password sometimes; keep consistent
     if user is None:
         user = "anonymous"
     if pw is None:
-        pw = "anonymous@example.com" if user == "anonymous" else ""
-    
+        pw = "anonymous" if user == "anonymous" else ""
     ftp.login(user, pw)
 
 def download_file_from_ftp_file(url, timeout=60, returnstats=False):
@@ -1100,7 +1105,7 @@ def download_file_from_ftp_file(url, timeout=60, returnstats=False):
                 pass
 
         # Try cwd into directory; if it works, RETR just basename.
-        use_cwd = detect_cwd(ftp, file_dir)
+        use_cwd = detect_cwd_ftp(ftp, file_dir)
         retr_path = os.path.basename(path) if use_cwd else path
 
         bio = MkTempFile()
@@ -1123,7 +1128,6 @@ def download_file_from_ftp_string(url, timeout=60, returnstats=False):
     fp = download_file_from_ftp_file(url, timeout, returnstats)
     return fp.read() if fp else False
 
-
 def download_file_from_ftps_file(url, timeout=60, returnstats=False):
     return download_file_from_ftp_file(url, timeout, returnstats)
 
@@ -1131,7 +1135,6 @@ def download_file_from_ftps_string(url, timeout=60, returnstats=False):
     return download_file_from_ftp_string(url, timeout, returnstats)
 
 def upload_file_to_ftp_file(fileobj, url, timeout=60):
-    """Upload file to FTP/FTPS server."""
     p = urlparse(url)
     if p.scheme not in ("ftp", "ftps"):
         return False
@@ -1145,42 +1148,32 @@ def upload_file_to_ftp_file(fileobj, url, timeout=60):
     path = p.path or "/"
     file_dir = os.path.dirname(path)
     fname = os.path.basename(path) or "upload.bin"
-    
+
+    ftp = FTP_TLS() if (p.scheme == "ftps") else FTP()
     try:
-        if p.scheme == "ftps":
-            ftp = FTP_TLS()
-        else:
-            ftp = FTP()
-        
         ftp.connect(host, port, timeout=float(timeout))
         _ftp_login(ftp, user, pw)
-        
         if p.scheme == "ftps":
             try:
                 ftp.prot_p()
             except Exception:
                 pass
-        
-        # Try CWD into directory
-        use_cwd = detect_cwd(ftp, file_dir)
+
+        use_cwd = detect_cwd_ftp(ftp, file_dir)
         stor_path = fname if use_cwd else path
-        
+
         try:
             fileobj.seek(0, 0)
         except Exception:
             pass
-        
         ftp.storbinary("STOR " + stor_path, fileobj)
         ftp.quit()
-        
         try:
             fileobj.seek(0, 0)
         except Exception:
             pass
-        
         return fileobj
-    except Exception as e:
-        _net_log(True, "FTP upload error: %s" % str(e))
+    except Exception:
         try:
             ftp.close()
         except Exception:
@@ -1188,7 +1181,6 @@ def upload_file_to_ftp_file(fileobj, url, timeout=60):
         return False
 
 def upload_file_to_ftp_string(data, url, timeout=60):
-    """Upload string to FTP/FTPS server."""
     bio = MkTempFile(_to_bytes(data))
     out = upload_file_to_ftp_file(bio, url, timeout)
     try:
@@ -1204,62 +1196,21 @@ def upload_file_to_ftp_string(fileobj, url, timeout=60):
     return upload_file_to_ftp_string(fileobj, url, timeout)
 
 # --------------------------
-# SFTP Protocol Implementation
+# SFTP helpers
 # --------------------------
 
-def _sftp_connect(url):
-    """Connect to SFTP server, return (client, sftp) or (None, None)."""
-    if not haveparamiko:
-        return None, None
-    
-    p = urlparse(url)
-    if p.scheme not in ("sftp", "scp"):
-        return None, None
-    
-    host = p.hostname
-    port = p.port or 22
-    user = p.username or "anonymous"
-    pw = p.password or ("anonymous" if user == "anonymous" else "")
-    
+def detect_cwd_sftp(sftp, file_dir):
+    """
+    Test whether chdir into file_dir works. Returns True if it does,
+    False if not (so absolute paths should be used).
+    """
+    if not file_dir:
+        return False  # nothing to cwd into
     try:
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        
-        # Try key-based auth first if no password
-        if not pw:
-            try:
-                # Try default key locations
-                default_keys = [
-                    os.path.expanduser("~/.ssh/id_rsa"),
-                    os.path.expanduser("~/.ssh/id_dsa"),
-                    os.path.expanduser("~/.ssh/id_ecdsa"),
-                    os.path.expanduser("~/.ssh/id_ed25519"),
-                ]
-                for key_path in default_keys:
-                    if os.path.exists(key_path):
-                        try:
-                            ssh.connect(host, port=port, username=user, 
-                                       key_filename=key_path, timeout=10)
-                            break
-                        except Exception:
-                            continue
-                else:
-                    # No key worked, try without auth
-                    ssh.connect(host, port=port, username=user, timeout=10)
-            except Exception:
-                ssh.connect(host, port=port, username=user, password="", timeout=10)
-        else:
-            ssh.connect(host, port=port, username=user, password=pw, timeout=10)
-        
-        sftp = ssh.open_sftp()
-        return ssh, sftp
-    except Exception as e:
-        _net_log(True, "SFTP connect error: %s" % str(e))
-        try:
-            ssh.close()
-        except Exception:
-            pass
-        return None, None
+        sftp.chdir(file_dir)
+        return True
+    except all_errors:
+        return False
 
 def download_file_from_sftp_file(url, timeout=60, returnstats=False):
     if not haveparamiko:
@@ -1278,8 +1229,10 @@ def download_file_from_sftp_file(url, timeout=60, returnstats=False):
     try:
         ssh.connect(host, port=port, username=user, password=pw, timeout=float(timeout))
         sftp = ssh.open_sftp()
+        use_cwd = detect_cwd_sftp(sftp, path)
+        retr_path = os.path.basename(path) if use_cwd else path
         bio = MkTempFile()
-        sftp.getfo(path, bio)
+        sftp.getfo(retr_path, bio)
         sftp.close()
         ssh.close()
         fulldatasize = bio.tell()
@@ -1300,51 +1253,38 @@ def download_file_from_sftp_string(url, timeout=60, returnstats=False):
     return fp.read() if fp else False
 
 def upload_file_to_sftp_file(fileobj, url, timeout=60):
-    """Upload file to SFTP server."""
-    ssh, sftp = _sftp_connect(url)
-    if not sftp:
+    if not haveparamiko:
         return False
-    socket.setdefaulttimeout(float(timeout))
     p = urlparse(url)
+    if p.scheme not in ("sftp", "scp"):
+        return False
+    host = p.hostname
+    port = p.port or 22
+    user = p.username or "anonymous"
+    pw = p.password or ("anonymous" if user == "anonymous" else "")
     path = p.path or "/"
-    
+    fname = os.path.basename(path) or "upload.bin"
+    socket.setdefaulttimeout(float(timeout))
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
-        # Ensure parent directory exists
-        dir_path = os.path.dirname(path)
-        if dir_path and dir_path != "/":
-            try:
-                sftp.makedirs(dir_path)
-            except Exception:
-                pass
-        
+        ssh.connect(host, port=port, username=user, password=pw, timeout=float(timeout))
+        sftp = ssh.open_sftp()
+        use_cwd = detect_cwd_sftp(sftp, path)
+        stor_path = fname if use_cwd else path
         try:
             fileobj.seek(0, 0)
         except Exception:
             pass
-        
-        # Upload in chunks
-        with sftp.open(path, 'wb') as remote_file:
-            while True:
-                chunk = fileobj.read(65536)
-                if not chunk:
-                    break
-                remote_file.write(chunk)
-        
+        sftp.putfo(fileobj, stor_path)
         sftp.close()
         ssh.close()
-        
         try:
             fileobj.seek(0, 0)
         except Exception:
             pass
-        
         return fileobj
-    except Exception as e:
-        _net_log(True, "SFTP upload error: %s" % str(e))
-        try:
-            sftp.close()
-        except Exception:
-            pass
+    except Exception:
         try:
             ssh.close()
         except Exception:
@@ -1352,7 +1292,6 @@ def upload_file_to_sftp_file(fileobj, url, timeout=60):
         return False
 
 def upload_file_to_sftp_string(data, url, timeout=60):
-    """Upload string to SFTP server."""
     bio = MkTempFile(_to_bytes(data))
     out = upload_file_to_sftp_file(bio, url, timeout)
     try:
@@ -1377,6 +1316,7 @@ def download_file_from_pysftp_file(url, timeout=60, returnstats=False):
     user = p.username or "anonymous"
     pw = p.password or ("anonymous" if user == "anonymous" else "")
     path = p.path or "/"
+    fname = os.path.basename(path) or "upload.bin"
 
     conn = None
     try:
@@ -1385,8 +1325,10 @@ def download_file_from_pysftp_file(url, timeout=60, returnstats=False):
         conn = pysftp.Connection(host=host, port=port, username=user, password=pw)
 
         sftp = conn.sftp_client
+        use_cwd = detect_cwd_sftp(sftp, path)
+        retr_path = os.path.basename(path) if use_cwd else path
         bio = BytesIO()
-        sftp.getfo(path, bio)
+        sftp.getfo(retr_path, bio)
 
         fulldatasize = bio.tell()
         bio.seek(0, 0)
@@ -1423,18 +1365,21 @@ def upload_file_to_pysftp_file(fileobj, url, timeout=60):
     user = p.username or "anonymous"
     pw = p.password or ("anonymous" if user == "anonymous" else "")
     path = p.path or "/"
+    fname = os.path.basename(path) or "upload.bin"
 
     conn = None
     try:
         conn = pysftp.Connection(host=host, port=port, username=user, password=pw)
 
         sftp = conn.sftp_client
+        use_cwd = detect_cwd_sftp(sftp, path)
+        stor_path = fname if use_cwd else path
         try:
             fileobj.seek(0, 0)
         except Exception:
             pass
 
-        sftp.putfo(fileobj, path)
+        sftp.putfo(fileobj, stor_path)
 
         try:
             fileobj.seek(0, 0)
@@ -5469,13 +5414,477 @@ __all__ = [
     'upload_file_to_internet_string',
     'send_path',
     'recv_to_path',
-    'detect_cwd',
+    'detect_cwd_ftp',
     'MkTempFile',
     '__version__',
     '__program_name__',
     '__project__',
     '__project_url__',
 ]
+
+def encode_qname(domain):
+    """
+    Encode a domain name into DNS QNAME format:
+      "example.com" -> b"\\x07example\\x03com\\x00"
+    """
+    domain = domain.strip().rstrip('.')
+    if not domain:
+        raise ValueError("Empty domain")
+
+    parts = domain.split('.')
+    out = []
+    for part in parts:
+        pb = _to_bytes(part)
+        if len(pb) == 0:
+            raise ValueError("Invalid domain (empty label)")
+        if len(pb) > 63:
+            raise ValueError("Label too long (>63 bytes): %r" % part)
+        out.append(struct.pack('!B', len(pb)) + pb)
+    out.append(b'\x00')
+    return b''.join(out)
+
+
+def build_dns_query(domain, record_type):
+    """
+    Build a standard DNS query message for one question.
+    """
+    tid = struct.pack('!H', random.randint(0, 0xFFFF))
+    flags = struct.pack('!H', 0x0100)  # RD=1
+    qdcount = struct.pack('!H', 1)
+    ancount = struct.pack('!H', 0)
+    nscount = struct.pack('!H', 0)
+    arcount = struct.pack('!H', 0)
+
+    qname = encode_qname(domain)
+    qtype = struct.pack('!H', QTYPE[record_type])
+    qclass = struct.pack('!H', QCLASS_IN)
+
+    header = tid + flags + qdcount + ancount + nscount + arcount
+    question = qname + qtype + qclass
+    return header + question
+
+
+def decode_domain_name(msg, offset):
+    """
+    Decode a possibly-compressed DNS name starting at offset.
+    Returns (name, new_offset).
+    """
+    labels = []
+    jumped = False
+    original_offset = offset
+    seen_offsets = set()
+
+    while True:
+        if offset >= len(msg):
+            raise ValueError("Offset out of bounds while decoding name")
+
+        if offset in seen_offsets:
+            raise ValueError("Compression pointer loop detected")
+        seen_offsets.add(offset)
+
+        length = _byte_at(msg, offset)
+
+        # End of name
+        if length == 0:
+            offset += 1
+            break
+
+        # compression pointer
+        if (length & 0xC0) == 0xC0:
+            if offset + 1 >= len(msg):
+                raise ValueError("Truncated compression pointer")
+            b2 = _byte_at(msg, offset + 1)
+            pointer = ((length & 0x3F) << 8) | b2
+            if not jumped:
+                original_offset = offset + 2
+                jumped = True
+            offset = pointer
+            continue
+
+        # label
+        offset += 1
+        if offset + length > len(msg):
+            raise ValueError("Truncated label in name")
+        label_bytes = msg[offset:offset + length]
+        try:
+            label = label_bytes.decode('utf-8')
+        except Exception:
+            # fallback: best-effort byte->char
+            if len(label_bytes) and not isinstance(label_bytes[0], int):  # Py2 bytes
+                label = ''.join(chr(ord(c)) for c in label_bytes)
+            else:
+                label = ''.join(chr(c) for c in label_bytes)
+        labels.append(label)
+        offset += length
+
+    return '.'.join(labels), (original_offset if jumped else offset)
+
+
+def skip_question_section(msg, offset, qdcount):
+    """
+    Skip qdcount questions starting at offset.
+    Each question: QNAME + QTYPE(2) + QCLASS(2)
+    """
+    for _ in range(qdcount):
+        _, offset = decode_domain_name(msg, offset)
+        if offset + 4 > len(msg):
+            raise ValueError("Truncated question section")
+        offset += 4
+    return offset
+
+
+def parse_rr(msg, offset):
+    """
+    Parse one Resource Record and return (rr_dict, new_offset).
+    rr_dict includes rdata_offset (start index of rdata).
+    """
+    name, offset = decode_domain_name(msg, offset)
+    if offset + 10 > len(msg):
+        raise ValueError("Truncated RR header")
+
+    rtype, rclass, ttl, rdlength = struct.unpack('!HHIH', msg[offset:offset + 10])
+    offset += 10
+
+    if offset + rdlength > len(msg):
+        raise ValueError("Truncated RDATA")
+    rdata_offset = offset
+    rdata = msg[offset:offset + rdlength]
+    offset += rdlength
+
+    return {
+        'name': name,
+        'type': rtype,
+        'class': rclass,
+        'ttl': ttl,
+        'rdlength': rdlength,
+        'rdata': rdata,
+        'rdata_offset': rdata_offset,
+    }, offset
+
+
+def decode_txt_rdata(rdata):
+    """
+    TXT RDATA is one or more <length byte><text> chunks.
+    Return list[str].
+    """
+    out = []
+    i = 0
+    while i < len(rdata):
+        ln = _byte_at(rdata, i)
+        i += 1
+        chunk = rdata[i:i + ln]
+        i += ln
+        try:
+            out.append(chunk.decode('utf-8'))
+        except Exception:
+            if len(chunk) and not isinstance(chunk[0], int):  # Py2 bytes
+                out.append(''.join(chr(ord(c)) for c in chunk))
+            else:
+                out.append(''.join(chr(c) for c in chunk))
+    return out
+
+
+def _ipv6_to_str(packed16):
+    """
+    Convert 16-byte IPv6 into a compressed textual representation.
+    Uses inet_ntop when available, else manual zero-compression.
+    """
+    b = bytes(bytearray(packed16))  # Py2/3 safe
+
+    if hasattr(socket, 'inet_ntop'):
+        try:
+            return socket.inet_ntop(socket.AF_INET6, b)
+        except Exception:
+            pass
+
+    # Manual formatting with :: compression
+    hextets = []
+    ba = bytearray(packed16)
+    for i in range(0, 16, 2):
+        hextets.append((ba[i] << 8) | ba[i + 1])
+
+    # Find longest run of zeros (length >= 2) for compression
+    best_start = -1
+    best_len = 0
+    cur_start = -1
+    cur_len = 0
+    for i, h in enumerate(hextets):
+        if h == 0:
+            if cur_start == -1:
+                cur_start = i
+                cur_len = 1
+            else:
+                cur_len += 1
+        else:
+            if cur_len > best_len:
+                best_start, best_len = cur_start, cur_len
+            cur_start, cur_len = -1, 0
+    if cur_len > best_len:
+        best_start, best_len = cur_start, cur_len
+
+    if best_len < 2:
+        best_start = -1
+        best_len = 0
+
+    parts = []
+    i = 0
+    while i < 8:
+        if i == best_start:
+            parts.append('')
+            i += best_len
+            if i >= 8:
+                parts.append('')
+            continue
+        parts.append('%x' % hextets[i])
+        i += 1
+
+    s = ':'.join(parts)
+    # Normalize possible leading/trailing single colon cases
+    if s.startswith(':') and not s.startswith('::'):
+        s = ':' + s
+    if s.endswith(':') and not s.endswith('::'):
+        s = s + ':'
+    if s == '':
+        s = '::'
+    return s
+
+
+def _type_name_from_code(code):
+    for k, v in QTYPE.items():
+        if v == code:
+            return k
+    return "TYPE%d" % code
+
+
+def rr_to_strings(msg, rr):
+    """
+    Convert one RR into one or more human-readable lines.
+    """
+    rtype = rr['type']
+    ttl = rr['ttl']
+    rdata = rr['rdata']
+    tname = _type_name_from_code(rtype)
+
+    # A
+    if rtype == QTYPE['A'] and rr['rdlength'] == 4:
+        ip = "%d.%d.%d.%d" % tuple(bytearray(rdata))
+        return ["A: %s (TTL=%d)" % (ip, ttl)]
+
+    # AAAA
+    if rtype == QTYPE['AAAA'] and rr['rdlength'] == 16:
+        ip6 = _ipv6_to_str(rdata)
+        return ["AAAA: %s (TTL=%d)" % (ip6, ttl)]
+
+    # CNAME / NS: domain name in rdata
+    if rtype in (QTYPE['CNAME'], QTYPE['NS']):
+        target, _ = decode_domain_name(msg, rr['rdata_offset'])
+        return ["%s: %s (TTL=%d)" % (tname, target, ttl)]
+
+    # MX: preference + exchange name
+    if rtype == QTYPE['MX']:
+        if rr['rdlength'] < 3:
+            return []
+        pref = struct.unpack('!H', rdata[:2])[0]
+        exchange, _ = decode_domain_name(msg, rr['rdata_offset'] + 2)
+        return ["MX: preference=%d exchange=%s (TTL=%d)" % (pref, exchange, ttl)]
+
+    # TXT: one or more chunks
+    if rtype == QTYPE['TXT']:
+        chunks = decode_txt_rdata(rdata)
+        return ["TXT: %s (TTL=%d)" % (c, ttl) for c in chunks]
+
+    # Other types (shown only if user requests show-all or includes other sections)
+    return ["%s: rdlength=%d (TTL=%d)" % (tname, rr['rdlength'], ttl)]
+
+
+def _hex_dump(b):
+    if hasattr(b, "hex"):  # Py3.5+
+        return b.hex()
+    return "".join("%02x" % ord(c) for c in b)  # Py2
+
+
+def _recvn(sock, n):
+    data = b""
+    while len(data) < n:
+        chunk = sock.recv(n - len(data))
+        if not chunk:
+            return None
+        data += chunk
+    return data
+
+
+def query_udp(dns_server, query, port, timeout):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.settimeout(float(timeout))
+    try:
+        sock.sendto(query, (dns_server, int(port)))
+        msg, _ = sock.recvfrom(4096)  # allow EDNS-size-ish in practice; still fine
+        return msg
+    finally:
+        sock.close()
+
+
+def query_tcp(dns_server, query, port, timeout):
+    """
+    DNS over TCP: prefix query with 2-byte length; response also length-prefixed.
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(float(timeout))
+    try:
+        sock.connect((dns_server, int(port)))
+        sock.sendall(struct.pack("!H", len(query)) + query)
+
+        hdr = _recvn(sock, 2)
+        if hdr is None:
+            raise RuntimeError("TCP DNS: no length header")
+        (msg_len,) = struct.unpack("!H", hdr)
+        msg = _recvn(sock, msg_len)
+        if msg is None:
+            raise RuntimeError("TCP DNS: incomplete message")
+        return msg
+    finally:
+        sock.close()
+
+
+def decode_dns_message(msg, wanted_type=None, show_all=False,
+                       include_authority=False, include_additional=False,
+                       verbose=True):
+    """
+    Decode a DNS message and return:
+      (records, truncated_flag, header_dict)
+
+    Filtering:
+      - If show_all=False and wanted_type is set, only returns matching RR types.
+      - If show_all=True, returns all RR types included by chosen sections.
+    Sections:
+      - Answers always parsed
+      - Authority parsed if include_authority
+      - Additional parsed if include_additional
+    """
+    if len(msg) < 12:
+        raise ValueError("Incomplete DNS header")
+
+    tid, flags, qdcount, ancount, nscount, arcount = struct.unpack('!HHHHHH', msg[:12])
+
+    tc = bool(flags & 0x0200)          # Truncation
+    rcode = flags & 0x000F
+
+    if verbose:
+        print("Transaction ID: %04x" % tid)
+        print("Flags: %04x" % flags)
+        print("Questions: %d" % qdcount)
+        print("Answer RRs: %d" % ancount)
+        print("Authority RRs: %d" % nscount)
+        print("Additional RRs: %d" % arcount)
+        if rcode != 0:
+            print("DNS error rcode=%d" % rcode)
+        if tc:
+            print("Note: TC=1 (UDP response truncated)")
+
+    offset = 12
+    offset = skip_question_section(msg, offset, qdcount)
+
+    def collect(section_name, count, offset):
+        out = []
+        for _ in range(count):
+            rr, offset2 = parse_rr(msg, offset)
+            offset = offset2
+
+            if wanted_type is not None and (not show_all) and rr['type'] != wanted_type:
+                continue
+
+            lines = rr_to_strings(msg, rr)
+            if lines:
+                if verbose and section_name:
+                    # Optional: prefix section name
+                    # Keep output clean: only prefix for non-answer sections
+                    if section_name != "ANSWER":
+                        lines = ["%s: %s" % (section_name, ln) for ln in lines]
+                out.extend(lines)
+        return out, offset
+
+    records = []
+
+    # Answers
+    ans_records, offset = collect("ANSWER", ancount, offset)
+    records.extend(ans_records)
+
+    # Authority
+    if include_authority:
+        auth_records, offset = collect("AUTHORITY", nscount, offset)
+        records.extend(auth_records)
+    else:
+        # Skip authority RRs
+        for _ in range(nscount):
+            _, offset = parse_rr(msg, offset)
+
+    # Additional
+    if include_additional:
+        add_records, offset = collect("ADDITIONAL", arcount, offset)
+        records.extend(add_records)
+    else:
+        # Skip additional RRs
+        for _ in range(arcount):
+            _, offset = parse_rr(msg, offset)
+
+    return records, tc, {
+        'tid': tid,
+        'flags': flags,
+        'qdcount': qdcount,
+        'ancount': ancount,
+        'nscount': nscount,
+        'arcount': arcount,
+        'rcode': rcode,
+        'tc': tc,
+    }
+
+
+def perform_dns_query(dns_server, domain, record_type='A',
+                      port=53, timeout=2,
+                      tcp_fallback=True,
+                      show_all=False,
+                      include_authority=False,
+                      include_additional=False,
+                      verbose=True):
+    record_type = record_type.strip().upper()
+    if record_type not in QTYPE:
+        raise ValueError("Unsupported record type: %r (use %s)" %
+                         (record_type, ", ".join(sorted(QTYPE.keys()))))
+
+    query = build_dns_query(domain, record_type)
+
+    # UDP first
+    msg = query_udp(dns_server, query, port, timeout)
+    if verbose:
+        print("Raw UDP response: %s" % _hex_dump(msg))
+
+    wanted_type = QTYPE[record_type]
+    records, truncated, _ = decode_dns_message(
+        msg,
+        wanted_type=wanted_type,
+        show_all=show_all,
+        include_authority=include_authority,
+        include_additional=include_additional,
+        verbose=verbose
+    )
+
+    # TCP fallback if truncated
+    if truncated and tcp_fallback:
+        if verbose:
+            print("Retrying over TCP due to truncation...")
+        msg2 = query_tcp(dns_server, query, port, timeout)
+        if verbose:
+            print("Raw TCP response: %s" % _hex_dump(msg2))
+        records, _, _ = decode_dns_message(
+            msg2,
+            wanted_type=wanted_type,
+            show_all=show_all,
+            include_authority=include_authority,
+            include_additional=include_additional,
+            verbose=verbose
+        )
+
+    return records
 
 # Main entry point for command-line usage
 if __name__ == "__main__":
