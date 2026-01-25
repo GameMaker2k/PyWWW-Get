@@ -2197,7 +2197,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         httpfile.seek(0, 0)
     except Exception:
         pass
-    if(returnstat):
+    if(returnstats):
         if(isinstance(httpheaderout, list)):
             httpheaderout = make_http_headers_from_list_to_dict(httpheaderout)
         httpheaderout = fix_header_names(httpheaderout)
@@ -5084,59 +5084,44 @@ def _serve_file_over_http(fileobj, url):
 # Main Public API Functions
 # --------------------------
 
-def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__, **kwargs):
-    """
-    Download file from any supported protocol.
-    
-    Returns file-like object on success, False on failure.
-    """
+def download_file_from_internet_file(url, **kwargs):
     p = urlparse(url)
-    
-    # HTTP/HTTPS
     if p.scheme in ("http", "https"):
-        return download_file_from_http_file(url, headers=headers or {}, usehttp=usehttp, **kwargs)
-    
-    # FTP/FTPS
-    elif p.scheme in ("ftp", "ftps"):
-        return download_file_from_ftp_file(url)
-    
-    # SFTP/SCP
-    elif p.scheme in ("sftp", "scp"):
+        return download_file_from_http_file(url, **kwargs)
+    if p.scheme in ("ftp", "ftps"):
+        return download_file_from_ftp_file(url, **kwargs)
+    if p.scheme in ("sftp", "scp"):
         if __use_pysftp__ and havepysftp:
-            return download_file_from_pysftp_file(url)
-        return download_file_from_sftp_file(url)
+            return download_file_from_pysftp_file(url, **kwargs)
+        return download_file_from_sftp_file(url, **kwargs)
 
-    elif p.scheme in ("data"):
+    if p.scheme in ("data"):
         return data_url_decode(url)[0]
 
-    elif p.scheme in ("file"):
+    if p.scheme in ("file"):
         return io.open(unquote(p.path), "rb")
 
-    # TCP/UDP
-    elif p.scheme in ("tcp", "udp"):
-        parts, options = _parse_net_url(url)
-        host = options.get("bind") or parts.hostname or ""
+    if p.scheme in ("tcp", "udp"):
+        parts, o = _parse_net_url(url)
+        host = o.get("bind") or parts.hostname or ""
         port = parts.port or 0
         path_text = parts.path or "/"
-        
-        # Handle resume/save options
+
+        # Destination selection for resume/save
         outfile = None
         dest_path = None
         resume_off = 0
-        
-        if options.get("resume"):
-            dest_path = options.get("resume_to")
-            if not dest_path and options.get("save"):
-                dest_path = _choose_output_path(_guess_filename(url), 
-                                              options.get("overwrite", False), 
-                                              options.get("save_dir"))
-            
+
+        if o.get("resume"):
+            dest_path = o.get("resume_to")
+            if not dest_path and o.get("save"):
+                dest_path = _choose_output_path(_guess_filename(url), o.get("overwrite", False), o.get("save_dir"))
             if dest_path:
                 try:
                     if os.path.exists(dest_path):
                         outfile = open(dest_path, "r+b")
                         outfile.seek(0, 2)
-                        resume_off = outfile.tell()
+                        resume_off = int(outfile.tell())
                     else:
                         _ensure_dir(os.path.dirname(dest_path) or ".")
                         outfile = open(dest_path, "w+b")
@@ -5145,58 +5130,47 @@ def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__
                     outfile = None
                     dest_path = None
                     resume_off = 0
-        
+
         if outfile is None:
             outfile = MkTempFile()
-        
-        # Receive data
+
         ok = recv_to_fileobj(
             outfile, host=host, port=port, proto=p.scheme,
-            mode=options.get("mode"), timeout=options.get("timeout"), 
-            total_timeout=options.get("total_timeout"), window=options.get("window"), 
-            retries=options.get("retries"), chunk=options.get("chunk"),
-            print_url=options.get("print_url"), resume_offset=resume_off, 
-            path_text=path_text
+            mode=o.get("mode"), timeout=o.get("timeout"), total_timeout=o.get("total_timeout"),
+            window=o.get("window"), retries=o.get("retries"), chunk=o.get("chunk"),
+            print_url=o.get("print_url"), resume_offset=resume_off, path_text=path_text
         )
-        
         if not ok:
+            return False
+
+        # If writing directly to disk (resume_to/save), return that file object
+        if dest_path:
             try:
-                outfile.close()
+                outfile.seek(0, 0)
             except Exception:
                 pass
-            return False
-        
-        # Save to disk if requested
-        if options.get("save") and not dest_path:
-            out_path = _choose_output_path(_guess_filename(url), 
-                                         options.get("overwrite", False), 
-                                         options.get("save_dir"))
+            return outfile
+
+        # Save-to-disk option for temp file
+        if o.get("save"):
+            out_path = _choose_output_path(_guess_filename(url), o.get("overwrite", False), o.get("save_dir"))
             try:
-                _copy_fileobj_to_path(outfile, out_path, 
-                                    overwrite=options.get("overwrite", False))
+                _copy_fileobj_to_path(outfile, out_path, overwrite=o.get("overwrite", False))
                 sys.stdout.write("Saved: %s\n" % out_path)
                 sys.stdout.flush()
-                
-                # Return the saved file
-                outfile.close()
-                outfile = open(out_path, "rb")
             except Exception:
-                pass
-        
+                return False
+
         try:
             outfile.seek(0, 0)
         except Exception:
             pass
-        
         return outfile
-    
-    # Unsupported protocol
-    else:
-        return False
 
-def download_file_from_internet_string(url, headers=None, usehttp=__use_http_lib__, **kwargs):
-    """Download file as string/bytes."""
-    fp = download_file_from_internet_file(url, headers=headers, usehttp=usehttp)
+    return False
+
+def download_file_from_internet_string(url, **kwargs):
+    fp = download_file_from_internet_file(url, **kwargs)
     return fp.read() if fp else False
 
 def upload_file_to_internet_file(fileobj, url):

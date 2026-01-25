@@ -1998,7 +1998,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         httpfile.seek(0, 0)
     except Exception:
         pass
-    if(returnstat):
+    if(returnstats):
         if(isinstance(httpheaderout, list)):
             httpheaderout = make_http_headers_from_list_to_dict(httpheaderout)
         httpheaderout = fix_header_names(httpheaderout)
@@ -4626,20 +4626,23 @@ def recv_to_path(url, out_path, auto_extract=False, extract_dir=None, keep_archi
             pass
     return out_path
 
-def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__, **kwargs):
+def download_file_from_internet_file(url, **kwargs):
     p = urlparse(url)
     if p.scheme in ("http", "https"):
-        return download_file_from_http_file(url, headers=headers or {}, usehttp=usehttp, **kwargs)
+        return download_file_from_http_file(url, **kwargs)
     if p.scheme in ("ftp", "ftps"):
-        return download_file_from_ftp_file(url)
+        return download_file_from_ftp_file(url, **kwargs)
     if p.scheme in ("sftp", "scp"):
         if __use_pysftp__ and havepysftp:
-            return download_file_from_pysftp_file(url)
-        return download_file_from_sftp_file(url)
+            return download_file_from_pysftp_file(url, **kwargs)
+        return download_file_from_sftp_file(url, **kwargs)
+
     if p.scheme in ("data"):
         return data_url_decode(url)[0]
+
     if p.scheme in ("file"):
         return io.open(unquote(p.path), "rb")
+
     if p.scheme in ("tcp", "udp"):
         parts, o = _parse_net_url(url)
         host = o.get("bind") or parts.hostname or ""
@@ -4708,8 +4711,8 @@ def download_file_from_internet_file(url, headers=None, usehttp=__use_http_lib__
 
     return False
 
-def download_file_from_internet_string(url, headers=None, usehttp=__use_http_lib__, **kwargs):
-    fp = download_file_from_internet_file(url, headers=headers, usehttp=usehttp)
+def download_file_from_internet_string(url, **kwargs):
+    fp = download_file_from_internet_file(url, **kwargs)
     return fp.read() if fp else False
 
 
