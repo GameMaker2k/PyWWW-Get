@@ -407,7 +407,7 @@ try:
     import pycurl
     havepycurl = True
 except ImportError:
-    paass
+    pass
 
 haveparamiko = False
 try:
