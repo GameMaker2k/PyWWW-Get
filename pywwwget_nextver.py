@@ -1181,13 +1181,13 @@ def upload_file_to_sftp_string(data, url, timeout=60):
 # Pysftp Compatibility Layer
 # --------------------------
 
-def download_file_from_pysftp_file(url, returnstats=False):
+def download_file_from_pysftp_file(url, timeout=60, returnstats=False):
     if not havepysftp:
         return False
     p = urlparse(url)
     if p.scheme not in ("sftp", "scp"):
         return False
-
+    socket.setdefaulttimeout(float(timeout))
     host = p.hostname
     port = p.port or 22
     user = p.username or "anonymous"
@@ -1223,17 +1223,17 @@ def download_file_from_pysftp_file(url, returnstats=False):
         except Exception:
             pass
 
-def download_file_from_pysftp_string(url):
-    fp = download_file_from_pysftp_file(url)
+def download_file_from_pysftp_string(url, timeout=60, returnstats=False):
+    fp = download_file_from_pysftp_file(url, timeout, returnstats)
     return fp.read() if fp else False
 
-def upload_file_to_pysftp_file(fileobj, url):
+def upload_file_to_pysftp_file(fileobj, url, timeout=60):
     if not havepysftp:
         return False
     p = urlparse(url)
     if p.scheme not in ("sftp", "scp"):
         return False
-
+    socket.setdefaulttimeout(float(timeout))
     host = p.hostname
     port = p.port or 22
     user = p.username or "anonymous"
@@ -1268,10 +1268,10 @@ def upload_file_to_pysftp_file(fileobj, url):
         except Exception:
             pass
 
-def upload_file_to_pysftp_string(data, url):
+def upload_file_to_pysftp_string(data, url, timeout=60):
     if not havepysftp:
         return False
-    return upload_file_to_sftp_string(data, url)
+    return upload_file_to_sftp_string(data, url, timeout)
 
 def decoded_stream(resp):
     # resp can be urllib response or anything file-like with headers
@@ -1730,16 +1730,19 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             headers = make_http_headers_from_dict_to_pycurl(headers)
 
     socket.setdefaulttimeout(float(timeout))
-
+    start_time = time.time()
     # Requests
     if usehttp == "requests" and haverequests:
         auth = (username, password) if (username and password) else None
-        if(httpmethod == "GET"):
-            r = requests.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(float(timeout), float(timeout)))
-        elif(httpmethod == "POST"):
-            r = requests.post(rebuilt_url, data=postdata, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(float(timeout), float(timeout)))
-        else:
-            r = requests.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(float(timeout), float(timeout)))
+        try:
+            if(httpmethod == "GET"):
+                r = requests.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(float(timeout), float(timeout)))
+            elif(httpmethod == "POST"):
+                r = requests.post(rebuilt_url, data=postdata, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(float(timeout), float(timeout)))
+            else:
+                r = requests.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(float(timeout), float(timeout)))
+        except (socket.timeout, socket.gaierror, requests.exceptions.ConnectionError):
+            return False
         r.raise_for_status()
         r.raw.decode_content = True
         #shutil.copyfileobj(r.raw, httpfile)
@@ -1768,28 +1771,31 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             usehttp2 = True
         except ImportError:
             usehttp2 = False
-        with httpx.Client(follow_redirects=True, http1=True, http2=usehttp2, trust_env=True, timeout=float(timeout)) as client:
-            auth = (username, password) if (username and password) else None
-            if(httpmethod == "GET"):
-                r = client.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie)
-            if(httpmethod == "POST"):
-                r = client.post(rebuilt_url, data=postdata, headers=headers, auth=auth, cookies=httpcookie)
-            else:
-                r = client.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie)
-            r.raise_for_status()
-            for chunk in r.iter_bytes(chunk_size=1024 * 1024):
-                if chunk:
-                    httpfile.write(chunk)
-            httpcodeout = r.status_code
-            try:
-                httpcodereason = r.reason_phrase
-            except:
-                httpcodereason = http_status_to_reason(r.status_code)
-            httpversionout = r.http_version
-            httpmethodout = httpmethod
-            httpurlout = str(r.url)
-            httpheaderout = r.headers
-            httpheadersentout = r.request.headers
+        try:
+            with httpx.Client(follow_redirects=True, http1=True, http2=usehttp2, trust_env=True, timeout=float(timeout)) as client:
+                auth = (username, password) if (username and password) else None
+                if(httpmethod == "GET"):
+                    r = client.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie)
+                if(httpmethod == "POST"):
+                    r = client.post(rebuilt_url, data=postdata, headers=headers, auth=auth, cookies=httpcookie)
+                else:
+                    r = client.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie)
+                r.raise_for_status()
+                for chunk in r.iter_bytes(chunk_size=1024 * 1024):
+                    if chunk:
+                        httpfile.write(chunk)
+        except (socket.timeout, socket.gaierror, httpx.ConnectError):
+            return False
+        httpcodeout = r.status_code
+        try:
+            httpcodereason = r.reason_phrase
+        except:
+            httpcodereason = http_status_to_reason(r.status_code)
+        httpversionout = r.http_version
+        httpmethodout = httpmethod
+        httpurlout = str(r.url)
+        httpheaderout = r.headers
+        httpheadersentout = r.request.headers
 
 
     # HTTPCore
@@ -1810,10 +1816,13 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                 httpcorem = "GET"
                 content = None
             timeoutdict = {"connect": float(timeout), "read": float(timeout), "write": float(timeout), "pool": float(timeout)}
-            with client.stream(httpcorem, rebuilt_url, headers=headers, content=content, extensions={"timeout": timeoutdict}, ) as r:
-                for chunk in r.iter_stream():
-                    if chunk:
-                        httpfile.write(chunk)
+            try:
+                with client.stream(httpcorem, rebuilt_url, headers=headers, content=content, extensions={"timeout": timeoutdict}, ) as r:
+                    for chunk in r.iter_stream():
+                        if chunk:
+                            httpfile.write(chunk)
+            except (socket.timeout, socket.gaierror, httpcore.ConnectError):
+                return False
         httpcodeout = r.status
         httpcodereason = http_status_to_reason(r.status)
         httpversionout = r.extensions.get("http_version")
@@ -1835,12 +1844,15 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             br.add_password(rebuilt_url, username, password)
         if(postdata is not None and not isinstance(postdata, dict)):
             postdata = urlencode(postdata)
-        if(httpmethod == "GET"):
-            resp = br.open(rebuilt_url, timeout=timeout)
-        elif(httpmethod == "POST"):
-            resp = br.open(rebuilt_url, data=postdata, timeout=float(timeout))
-        else:
-            resp = br.open(rebuilt_url, timeout=timeout)
+        try:
+            if(httpmethod == "GET"):
+                resp = br.open(rebuilt_url, timeout=timeout)
+            elif(httpmethod == "POST"):
+                resp = br.open(rebuilt_url, data=postdata, timeout=float(timeout))
+            else:
+                resp = br.open(rebuilt_url, timeout=timeout)
+        except (socket.timeout, socket.gaierror, URLError, HTTPError):
+            return False
         shutil.copyfileobj(resp, httpfile, length=1024 * 1024)
         httpcodeout = resp.code
         httpcodereason = resp.msg
@@ -1865,12 +1877,15 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             auth_headers = urllib3.make_headers(basic_auth="{}:{}".format(username, password))
             headers.update(auth_headers)
         # Request with preload_content=False to get a file-like object
-        if(httpmethod == "GET"):
-            resp = http.request("GET", rebuilt_url, headers=headers, preload_content=False, decode_content=True)
-        if(httpmethod == "POST"):
-            resp = http.request("POST", rebuilt_url, body=postdata, headers=headers, preload_content=False, decode_content=True)
-        else:
-            resp = http.request("GET", rebuilt_url, headers=headers, preload_content=False, decode_content=True)
+        try:
+            if(httpmethod == "GET"):
+                resp = http.request("GET", rebuilt_url, headers=headers, preload_content=False, decode_content=True)
+            if(httpmethod == "POST"):
+                resp = http.request("POST", rebuilt_url, body=postdata, headers=headers, preload_content=False, decode_content=True)
+            else:
+                resp = http.request("GET", rebuilt_url, headers=headers, preload_content=False, decode_content=True)
+        except (socket.timeout, socket.gaierror, urllib3.exceptions.MaxRetryError):
+            return False
         shutil.copyfileobj(resp, httpfile, length=1024 * 1024)
         httpcodeout = resp.status
         httpcodereason = resp.reason
@@ -1892,84 +1907,45 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         retrieved_body = MkTempFile()
         retrieved_headers = MkTempFile()
         sentout_headers = MkTempFile()
+        curlreq = pycurl.Curl()
+        if(hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
+            usehttpver = pycurl.CURL_HTTP_VERSION_3_0
+        elif(hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
+            usehttpver = pycurl.CURL_HTTP_VERSION_2_0
+        else:
+            usehttpver = pycurl.CURL_HTTP_VERSION_1_1
+        curlreq.setopt(pycurl.URL, rebuilt_url)
+        curlreq.setopt(pycurl.HTTP_VERSION, usehttpver)
+        curlreq.setopt(pycurl.WRITEDATA, retrieved_body)
+        curlreq.setopt(pycurl.HTTPHEADER, headers)
+        curlreq.setopt(pycurl.WRITEHEADER, retrieved_headers)
+        curlreq.setopt(pycurl.VERBOSE, 1)
+        curlreq.setopt(pycurl.DEBUGFUNCTION, lambda t, m: sentout_headers.write(m))
+        curlreq.setopt(pycurl.FOLLOWLOCATION, True)
+        curlreq.setopt(pycurl.TIMEOUT, timeout)
+        if(httpmethod == "GET"):
+            curlreq.setopt(pycurl.HTTPGET, True)
+        elif(httpmethod == "POST"):
+            curlreq.setopt(pycurl.POST, True)
+            curlreq.setopt(pycurl.POSTFIELDS, postdata)
+        else:
+            curlreq.setopt(pycurl.HTTPGET, True)
         try:
-            if(httpmethod == "GET"):
-                curlreq = pycurl.Curl()
-                if(hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
-                    usehttpver = pycurl.CURL_HTTP_VERSION_3_0
-                elif(hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
-                    usehttpver = pycurl.CURL_HTTP_VERSION_2_0
-                else:
-                    usehttpver = pycurl.CURL_HTTP_VERSION_1_1
-                curlreq.setopt(pycurl.URL, rebuilt_url)
-                curlreq.setopt(pycurl.HTTP_VERSION, usehttpver)
-                curlreq.setopt(pycurl.WRITEFUNCTION, retrieved_body.write)
-                curlreq.setopt(pycurl.HTTPHEADER, headers)
-                curlreq.setopt(pycurl.HEADERFUNCTION, retrieved_headers.write)
-                curlreq.setopt(pycurl.VERBOSE, 1)
-                curlreq.setopt(pycurl.DEBUGFUNCTION, lambda t, m: sentout_headers.write(m))
-                curlreq.setopt(pycurl.FOLLOWLOCATION, True)
-                curlreq.setopt(pycurl.TIMEOUT, float(timeout))
-                curlreq.perform()
-            elif(httpmethod == "POST"):
-                curlreq = pycurl.Curl()
-                if(hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
-                    usehttpver = pycurl.CURL_HTTP_VERSION_3_0
-                elif(hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
-                    usehttpver = pycurl.CURL_HTTP_VERSION_2_0
-                else:
-                    usehttpver = pycurl.CURL_HTTP_VERSION_1_1
-                curlreq.setopt(pycurl.URL, rebuilt_url)
-                curlreq.setopt(pycurl.HTTP_VERSION, usehttpver)
-                curlreq.setopt(pycurl.WRITEFUNCTION, retrieved_body.write)
-                curlreq.setopt(pycurl.HTTPHEADER, headers)
-                curlreq.setopt(pycurl.HEADERFUNCTION, retrieved_headers.write)
-                curlreq.setopt(pycurl.VERBOSE, 1)
-                curlreq.setopt(pycurl.DEBUGFUNCTION, lambda t, m: sentout_headers.write(m))
-                curlreq.setopt(pycurl.FOLLOWLOCATION, True)
-                curlreq.setopt(pycurl.TIMEOUT, float(timeout))
-                curlreq.setopt(pycurl.POST, True)
-                curlreq.setopt(pycurl.POSTFIELDS, postdata)
-                curlreq.perform()
-            else:
-                curlreq = pycurl.Curl()
-                if(hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
-                    usehttpver = pycurl.CURL_HTTP_VERSION_3_0
-                elif(hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
-                    usehttpver = pycurl.CURL_HTTP_VERSION_2_0
-                else:
-                    usehttpver = pycurl.CURL_HTTP_VERSION_1_1
-                curlreq.setopt(pycurl.URL, rebuilt_url)
-                curlreq.setopt(pycurl.HTTP_VERSION, usehttpver)
-                curlreq.setopt(pycurl.WRITEFUNCTION, retrieved_body.write)
-                curlreq.setopt(pycurl.VERBOSE, 1)
-                curlreq.setopt(pycurl.DEBUGFUNCTION, lambda t, m: sentout_headers.write(m))
-                curlreq.setopt(pycurl.HTTPHEADER, headers)
-                curlreq.setopt(pycurl.HEADERFUNCTION, retrieved_headers.write)
-                curlreq.setopt(pycurl.FOLLOWLOCATION, True)
-                curlreq.setopt(pycurl.TIMEOUT, float(timeout))
-                curlreq.setopt(pycurl.CONNECTTIMEOUT, float(timeout))
-                curlreq.setopt(pycurl.LOW_SPEED_TIME, float(timeout))
-                curlreq.setopt(pycurl.LOW_SPEED_LIMIT, 1)
-                curlreq.perform()
-            retrieved_headers.seek(0, 0)
-            sentout_headers.seek(0, 0)
-            httpheadersentpre = parse_pycurl_verbose(sentout_headers)
-            sentout_headers.close()
-            if(sys.version[0] == "2"):
-                pycurlhead = retrieved_headers.read()
-            if(sys.version[0] >= "3"):
-                pycurlhead = retrieved_headers.read().decode('UTF-8')
-            pycurlheadersout = make_http_headers_from_pycurl_to_dict(pycurlhead)
-            retrieved_body.seek(0, 0)
-            httpfile = retrieved_body
-            retrieved_headers.close()
-        except socket.timeout:
+            curlreq.perform()
+        except (socket.timeout, socket.gaierror, pycurl.error):
             return False
-        except socket.gaierror:
-            return False
-        except ValueError:
-            return False
+        retrieved_headers.seek(0, 0)
+        sentout_headers.seek(0, 0)
+        httpheadersentpre = parse_pycurl_verbose(sentout_headers)
+        sentout_headers.close()
+        if(sys.version[0] == "2"):
+            pycurlhead = retrieved_headers.read()
+        if(sys.version[0] >= "3"):
+            pycurlhead = retrieved_headers.read().decode('UTF-8')
+        pycurlheadersout = make_http_headers_from_pycurl_to_dict(pycurlhead)
+        retrieved_body.seek(0, 0)
+        httpfile = retrieved_body
+        retrieved_headers.close()
         HTTP_VERSION_MAP = {
             pycurl.CURL_HTTP_VERSION_1_0: "HTTP/1.0",
             pycurl.CURL_HTTP_VERSION_1_1: "HTTP/1.1",
@@ -2001,13 +1977,16 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             opener = build_opener(HTTPBasicAuthHandler(mgr), HTTPCookieProcessor(httpcookie))
         else:
             opener = build_opener()
-        if(httpmethod == "GET"):
-            resp = opener.open(req, timeout=float(timeout))
-        elif(httpmethod == "POST"):
-            postdata = urlencode(postdata)
-            resp = geturls_opener.open(req, data=postdata, timeout=timeout)
-        else:
-            resp = opener.open(req, timeout=timeout)
+        try:
+            if(httpmethod == "GET"):
+                resp = opener.open(req, timeout=float(timeout))
+            elif(httpmethod == "POST"):
+                postdata = urlencode(postdata)
+                resp = geturls_opener.open(req, data=postdata, timeout=timeout)
+            else:
+                resp = opener.open(req, timeout=timeout)
+        except (socket.timeout, socket.gaierror, URLError, HTTPError):
+            return False
         resp2 = decoded_stream(resp)
         shutil.copyfileobj(resp2, httpfile, length=1024 * 1024)
         httpcodeout = resp.getcode()
@@ -2038,12 +2017,14 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         httpfile.seek(0, 0)
     except Exception:
         pass
+    end_time = time.time()
+    total_time = end_time - start_time
     if(returnstats):
         if(isinstance(httpheaderout, list)):
             httpheaderout = make_http_headers_from_list_to_dict(httpheaderout)
         httpheaderout = fix_header_names(httpheaderout)
         returnval = {'Type': "Buffer", 'Buffer': httpfile, 'ContentSize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(
-            fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': usehttp}
+            fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': usehttp, 'RequestTime': {'StartTime': start_time, 'EndTime': end_time, 'TotalTime': total_time}}
         return returnval
     else:
         return httpfile
