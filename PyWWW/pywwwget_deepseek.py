@@ -1075,7 +1075,7 @@ def _ftp_login(ftp, user, pw):
     
     ftp.login(user, pw)
 
-def download_file_from_ftp_file(url, returnstats=False):
+def download_file_from_ftp_file(url, timeout=60, returnstats=False):
     p = urlparse(url)
     if p.scheme not in ("ftp", "ftps"):
         return False
@@ -1088,10 +1088,10 @@ def download_file_from_ftp_file(url, returnstats=False):
     pw = p.password
     path = p.path or "/"
     file_dir = os.path.dirname(path)
-
+    socket.setdefaulttimeout(float(timeout))
     ftp = FTP_TLS() if (p.scheme == "ftps") else FTP()
     try:
-        ftp.connect(host, port, timeout=10)
+        ftp.connect(host, port, timeout=float(timeout))
         _ftp_login(ftp, user, pw)
         if p.scheme == "ftps":
             try:
@@ -1119,18 +1119,25 @@ def download_file_from_ftp_file(url, returnstats=False):
             pass
         return False
 
-def download_file_from_ftp_string(url, returnstats=False):
-    fp = download_file_from_ftp_file(url, returnstats)
+def download_file_from_ftp_string(url, timeout=60, returnstats=False):
+    fp = download_file_from_ftp_file(url, timeout, returnstats)
     return fp.read() if fp else False
 
-def upload_file_to_ftp_file(fileobj, url):
+
+def download_file_from_ftps_file(url, timeout=60, returnstats=False):
+    return download_file_from_ftp_file(url, timeout, returnstats)
+
+def download_file_from_ftps_string(url, timeout=60, returnstats=False):
+    return download_file_from_ftp_string(url, timeout, returnstats)
+
+def upload_file_to_ftp_file(fileobj, url, timeout=60):
     """Upload file to FTP/FTPS server."""
     p = urlparse(url)
     if p.scheme not in ("ftp", "ftps"):
         return False
     if p.scheme == "ftps" and not ftpssl:
         return False
-    
+    socket.setdefaulttimeout(float(timeout))
     host = p.hostname
     port = p.port or 21
     user = p.username
@@ -1145,7 +1152,7 @@ def upload_file_to_ftp_file(fileobj, url):
         else:
             ftp = FTP()
         
-        ftp.connect(host, port, timeout=10)
+        ftp.connect(host, port, timeout=float(timeout))
         _ftp_login(ftp, user, pw)
         
         if p.scheme == "ftps":
@@ -1180,15 +1187,21 @@ def upload_file_to_ftp_file(fileobj, url):
             pass
         return False
 
-def upload_file_to_ftp_string(data, url):
+def upload_file_to_ftp_string(data, url, timeout=60):
     """Upload string to FTP/FTPS server."""
     bio = MkTempFile(_to_bytes(data))
-    out = upload_file_to_ftp_file(bio, url)
+    out = upload_file_to_ftp_file(bio, url, timeout)
     try:
         bio.close()
     except Exception:
         pass
     return out
+
+def upload_file_to_ftp_file(fileobj, url, timeout=60):
+    return upload_file_to_ftp_file(fileobj, url, timeout)
+
+def upload_file_to_ftp_string(fileobj, url, timeout=60):
+    return upload_file_to_ftp_string(fileobj, url, timeout)
 
 # --------------------------
 # SFTP Protocol Implementation
@@ -1248,7 +1261,7 @@ def _sftp_connect(url):
             pass
         return None, None
 
-def download_file_from_sftp_file(url, returnstats=False):
+def download_file_from_sftp_file(url, timeout=60, returnstats=False):
     if not haveparamiko:
         return False
     p = urlparse(url)
@@ -1259,11 +1272,11 @@ def download_file_from_sftp_file(url, returnstats=False):
     user = p.username or "anonymous"
     pw = p.password or ("anonymous" if user == "anonymous" else "")
     path = p.path or "/"
-
+    socket.setdefaulttimeout(float(timeout))
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
-        ssh.connect(host, port=port, username=user, password=pw, timeout=10)
+        ssh.connect(host, port=port, username=user, password=pw, timeout=float(timeout))
         sftp = ssh.open_sftp()
         bio = MkTempFile()
         sftp.getfo(path, bio)
@@ -1282,16 +1295,16 @@ def download_file_from_sftp_file(url, returnstats=False):
             pass
         return False
 
-def download_file_from_sftp_string(url, returnstats=False):
-    fp = download_file_from_sftp_file(url, returnstats)
+def download_file_from_sftp_string(url, timeout=60, returnstats=False):
+    fp = download_file_from_sftp_file(url, timeout, returnstats)
     return fp.read() if fp else False
 
-def upload_file_to_sftp_file(fileobj, url):
+def upload_file_to_sftp_file(fileobj, url, timeout=60):
     """Upload file to SFTP server."""
     ssh, sftp = _sftp_connect(url)
     if not sftp:
         return False
-    
+    socket.setdefaulttimeout(float(timeout))
     p = urlparse(url)
     path = p.path or "/"
     
@@ -1338,10 +1351,10 @@ def upload_file_to_sftp_file(fileobj, url):
             pass
         return False
 
-def upload_file_to_sftp_string(data, url):
+def upload_file_to_sftp_string(data, url, timeout=60):
     """Upload string to SFTP server."""
     bio = MkTempFile(_to_bytes(data))
-    out = upload_file_to_sftp_file(bio, url)
+    out = upload_file_to_sftp_file(bio, url, timeout)
     try:
         bio.close()
     except Exception:
@@ -1847,7 +1860,7 @@ def parse_pycurl_verbose(fileobj_or_text):
         'response': parse_response_block(resp_block) if resp_block else None,
     }
 
-def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, returnstats=False):
+def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, timeout=60, returnstats=False):
     if headers is None:
         headers = {}
     else:
@@ -1900,15 +1913,17 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         if(isinstance(headers, dict)):
             headers = make_http_headers_from_dict_to_pycurl(headers)
 
+    socket.setdefaulttimeout(float(timeout))
+
     # Requests
     if usehttp == "requests" and haverequests:
         auth = (username, password) if (username and password) else None
         if(httpmethod == "GET"):
-            r = requests.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(5, 60))
+            r = requests.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(float(timeout), float(timeout)))
         elif(httpmethod == "POST"):
-            r = requests.post(rebuilt_url, data=postdata, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(5, 60))
+            r = requests.post(rebuilt_url, data=postdata, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(float(timeout), float(timeout)))
         else:
-            r = requests.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(5, 60))
+            r = requests.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(float(timeout), float(timeout)))
         r.raise_for_status()
         r.raw.decode_content = True
         #shutil.copyfileobj(r.raw, httpfile)
@@ -1937,7 +1952,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             usehttp2 = True
         except ImportError:
             usehttp2 = False
-        with httpx.Client(follow_redirects=True, http1=True, http2=usehttp2, trust_env=True, timeout=60.0) as client:
+        with httpx.Client(follow_redirects=True, http1=True, http2=usehttp2, trust_env=True, timeout=float(timeout)) as client:
             auth = (username, password) if (username and password) else None
             if(httpmethod == "GET"):
                 r = client.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie)
@@ -1969,14 +1984,20 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         except ImportError:
             usehttp2 = False
         with httpcore.ConnectionPool(http1=True, http2=usehttp2) as client:
-            auth = (username, password) if (username and password) else None
             if(httpmethod == "GET"):
-                r = client.request("GET", rebuilt_url, headers=headers)
+                httpcorem = "GET"
+                content = None
             if(httpmethod == "POST"):
-                r = client.request("POST", rebuilt_url, data=postdata, headers=headers)
+                httpcorem = "POST"
+                content = postdata
             else:
-                r = client.request("GET", rebuilt_url, headers=headers)
-            httpfile.write(r.content)
+                httpcorem = "GET"
+                content = None
+            timeoutdict = {"connect": float(timeout), "read": float(timeout), "write": float(timeout), "pool": float(timeout)}
+            with client.stream(httpcorem, rebuilt_url, headers=headers, content=content, extensions={"timeout": timeoutdict}, ) as r:
+                for chunk in r.iter_stream():
+                    if chunk:
+                        httpfile.write(chunk)
         httpcodeout = r.status
         httpcodereason = http_status_to_reason(r.status)
         httpversionout = r.extensions.get("http_version")
@@ -1999,11 +2020,11 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         if(postdata is not None and not isinstance(postdata, dict)):
             postdata = urlencode(postdata)
         if(httpmethod == "GET"):
-            resp = br.open(rebuilt_url)
+            resp = br.open(rebuilt_url, timeout=timeout)
         elif(httpmethod == "POST"):
-            resp = br.open(rebuilt_url, data=postdata)
+            resp = br.open(rebuilt_url, data=postdata, timeout=float(timeout))
         else:
-            resp = br.open(rebuilt_url)
+            resp = br.open(rebuilt_url, timeout=timeout)
         shutil.copyfileobj(resp, httpfile, length=1024 * 1024)
         httpcodeout = resp.code
         httpcodereason = resp.msg
@@ -2023,7 +2044,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
 
     # URLLib3
     elif usehttp == "urllib3" and haveurllib3:
-        http = urllib3.PoolManager()
+        http = urllib3.PoolManager(timeout=urllib3.Timeout(total=float(timeout)))
         if username and password:
             auth_headers = urllib3.make_headers(basic_auth="{}:{}".format(username, password))
             headers.update(auth_headers)
@@ -2057,61 +2078,64 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         sentout_headers = MkTempFile()
         try:
             if(httpmethod == "GET"):
-                geturls_text = pycurl.Curl()
+                curlreq = pycurl.Curl()
                 if(hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
-                    usehttpver = geturls_text.CURL_HTTP_VERSION_3_0
+                    usehttpver = pycurl.CURL_HTTP_VERSION_3_0
                 elif(hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
-                    usehttpver = geturls_text.CURL_HTTP_VERSION_2_0
+                    usehttpver = pycurl.CURL_HTTP_VERSION_2_0
                 else:
-                    usehttpver = geturls_text.CURL_HTTP_VERSION_1_1
-                geturls_text.setopt(geturls_text.URL, rebuilt_url)
-                geturls_text.setopt(geturls_text.HTTP_VERSION, usehttpver)
-                geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write)
-                geturls_text.setopt(geturls_text.HTTPHEADER, headers)
-                geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write)
-                geturls_text.setopt(pycurl.VERBOSE, 1)
-                geturls_text.setopt(pycurl.DEBUGFUNCTION, lambda t, m: sentout_headers.write(m))
-                geturls_text.setopt(geturls_text.FOLLOWLOCATION, True)
-                geturls_text.setopt(geturls_text.TIMEOUT, 60)
-                geturls_text.perform()
+                    usehttpver = pycurl.CURL_HTTP_VERSION_1_1
+                curlreq.setopt(pycurl.URL, rebuilt_url)
+                curlreq.setopt(pycurl.HTTP_VERSION, usehttpver)
+                curlreq.setopt(pycurl.WRITEFUNCTION, retrieved_body.write)
+                curlreq.setopt(pycurl.HTTPHEADER, headers)
+                curlreq.setopt(pycurl.HEADERFUNCTION, retrieved_headers.write)
+                curlreq.setopt(pycurl.VERBOSE, 1)
+                curlreq.setopt(pycurl.DEBUGFUNCTION, lambda t, m: sentout_headers.write(m))
+                curlreq.setopt(pycurl.FOLLOWLOCATION, True)
+                curlreq.setopt(pycurl.TIMEOUT, float(timeout))
+                curlreq.perform()
             elif(httpmethod == "POST"):
-                geturls_text = pycurl.Curl()
+                curlreq = pycurl.Curl()
                 if(hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
-                    usehttpver = geturls_text.CURL_HTTP_VERSION_3_0
+                    usehttpver = pycurl.CURL_HTTP_VERSION_3_0
                 elif(hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
-                    usehttpver = geturls_text.CURL_HTTP_VERSION_2_0
+                    usehttpver = pycurl.CURL_HTTP_VERSION_2_0
                 else:
-                    usehttpver = geturls_text.CURL_HTTP_VERSION_1_1
-                geturls_text.setopt(geturls_text.URL, rebuilt_url)
-                geturls_text.setopt(geturls_text.HTTP_VERSION, usehttpver)
-                geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write)
-                geturls_text.setopt(geturls_text.HTTPHEADER, headers)
-                geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write)
-                geturls_text.setopt(pycurl.VERBOSE, 1)
-                geturls_text.setopt(pycurl.DEBUGFUNCTION, lambda t, m: sentout_headers.write(m))
-                geturls_text.setopt(geturls_text.FOLLOWLOCATION, True)
-                geturls_text.setopt(geturls_text.TIMEOUT, 60)
-                geturls_text.setopt(geturls_text.POST, True)
-                geturls_text.setopt(geturls_text.POSTFIELDS, postdata)
-                geturls_text.perform()
+                    usehttpver = pycurl.CURL_HTTP_VERSION_1_1
+                curlreq.setopt(pycurl.URL, rebuilt_url)
+                curlreq.setopt(pycurl.HTTP_VERSION, usehttpver)
+                curlreq.setopt(pycurl.WRITEFUNCTION, retrieved_body.write)
+                curlreq.setopt(pycurl.HTTPHEADER, headers)
+                curlreq.setopt(pycurl.HEADERFUNCTION, retrieved_headers.write)
+                curlreq.setopt(pycurl.VERBOSE, 1)
+                curlreq.setopt(pycurl.DEBUGFUNCTION, lambda t, m: sentout_headers.write(m))
+                curlreq.setopt(pycurl.FOLLOWLOCATION, True)
+                curlreq.setopt(pycurl.TIMEOUT, float(timeout))
+                curlreq.setopt(pycurl.POST, True)
+                curlreq.setopt(pycurl.POSTFIELDS, postdata)
+                curlreq.perform()
             else:
-                geturls_text = pycurl.Curl()
+                curlreq = pycurl.Curl()
                 if(hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
-                    usehttpver = geturls_text.CURL_HTTP_VERSION_3_0
+                    usehttpver = pycurl.CURL_HTTP_VERSION_3_0
                 elif(hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
-                    usehttpver = geturls_text.CURL_HTTP_VERSION_2_0
+                    usehttpver = pycurl.CURL_HTTP_VERSION_2_0
                 else:
-                    usehttpver = geturls_text.CURL_HTTP_VERSION_1_1
-                geturls_text.setopt(geturls_text.URL, rebuilt_url)
-                geturls_text.setopt(geturls_text.HTTP_VERSION, usehttpver)
-                geturls_text.setopt(geturls_text.WRITEFUNCTION, retrieved_body.write)
-                geturls_text.setopt(pycurl.VERBOSE, 1)
-                geturls_text.setopt(pycurl.DEBUGFUNCTION, lambda t, m: sentout_headers.write(m))
-                geturls_text.setopt(geturls_text.HTTPHEADER, headers)
-                geturls_text.setopt(geturls_text.HEADERFUNCTION, retrieved_headers.write)
-                geturls_text.setopt(geturls_text.FOLLOWLOCATION, True)
-                geturls_text.setopt(geturls_text.TIMEOUT, 60)
-                geturls_text.perform()
+                    usehttpver = pycurl.CURL_HTTP_VERSION_1_1
+                curlreq.setopt(pycurl.URL, rebuilt_url)
+                curlreq.setopt(pycurl.HTTP_VERSION, usehttpver)
+                curlreq.setopt(pycurl.WRITEFUNCTION, retrieved_body.write)
+                curlreq.setopt(pycurl.VERBOSE, 1)
+                curlreq.setopt(pycurl.DEBUGFUNCTION, lambda t, m: sentout_headers.write(m))
+                curlreq.setopt(pycurl.HTTPHEADER, headers)
+                curlreq.setopt(pycurl.HEADERFUNCTION, retrieved_headers.write)
+                curlreq.setopt(pycurl.FOLLOWLOCATION, True)
+                curlreq.setopt(pycurl.TIMEOUT, float(timeout))
+                curlreq.setopt(pycurl.CONNECTTIMEOUT, float(timeout))
+                curlreq.setopt(pycurl.LOW_SPEED_TIME, float(timeout))
+                curlreq.setopt(pycurl.LOW_SPEED_LIMIT, 1)
+                curlreq.perform()
             retrieved_headers.seek(0, 0)
             sentout_headers.seek(0, 0)
             httpheadersentpre = parse_pycurl_verbose(sentout_headers)
@@ -2140,12 +2164,12 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         # Optional HTTP/3 (only if compiled in)
         if hasattr(pycurl, "CURL_HTTP_VERSION_3"):
             HTTP_VERSION_MAP[pycurl.CURL_HTTP_VERSION_3] = "HTTP/3.0"
-        ver_enum = geturls_text.getinfo(pycurl.INFO_HTTP_VERSION)
-        httpcodeout = geturls_text.getinfo(geturls_text.HTTP_CODE)
-        httpcodereason = http_status_to_reason(geturls_text.getinfo(geturls_text.HTTP_CODE))
+        ver_enum = curlreq.getinfo(pycurl.INFO_HTTP_VERSION)
+        httpcodeout = curlreq.getinfo(pycurl.HTTP_CODE)
+        httpcodereason = http_status_to_reason(curlreq.getinfo(pycurl.HTTP_CODE))
         httpversionout = HTTP_VERSION_MAP.get(ver_enum, "HTTP/1.1")
         httpmethodout = httpmethod
-        httpurlout = geturls_text.getinfo(geturls_text.EFFECTIVE_URL)
+        httpurlout = curlreq.getinfo(pycurl.EFFECTIVE_URL)
         httpheaderout = pycurlheadersout
         try:
             httpheadersentout = httpheadersentpre['request']['headers']
@@ -2162,12 +2186,12 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         else:
             opener = build_opener()
         if(httpmethod == "GET"):
-            resp = opener.open(req)
+            resp = opener.open(req, timeout=float(timeout))
         elif(httpmethod == "POST"):
             postdata = urlencode(postdata)
-            geturls_text = geturls_opener.open(req, data=postdata)
+            resp = geturls_opener.open(req, data=postdata, timeout=timeout)
         else:
-            resp = opener.open(req)
+            resp = opener.open(req, timeout=timeout)
         resp2 = decoded_stream(resp)
         shutil.copyfileobj(resp2, httpfile, length=1024 * 1024)
         httpcodeout = resp.getcode()
@@ -2208,9 +2232,15 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
     else:
         return httpfile
 
-def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", returnstats=False):
-    fp = download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, returnstats)
+def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", timeout=60, returnstats=False):
+    fp = download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, timeout, returnstats)
     return fp.read() if fp else False
+
+def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, timeout=60, returnstats=False):
+    return download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, timeout, returnstats)
+
+def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, timeout=60, returnstats=False):
+    return download_file_from_http_string(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, timeout, returnstats)
 
 # --------------------------
 # UDP Packet Utilities
