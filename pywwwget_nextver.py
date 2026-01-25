@@ -1794,7 +1794,13 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         httpversionout = r.http_version
         httpmethodout = httpmethod
         httpurlout = str(r.url)
-        httpheaderout = r.headers
+        httpheaderout = {
+            k.decode("ascii", errors="replace")
+            if isinstance(k, (bytes, bytearray)) else str(k):
+            v.decode("ascii", errors="replace")
+            if isinstance(v, (bytes, bytearray)) else str(v)
+            for k, v in r.headers.items()
+        }
         httpheadersentout = r.request.headers
 
 

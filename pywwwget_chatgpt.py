@@ -1814,7 +1814,13 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             httpversionout = httpversionout.decode("ascii", errors="replace")
         httpmethodout = httpmethod
         httpurlout = str(rebuilt_url)
-        httpheaderout = r.headers
+        httpheaderout = {
+            k.decode("ascii", errors="replace")
+            if isinstance(k, (bytes, bytearray)) else str(k):
+            v.decode("ascii", errors="replace")
+            if isinstance(v, (bytes, bytearray)) else str(v)
+            for k, v in r.headers.items()
+        }
         httpheadersentout = headers
 
     # Mechanize
