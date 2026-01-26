@@ -237,7 +237,6 @@ def udp_exchange(server_ip, wire_query, timeout=2, port=53):
     s = socket.socket(family, socket.SOCK_DGRAM)
     s.settimeout(float(timeout))
     try:
-        # For AF_INET6, address tuple can be (ip, port) and Python fills flowinfo/scopeid
         s.sendto(wire_query, (server_ip, int(port)))
         data, _ = s.recvfrom(4096)
         return data
@@ -272,7 +271,7 @@ def iterative_resolve(qname, qtype, timeout=2, max_steps=25):
         if parsed["answers"]:
             return resp
 
-        # Follow referral: NS in authority + glue in additional
+        # Otherwise follow referral using NS in authority + glue in additional
         ns_names = []
         for rr in parsed["authority"]:
             if rr["type"] == QTYPE["NS"]:
@@ -316,13 +315,14 @@ def iterative_resolve(qname, qtype, timeout=2, max_steps=25):
                         break  # prefer AAAA if it worked
 
                 if resolved_ns_ips:
-                    break  # first NS that yields IPs
+                    break  # first NS name that yields IPs
 
             if resolved_ns_ips:
                 random.shuffle(resolved_ns_ips)
                 next_servers = resolved_ns_ips + next_servers
                 continue
 
+        # Cannot progress further; return last
         return resp
 
     return last_msg
@@ -393,7 +393,32 @@ def make_nxdomain(query_wire):
     hdr = tid + struct.pack("!H", 0x8003) + struct.pack("!HHHH", 1, 0, 0, 0)
     return hdr + query_wire[12:]
 
+def rewrite_id_and_flags(resp_wire, client_tid_bytes, client_query_wire):
+    """
+    Make the response acceptable to clients like dig:
+      - overwrite TXID with client's TXID
+      - ensure QR=1
+      - if client set RD, set RA=1 (we do iterative recursion ourselves)
+    """
+    if not resp_wire or len(resp_wire) < 12:
+        return resp_wire
+
+    out = bytearray(resp_wire)
+    out[0:2] = client_tid_bytes
+
+    flags = struct.unpack("!H", out[2:4])[0]
+    flags |= 0x8000  # QR=1
+
+    if client_query_wire and len(client_query_wire) >= 4:
+        qflags = struct.unpack("!H", client_query_wire[2:4])[0]
+        if qflags & 0x0100:     # RD
+            flags |= 0x0080     # RA
+
+    out[2:4] = struct.pack("!H", flags)
+    return bytes(out)
+
 def handle_query_wire(query_wire, client_addr=None):
+    client_tid = query_wire[:2]
     qname, qtype, qclass = extract_question(query_wire)
 
     if LOG_QUERIES:
@@ -403,23 +428,25 @@ def handle_query_wire(query_wire, client_addr=None):
     if is_blocked(qname):
         if LOG_QUERIES:
             print("[DNS] BLOCKED %s" % qname)
-        return make_nxdomain(query_wire)
+        # make_nxdomain already echoes client tid, but also force QR/RA
+        return rewrite_id_and_flags(make_nxdomain(query_wire), client_tid, query_wire)
 
     key = (qname.lower(), qtype, qclass)
 
     cached = CACHE.get(key)
     if cached:
-        return cached
+        return rewrite_id_and_flags(cached, client_tid, query_wire)
 
     resp = iterative_resolve(qname, qtype, timeout=UPSTREAM_TIMEOUT)
+    if not resp:
+        return rewrite_id_and_flags(make_servfail(query_wire), client_tid, query_wire)
 
     ttl = min_ttl_from_answers(resp)
-
     if CACHE_TTL_CAP and CACHE_TTL_CAP > 0:
         ttl = min(ttl, int(CACHE_TTL_CAP))
 
     CACHE.put(key, resp, ttl=ttl)
-    return resp
+    return rewrite_id_and_flags(resp, client_tid, query_wire)
 
 def _bind_family(bind_ip):
     return socket.AF_INET6 if ":" in bind_ip else socket.AF_INET
@@ -443,6 +470,7 @@ def udp_server(bind_ip="127.0.0.1", port=5353):
             resp = handle_query_wire(data, client_addr=addr)
         except Exception:
             resp = make_servfail(data)
+            resp = rewrite_id_and_flags(resp, data[:2] if len(data) >= 2 else b"\x00\x00", data)
         s.sendto(resp, addr)
 
 def tcp_server(bind_ip="127.0.0.1", port=5353):
@@ -486,6 +514,7 @@ def _tcp_client(conn):
             resp = handle_query_wire(q)
         except Exception:
             resp = make_servfail(q)
+            resp = rewrite_id_and_flags(resp, q[:2] if len(q) >= 2 else b"\x00\x00", q)
         conn.sendall(struct.pack("!H", len(resp)) + resp)
     finally:
         try:
