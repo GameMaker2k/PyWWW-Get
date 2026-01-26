@@ -560,7 +560,8 @@ def perform_dns_query(dns_server, domain, record_type='A',
                       show_all=False,
                       include_authority=False,
                       include_additional=False,
-                      verbose=True):
+                      verbose=True,
+                      prefer_ipv6=True):
     record_type = record_type.strip().upper()
     if record_type not in QTYPE:
         raise ValueError("Unsupported record type: %r (use %s)" %
