@@ -76,6 +76,26 @@ def _is_ipv6_literal(s):
     return ":" in s
 
 
+def _looks_like_ipv4_literal(s):
+    parts = s.split(".")
+    if len(parts) != 4:
+        return False
+    try:
+        for p in parts:
+            if p == "":
+                return False
+            v = int(p)
+            if v < 0 or v > 255:
+                return False
+        return True
+    except Exception:
+        return False
+
+
+def _is_ip_literal(s):
+    return _is_ipv6_literal(s) or _looks_like_ipv4_literal(s)
+
+
 def _addr_tuple(host, port):
     port = int(port)
     if _is_ipv6_literal(host):
@@ -89,7 +109,7 @@ def _iter_server_addrs(dns_server, port, prefer_ipv6=True):
     port = int(port)
 
     # IP literal path (IPv6 includes %zone)
-    if _is_ipv6_literal(dns_server) or dns_server.replace(".", "").isdigit():
+    if _is_ip_literal(dns_server):
         yield _addr_tuple(dns_server, port)
         return
 
@@ -120,11 +140,37 @@ def _iter_server_addrs(dns_server, port, prefer_ipv6=True):
         yield sockaddr
 
 
+def _resolve_one_ip(host, prefer_ipv6=True):
+    """
+    Best-effort resolve hostname -> one IP string (display only).
+    Returns None on failure.
+    """
+    if not host:
+        return None
+    if _is_ip_literal(host):
+        if "%" in host:
+            return host.split("%", 1)[0]
+        return host
+    try:
+        infos = socket.getaddrinfo(host, 0, socket.AF_UNSPEC, 0, 0)
+        best = None
+        for fam, _socktype, _proto, _canon, sockaddr in infos:
+            ip = sockaddr[0]
+            if best is None:
+                best = ip
+            if prefer_ipv6 and fam == socket.AF_INET6:
+                return ip
+            if (not prefer_ipv6) and fam == socket.AF_INET:
+                return ip
+        return best
+    except Exception:
+        return None
+
+
 def encode_qname(domain):
     domain = domain.strip().rstrip('.')
     if not domain:
         raise ValueError("Empty domain")
-
     out = []
     for part in domain.split('.'):
         pb = _to_bytes(part)
@@ -240,24 +286,6 @@ def parse_rr(msg, offset):
     }, offset
 
 
-def decode_txt_rdata(rdata):
-    out = []
-    i = 0
-    while i < len(rdata):
-        ln = _byte_at(rdata, i)
-        i += 1
-        chunk = rdata[i:i + ln]
-        i += ln
-        try:
-            out.append(chunk.decode('utf-8'))
-        except Exception:
-            if len(chunk) and not isinstance(chunk[0], int):  # Py2 bytes
-                out.append(''.join(chr(ord(c)) for c in chunk))
-            else:
-                out.append(''.join(chr(c) for c in chunk))
-    return out
-
-
 def _ipv6_to_str(packed16):
     b = bytes(bytearray(packed16))
     if hasattr(socket, 'inet_ntop'):
@@ -270,78 +298,6 @@ def _ipv6_to_str(packed16):
     for i in range(0, 16, 2):
         hextets.append("%02x%02x" % (ba[i], ba[i + 1]))
     return ":".join(hextets)
-
-
-def _type_name_from_code(code):
-    for k, v in QTYPE.items():
-        if v == code:
-            return k
-    return "TYPE%d" % code
-
-
-def rr_to_strings_classic(msg, rr):
-    rtype = rr['type']
-    ttl = rr['ttl']
-    rdata = rr['rdata']
-    tname = _type_name_from_code(rtype)
-
-    if rtype == QTYPE['A'] and rr['rdlength'] == 4:
-        ip = "%d.%d.%d.%d" % tuple(bytearray(rdata))
-        return ["A: %s (TTL=%d)" % (ip, ttl)]
-
-    if rtype == QTYPE['AAAA'] and rr['rdlength'] == 16:
-        ip6 = _ipv6_to_str(rdata)
-        return ["AAAA: %s (TTL=%d)" % (ip6, ttl)]
-
-    if rtype in (QTYPE['CNAME'], QTYPE['NS']):
-        target, _ = decode_domain_name(msg, rr['rdata_offset'])
-        return ["%s: %s (TTL=%d)" % (tname, target, ttl)]
-
-    if rtype == QTYPE['MX']:
-        if rr['rdlength'] < 3:
-            return []
-        pref = struct.unpack('!H', rdata[:2])[0]
-        exchange, _ = decode_domain_name(msg, rr['rdata_offset'] + 2)
-        return ["MX: preference=%d exchange=%s (TTL=%d)" % (pref, exchange, ttl)]
-
-    if rtype == QTYPE['TXT']:
-        chunks = decode_txt_rdata(rdata)
-        return ["TXT: %s (TTL=%d)" % (c, ttl) for c in chunks]
-
-    return ["%s: rdlength=%d (TTL=%d)" % (tname, rr['rdlength'], ttl)]
-
-
-def rr_to_strings_dig(msg, rr):
-    rtype = rr['type']
-    ttl = rr['ttl']
-    rdata = rr['rdata']
-    tname = _type_name_from_code(rtype)
-    owner = rr.get('name', '').rstrip(".")
-
-    if rtype == QTYPE['A'] and rr['rdlength'] == 4:
-        ip = "%d.%d.%d.%d" % tuple(bytearray(rdata))
-        return ["%s.\t\t%d\tIN\tA\t%s" % (owner, ttl, ip)]
-
-    if rtype == QTYPE['AAAA'] and rr['rdlength'] == 16:
-        ip6 = _ipv6_to_str(rdata)
-        return ["%s.\t\t%d\tIN\tAAAA\t%s" % (owner, ttl, ip6)]
-
-    if rtype in (QTYPE['CNAME'], QTYPE['NS']):
-        target, _ = decode_domain_name(msg, rr['rdata_offset'])
-        return ["%s.\t\t%d\tIN\t%s\t%s." % (owner, ttl, tname, target.rstrip("."))]
-
-    if rtype == QTYPE['MX']:
-        if rr['rdlength'] < 3:
-            return []
-        pref = struct.unpack('!H', rdata[:2])[0]
-        exchange, _ = decode_domain_name(msg, rr['rdata_offset'] + 2)
-        return ["%s.\t\t%d\tIN\tMX\t%d %s." % (owner, ttl, pref, exchange.rstrip("."))]
-
-    if rtype == QTYPE['TXT']:
-        chunks = decode_txt_rdata(rdata)
-        return ['%s.\t\t%d\tIN\tTXT\t"%s"' % (owner, ttl, c.replace('"', r'\"')) for c in chunks]
-
-    return ["%s.\t\t%d\tIN\t%s\t<rdlength=%d>" % (owner, ttl, tname, rr['rdlength'])]
 
 
 def _hex_dump(b):
@@ -407,7 +363,8 @@ def _parse_header_fields(msg):
     tc = bool(flags & 0x0200)
     rcode = flags & 0x000F
     opcode = (flags >> 11) & 0x0F
-    return tid, flags, qdcount, ancount, nscount, arcount, tc, rcode, opcode
+    aa = bool(flags & 0x0400)
+    return tid, flags, qdcount, ancount, nscount, arcount, tc, rcode, opcode, aa
 
 
 def _dig_flags_string(flags):
@@ -420,57 +377,6 @@ def _dig_flags_string(flags):
     if flags & 0x0020: names.append("ad")
     if flags & 0x0010: names.append("cd")
     return " ".join(names)
-
-
-def decode_sections(msg, wanted_type=None, show_all=False,
-                    include_authority=False, include_additional=False,
-                    rr_formatter=rr_to_strings_classic):
-    tid, flags, qdcount, ancount, nscount, arcount, tc, rcode, opcode = _parse_header_fields(msg)
-    offset = 12
-    offset = skip_question_section(msg, offset, qdcount)
-
-    def collect(count, offset):
-        out = []
-        for _ in range(count):
-            rr, offset2 = parse_rr(msg, offset)
-            offset = offset2
-            if wanted_type is not None and (not show_all) and rr['type'] != wanted_type:
-                continue
-            out.extend(rr_formatter(msg, rr))
-        return out, offset
-
-    ans, offset = collect(ancount, offset)
-
-    if include_authority:
-        auth, offset = collect(nscount, offset)
-    else:
-        for _ in range(nscount):
-            _, offset = parse_rr(msg, offset)
-        auth = []
-
-    if include_additional:
-        add, offset = collect(arcount, offset)
-    else:
-        for _ in range(arcount):
-            _, offset = parse_rr(msg, offset)
-        add = []
-
-    return {
-        "header": {
-            "tid": tid,
-            "flags": flags,
-            "qdcount": qdcount,
-            "ancount": ancount,
-            "nscount": nscount,
-            "arcount": arcount,
-            "tc": tc,
-            "rcode": rcode,
-            "opcode": opcode,
-        },
-        "answer": ans,
-        "authority": auth,
-        "additional": add,
-    }
 
 
 def _server_pretty(dns_server, port, sockaddr_used):
@@ -499,8 +405,87 @@ def _print_trailer_like_dig(dns_server, port, elapsed_ms, msg, sockaddr_used, tr
     print(";; MSG SIZE  rcvd: %d" % (len(msg) if msg else 0))
 
 
+def decode_sections_for_dig(msg, wanted_type, show_all=False, include_authority=False, include_additional=False):
+    tid, flags, qdcount, ancount, nscount, arcount, tc, rcode, opcode, aa = _parse_header_fields(msg)
+    offset = 12
+    offset = skip_question_section(msg, offset, qdcount)
+
+    def rr_to_dig(rr):
+        rtype = rr['type']
+        ttl = rr['ttl']
+        rdata = rr['rdata']
+        owner = rr.get('name', '').rstrip(".")
+
+        if rtype == QTYPE['A'] and rr['rdlength'] == 4:
+            ip = "%d.%d.%d.%d" % tuple(bytearray(rdata))
+            return ["%s.\t\t%d\tIN\tA\t%s" % (owner, ttl, ip)]
+        if rtype == QTYPE['AAAA'] and rr['rdlength'] == 16:
+            ip6 = _ipv6_to_str(rdata)
+            return ["%s.\t\t%d\tIN\tAAAA\t%s" % (owner, ttl, ip6)]
+        if rtype in (QTYPE['CNAME'], QTYPE['NS']):
+            target, _ = decode_domain_name(msg, rr['rdata_offset'])
+            tname = "CNAME" if rtype == QTYPE['CNAME'] else "NS"
+            return ["%s.\t\t%d\tIN\t%s\t%s." % (owner, ttl, tname, target.rstrip("."))]
+        if rtype == QTYPE['MX']:
+            if rr['rdlength'] < 3:
+                return []
+            pref = struct.unpack('!H', rdata[:2])[0]
+            exchange, _ = decode_domain_name(msg, rr['rdata_offset'] + 2)
+            return ["%s.\t\t%d\tIN\tMX\t%d %s." % (owner, ttl, pref, exchange.rstrip("."))]
+        return []
+
+    def collect(count, offset):
+        out = []
+        for _ in range(count):
+            rr, offset2 = parse_rr(msg, offset)
+            offset = offset2
+            if (not show_all) and rr['type'] != wanted_type:
+                continue
+            out.extend(rr_to_dig(rr))
+        return out, offset
+
+    ans, offset = collect(ancount, offset)
+
+    auth = []
+    if include_authority:
+        auth, offset = collect(nscount, offset)
+    else:
+        for _ in range(nscount):
+            _, offset = parse_rr(msg, offset)
+
+    add = []
+    if include_additional:
+        add, offset = collect(arcount, offset)
+    else:
+        for _ in range(arcount):
+            _, offset = parse_rr(msg, offset)
+
+    return {
+        "header": {
+            "tid": tid,
+            "flags": flags,
+            "qdcount": qdcount,
+            "ancount": ancount,
+            "nscount": nscount,
+            "arcount": arcount,
+            "tc": tc,
+            "rcode": rcode,
+            "opcode": opcode,
+            "aa": aa,
+        },
+        "answer": ans,
+        "authority": auth,
+        "additional": add,
+    }
+
+
 def _print_dig_like(sections, domain, record_type, dns_server, port,
-                    elapsed_ms, msg, sockaddr_used, transport):
+                    elapsed_ms, msg, sockaddr_used, transport,
+                    include_banner=False, dig_version="9.20.x"):
+    if include_banner:
+        _print_dig_banner(dns_server, port, domain, dig_version)
+        print("")
+
     h = sections["header"]
     status = RCODE_MAP.get(h["rcode"], str(h["rcode"]))
     opcode_name = OPCODE_MAP.get(h["opcode"], str(h["opcode"]))
@@ -514,7 +499,6 @@ def _print_dig_like(sections, domain, record_type, dns_server, port,
     print(";; QUESTION SECTION:")
     print(";%s.\t\t\tIN\t%s" % (domain.rstrip("."), record_type))
     print("")
-
     print(";; ANSWER SECTION:")
     if sections["answer"]:
         for line in sections["answer"]:
@@ -522,35 +506,43 @@ def _print_dig_like(sections, domain, record_type, dns_server, port,
     else:
         print(";; (no answer records)")
     print("")
-
     if sections["authority"]:
         print(";; AUTHORITY SECTION:")
         for line in sections["authority"]:
             print(line)
         print("")
-
     if sections["additional"]:
         print(";; ADDITIONAL SECTION:")
         for line in sections["additional"]:
             print(line)
         print("")
-
     _print_trailer_like_dig(dns_server, port, elapsed_ms, msg, sockaddr_used, transport)
 
 
-def perform_dns_query(dns_server, domain, record_type='A',
-                      port=53, timeout=2,
-                      tcp_fallback=True,
-                      prefer_ipv6=True,
-                      strict_txid=True):
-    record_type = record_type.strip().upper()
-    if record_type not in QTYPE:
-        raise ValueError("Unsupported record type: %r" % record_type)
+def _extract_addresses_and_aa_from_answer(msg):
+    tid, flags, qdcount, ancount, nscount, arcount, tc, rcode, opcode, aa = _parse_header_fields(msg)
+    offset = 12
+    offset = skip_question_section(msg, offset, qdcount)
 
+    a = []
+    aaaa = []
+
+    for _ in range(ancount):
+        rr, offset = parse_rr(msg, offset)
+        if rr["type"] == QTYPE["A"] and rr["rdlength"] == 4:
+            ip = "%d.%d.%d.%d" % tuple(bytearray(rr["rdata"]))
+            a.append(ip)
+        elif rr["type"] == QTYPE["AAAA"] and rr["rdlength"] == 16:
+            aaaa.append(_ipv6_to_str(rr["rdata"]))
+
+    return a, aaaa, rcode, aa
+
+
+def query_once(dns_server, domain, record_type, port, timeout,
+               prefer_ipv6=True, tcp_fallback=True, strict_txid=True):
     query, _txid = build_dns_query(domain, record_type)
     expected = _get_txid(query)
 
-    # UDP first
     t0 = time.time()
     last_err = None
     msg = None
@@ -581,13 +573,14 @@ def perform_dns_query(dns_server, domain, record_type='A',
 
     elapsed_ms = (time.time() - t0) * 1000.0
 
-    # TCP fallback if TC=1
     tc = bool(_parse_header_fields(msg)[6])
     if tc and tcp_fallback:
         transport = "TCP"
         t1 = time.time()
-        msg2, sockaddr2 = query_tcp(dns_server, query, port, timeout,
-                                   prefer_ipv6=prefer_ipv6, strict_txid=strict_txid)
+        msg2, sockaddr2 = query_tcp(
+            dns_server, query, port, timeout,
+            prefer_ipv6=prefer_ipv6, strict_txid=strict_txid
+        )
         elapsed_ms = (time.time() - t1) * 1000.0
         msg = msg2
         sockaddr_used = sockaddr2
@@ -595,9 +588,72 @@ def perform_dns_query(dns_server, domain, record_type='A',
     return msg, elapsed_ms, sockaddr_used, transport
 
 
+def _print_nslookup_error(domain, rcode):
+    status = RCODE_MAP.get(rcode, "UNKNOWN")
+    print("** server can't find %s: %s" % (domain, status))
+
+
+def _print_nslookup_like(dns_server, port, domain, prefer_ipv6, timeout,
+                         tcp_fallback, strict_txid,
+                         server_name_display=None,
+                         resolve_server_name=False):
+    rcode_any = 0
+    aa_any = False
+    a_list = []
+    aaaa_list = []
+    used = None
+
+    try:
+        msg_a, _ms_a, sockaddr_a, _transport_a = query_once(
+            dns_server, domain, "A", port, timeout,
+            prefer_ipv6=prefer_ipv6, tcp_fallback=tcp_fallback, strict_txid=strict_txid
+        )
+        a_list, _aaaa_dummy, rcode_a, aa_a = _extract_addresses_and_aa_from_answer(msg_a)
+        rcode_any = rcode_a
+        aa_any = aa_any or aa_a
+        used = sockaddr_a
+    except Exception:
+        pass
+
+    try:
+        msg_aaaa, _ms_aaaa, sockaddr_aaaa, _transport_aaaa = query_once(
+            dns_server, domain, "AAAA", port, timeout,
+            prefer_ipv6=prefer_ipv6, tcp_fallback=tcp_fallback, strict_txid=strict_txid
+        )
+        _a_dummy, aaaa_list, rcode_aaaa, aa_aaaa = _extract_addresses_and_aa_from_answer(msg_aaaa)
+        rcode_any = rcode_any or rcode_aaaa
+        aa_any = aa_any or aa_aaaa
+        if used is None:
+            used = sockaddr_aaaa
+    except Exception:
+        pass
+
+    server_line = server_name_display if server_name_display else dns_server
+
+    if resolve_server_name and (not _is_ip_literal(dns_server)):
+        used_ip = _resolve_one_ip(dns_server, prefer_ipv6=prefer_ipv6) or (used[0] if used else dns_server)
+    else:
+        used_ip = used[0] if used else dns_server
+
+    print("Server:\t\t%s" % server_line)
+    print("Address:\t%s#%d" % (used_ip, int(port)))
+    print("")
+
+    if (not a_list) and (not aaaa_list):
+        _print_nslookup_error(domain, rcode_any)
+        return
+
+    print(("Authoritative answer:" if aa_any else "Non-authoritative answer:"))
+    print("Name:\t%s" % domain)
+    for ip in a_list:
+        print("Address:\t%s" % ip)
+    for ip6 in aaaa_list:
+        print("Address:\t%s" % ip6)
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description="DNS Query Script (Python 2/3): strict TXID validation, IPv6/hostname server, dig-like output, classic output preserved"
+        description="DNS Query Script: strict TXID validation + IPv6 + dig/nslookup styles"
     )
     parser.add_argument('--dns-server', type=str,
                         help='DNS server address (IPv4, IPv6, IPv6%zone, or hostname)')
@@ -610,11 +666,11 @@ def main():
                         help='Disable TCP fallback on truncated UDP response')
 
     parser.add_argument('--show-all', action='store_true',
-                        help='Show all RR types in selected sections (not only requested type)')
+                        help='(dig-style) include all RR types (still only prints A/AAAA/MX/NS/CNAME)')
     parser.add_argument('--include-authority', action='store_true',
-                        help='Also show Authority section')
+                        help='(dig-style) include Authority section')
     parser.add_argument('--include-additional', action='store_true',
-                        help='Also show Additional section')
+                        help='(dig-style) include Additional section')
 
     parser.add_argument('--prefer-ipv4', action='store_true',
                         help='Prefer IPv4 first when --dns-server is a hostname')
@@ -624,18 +680,25 @@ def main():
     parser.add_argument('--no-strict-txid', action='store_true',
                         help='Disable TXID validation (debug only)')
 
+    # Output modes
     parser.add_argument('--dig-style', action='store_true',
-                        help='Print output similar to dig (includes trailer lines)')
+                        help='Print output similar to dig (includes trailer)')
     parser.add_argument('--dig-banner', action='store_true',
                         help='Also print the first 3 dig banner lines')
     parser.add_argument('--dig-version', type=str, default="9.20.x",
                         help='Version string to show in the dig banner (default: 9.20.x)')
 
-    # NEW: classic trailer (dig-like footer without switching formats)
     parser.add_argument('--classic-trailer', action='store_true',
-                        help='In classic output, also print dig-like trailer (Query time / SERVER / WHEN / MSG SIZE)')
+                        help='In classic output, also print dig-like trailer')
 
-    parser.add_argument('--quiet', action='store_true', help='Less header/debug output')
+    parser.add_argument('--nslookup', action='store_true',
+                        help='Print nslookup-like output (queries both A and AAAA)')
+    parser.add_argument('--nslookup-server-name', type=str, default=None,
+                        help='Override the name printed on the "Server:" line (e.g. dns.google)')
+    parser.add_argument('--nslookup-resolve-server', action='store_true',
+                        help='Resolve the server hostname for the "Address:" line (display only)')
+
+    parser.add_argument('--quiet', action='store_true', help='Less header/debug output (classic mode)')
 
     args = parser.parse_args()
 
@@ -655,40 +718,58 @@ def main():
         prefer_ipv6 = True
 
     strict_txid = (not args.no_strict_txid)
+    tcp_fallback = (not args.no_tcp_fallback)
     verbose = (not args.quiet)
 
     try:
-        msg, elapsed_ms, sockaddr_used, transport = perform_dns_query(
+        if args.nslookup:
+            _print_nslookup_like(
+                dns_server=dns_server,
+                port=args.port,
+                domain=domain,
+                prefer_ipv6=prefer_ipv6,
+                timeout=args.timeout,
+                tcp_fallback=tcp_fallback,
+                strict_txid=strict_txid,
+                server_name_display=args.nslookup_server_name,
+                resolve_server_name=bool(args.nslookup_resolve_server),
+            )
+            return
+
+        msg, elapsed_ms, sockaddr_used, transport = query_once(
             dns_server=dns_server,
             domain=domain,
             record_type=record_type,
             port=args.port,
             timeout=args.timeout,
-            tcp_fallback=(not args.no_tcp_fallback),
             prefer_ipv6=prefer_ipv6,
-            strict_txid=strict_txid
+            tcp_fallback=tcp_fallback,
+            strict_txid=strict_txid,
         )
 
         if args.dig_style:
-            dig_sections = decode_sections(
+            wanted_type = QTYPE.get(record_type, QTYPE["A"])
+            dig_sections = decode_sections_for_dig(
                 msg,
-                wanted_type=QTYPE[record_type],
+                wanted_type=wanted_type,
                 show_all=args.show_all,
                 include_authority=args.include_authority,
                 include_additional=args.include_additional,
-                rr_formatter=rr_to_strings_dig
             )
-            if args.dig_banner:
-                _print_dig_banner(dns_server, args.port, domain, args.dig_version)
-                print("")
-            _print_dig_like(dig_sections, domain, record_type, dns_server, args.port,
-                            elapsed_ms, msg, sockaddr_used, transport)
+            _print_dig_like(
+                dig_sections,
+                domain, record_type,
+                dns_server, args.port,
+                elapsed_ms, msg, sockaddr_used, transport,
+                include_banner=bool(args.dig_banner),
+                dig_version=args.dig_version
+            )
             return
 
-        # Classic (old) output path
+        # Classic mode
         if verbose:
             print("Raw %s response: %s" % (transport, _hex_dump(msg)))
-            tid, flags, qd, an, ns, ar, tc, rcode, opcode = _parse_header_fields(msg)
+            tid, flags, qd, an, ns, ar, tc, rcode, opcode, aa = _parse_header_fields(msg)
             print("Transaction ID: %04x" % tid)
             print("Flags: %04x" % flags)
             print("Questions: %d" % qd)
@@ -696,21 +777,30 @@ def main():
             print("Authority RRs: %d" % ns)
             print("Additional RRs: %d" % ar)
 
-        classic_sections = decode_sections(
-            msg,
-            wanted_type=QTYPE[record_type],
-            show_all=args.show_all,
-            include_authority=args.include_authority,
-            include_additional=args.include_additional,
-            rr_formatter=rr_to_strings_classic
-        )
+        # Print answer records in dig-ish single-line format
+        tid, flags, qd, an, ns, ar, tc, rcode, opcode, aa = _parse_header_fields(msg)
+        offset = 12
+        offset = skip_question_section(msg, offset, qd)
 
-        recs = classic_sections["answer"]
-        if recs:
-            label = ("records" if args.show_all else ("%s records" % record_type))
-            print("The %s for %s are:" % (label, domain))
-            for r in recs:
-                print(r)
+        lines = []
+        want = QTYPE.get(record_type, QTYPE["A"])
+        for _ in range(an):
+            rr, offset = parse_rr(msg, offset)
+            if rr["type"] != want:
+                continue
+            owner = rr["name"].rstrip(".") + "."
+            ttl = rr["ttl"]
+            if rr["type"] == QTYPE["A"] and rr["rdlength"] == 4:
+                ip = "%d.%d.%d.%d" % tuple(bytearray(rr["rdata"]))
+                lines.append("%s\t\t%d\tIN\tA\t%s" % (owner, ttl, ip))
+            elif rr["type"] == QTYPE["AAAA"] and rr["rdlength"] == 16:
+                ip6 = _ipv6_to_str(rr["rdata"])
+                lines.append("%s\t\t%d\tIN\tAAAA\t%s" % (owner, ttl, ip6))
+
+        if lines:
+            print("The %s records for %s are:" % (record_type, domain))
+            for ln in lines:
+                print(ln)
         else:
             print("No %s records found for %s." % (record_type, domain))
 
