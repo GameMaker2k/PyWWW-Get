@@ -140,31 +140,37 @@ def _iter_server_addrs(dns_server, port, prefer_ipv6=True):
         yield sockaddr
 
 
-def _resolve_one_ip(host, prefer_ipv6=True):
+def _resolve_all_server_ips(dns_server, prefer_ipv6=True):
     """
-    Best-effort resolve hostname -> one IP string (display only).
-    Returns None on failure.
+    Display helper: resolve hostname -> list of IP strings.
+    For IP literals, returns just the literal (IPv6%zone -> IPv6).
     """
-    if not host:
-        return None
-    if _is_ip_literal(host):
-        if "%" in host:
-            return host.split("%", 1)[0]
-        return host
+    if not dns_server:
+        return []
+    if _is_ip_literal(dns_server):
+        if "%" in dns_server:
+            return [dns_server.split("%", 1)[0]]
+        return [dns_server]
+
+    ips = []
     try:
-        infos = socket.getaddrinfo(host, 0, socket.AF_UNSPEC, 0, 0)
-        best = None
+        infos = socket.getaddrinfo(dns_server, 0, socket.AF_UNSPEC, 0, 0)
         for fam, _socktype, _proto, _canon, sockaddr in infos:
             ip = sockaddr[0]
-            if best is None:
-                best = ip
-            if prefer_ipv6 and fam == socket.AF_INET6:
-                return ip
-            if (not prefer_ipv6) and fam == socket.AF_INET:
-                return ip
-        return best
+            if ip not in ips:
+                ips.append(ip)
     except Exception:
-        return None
+        return []
+
+    # Sort in preferred order for display
+    def _rank_ip(ip):
+        is_v6 = ":" in ip
+        if prefer_ipv6:
+            return 0 if is_v6 else 1
+        return 0 if (not is_v6) else 1
+
+    ips.sort(key=_rank_ip)
+    return ips
 
 
 def encode_qname(domain):
@@ -596,7 +602,14 @@ def _print_nslookup_error(domain, rcode):
 def _print_nslookup_like(dns_server, port, domain, prefer_ipv6, timeout,
                          tcp_fallback, strict_txid,
                          server_name_display=None,
-                         resolve_server_name=False):
+                         resolve_server_name=False,
+                         nslookup_default_header=False):
+    """
+    nslookup-style output.
+    - Queries both A and AAAA and prints them.
+    - If nslookup_default_header=True prints "Default server:" style header.
+    - If resolve_server_name=True and dns_server is hostname, prints all resolved server IPs.
+    """
     rcode_any = 0
     aa_any = False
     a_list = []
@@ -630,13 +643,31 @@ def _print_nslookup_like(dns_server, port, domain, prefer_ipv6, timeout,
 
     server_line = server_name_display if server_name_display else dns_server
 
-    if resolve_server_name and (not _is_ip_literal(dns_server)):
-        used_ip = _resolve_one_ip(dns_server, prefer_ipv6=prefer_ipv6) or (used[0] if used else dns_server)
+    # For the "Address:" header lines:
+    if resolve_server_name:
+        server_ips = _resolve_all_server_ips(dns_server, prefer_ipv6=prefer_ipv6)
+        if not server_ips and used:
+            server_ips = [used[0]]
+        if not server_ips:
+            server_ips = [dns_server]
     else:
-        used_ip = used[0] if used else dns_server
+        if used:
+            server_ips = [used[0]]
+        else:
+            # best effort: literal -> itself, hostname -> try resolve one
+            one = _resolve_all_server_ips(dns_server, prefer_ipv6=prefer_ipv6)
+            server_ips = one[:1] if one else [dns_server]
 
-    print("Server:\t\t%s" % server_line)
-    print("Address:\t%s#%d" % (used_ip, int(port)))
+    if nslookup_default_header:
+        print("Default server:\t%s" % server_line)
+        # nslookup often prints multiple Address lines for the server too:
+        for ip in server_ips:
+            print("Address:\t%s#%d" % (ip, int(port)))
+    else:
+        print("Server:\t\t%s" % server_line)
+        for ip in server_ips[:1]:
+            print("Address:\t%s#%d" % (ip, int(port)))
+
     print("")
 
     if (not a_list) and (not aaaa_list):
@@ -693,10 +724,12 @@ def main():
 
     parser.add_argument('--nslookup', action='store_true',
                         help='Print nslookup-like output (queries both A and AAAA)')
+    parser.add_argument('--nslookup-default-header', action='store_true',
+                        help='Use "Default server:" / "Address:" header style (like common nslookup)')
     parser.add_argument('--nslookup-server-name', type=str, default=None,
-                        help='Override the name printed on the "Server:" line (e.g. dns.google)')
+                        help='Override the name printed on the "Server:"/"Default server:" line (e.g. dns.google)')
     parser.add_argument('--nslookup-resolve-server', action='store_true',
-                        help='Resolve the server hostname for the "Address:" line (display only)')
+                        help='Resolve the server hostname and print ALL server IPs in the header (display only)')
 
     parser.add_argument('--quiet', action='store_true', help='Less header/debug output (classic mode)')
 
@@ -733,6 +766,7 @@ def main():
                 strict_txid=strict_txid,
                 server_name_display=args.nslookup_server_name,
                 resolve_server_name=bool(args.nslookup_resolve_server),
+                nslookup_default_header=bool(args.nslookup_default_header),
             )
             return
 
