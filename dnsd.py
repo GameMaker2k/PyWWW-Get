@@ -5,6 +5,7 @@ from __future__ import print_function
 import socket
 import struct
 import threading
+import argparse
 import time
 import random
 import ssl
@@ -374,4 +375,26 @@ def run_stub(bind_ip="127.0.0.1", port=5353):
         time.sleep(3600)
 
 if __name__ == "__main__":
-    run_stub("127.0.0.1", 5353)
+    parser = argparse.ArgumentParser(
+        description="Simple iterative DNS stub resolver (UDP + TCP)"
+    )
+    parser.add_argument(
+        "--bind",
+        default="127.0.0.1",
+        help="IP address to bind the DNS server (default: 127.0.0.1)"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=5300,
+        help="Port to bind the DNS server (default: 5300)"
+    )
+
+    args = parser.parse_args()
+
+    print(
+        "Starting DNS stub on %s:%d"
+        % (args.bind, args.port)
+    )
+
+    run_stub(args.bind, args.port)
