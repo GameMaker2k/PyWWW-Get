@@ -19,7 +19,7 @@ except ImportError:
     from urllib import urlencode
 
 # -----------------------------
-# Root server IPs (a subset)
+# Root server IPs
 # -----------------------------
 ROOT_SERVERS = [
     "198.41.0.4",     # a.root-servers.net
@@ -27,6 +27,14 @@ ROOT_SERVERS = [
     "192.33.4.12",    # c.root-servers.net
     "199.7.91.13",    # d.root-servers.net
     "192.203.230.10", # e.root-servers.net
+    "192.5.5.241",    # f.root-servers.net
+    "192.112.36.4",   # g.root-servers.net
+    "198.97.190.53",  # h.root-servers.net
+    "192.36.148.17",  # i.root-servers.net
+    "192.58.128.30",  # j.root-servers.net
+    "193.0.14.129",   # k.root-servers.net
+    "199.7.83.42",    # l.root-servers.net
+    "202.12.27.33",   # m.root-servers.net
 ]
 
 QTYPE = {"A": 1, "NS": 2, "CNAME": 5, "MX": 15, "TXT": 16, "AAAA": 28}
@@ -217,16 +225,19 @@ def parse_sections(msg):
     }
 
 def rr_ip_from_additional(rr):
-    # A glue only (AAAA glue requires IPv6 socket support; intentionally skipped)
     if rr["type"] == QTYPE["A"] and rr["rdlen"] == 4:
         b = bytearray(rr["rdata"])
         return "%d.%d.%d.%d" % (b[0], b[1], b[2], b[3])
+    if rr["type"] == QTYPE["AAAA"] and rr["rdlen"] == 16:
+        return socket.inet_ntop(socket.AF_INET6, rr["rdata"])
     return None
 
 def udp_exchange(server_ip, wire_query, timeout=2, port=53):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    family = socket.AF_INET6 if ":" in server_ip else socket.AF_INET
+    s = socket.socket(family, socket.SOCK_DGRAM)
     s.settimeout(float(timeout))
     try:
+        # For AF_INET6, address tuple can be (ip, port) and Python fills flowinfo/scopeid
         s.sendto(wire_query, (server_ip, int(port)))
         data, _ = s.recvfrom(4096)
         return data
@@ -279,21 +290,34 @@ def iterative_resolve(qname, qtype, timeout=2, max_steps=25):
             next_servers = glue_ips + next_servers
             continue
 
-        # No glue: resolve NS name A using recursion of *this* iterative resolver
+        # No glue: resolve NS name (try AAAA first, then A)
         if ns_names:
             random.shuffle(ns_names)
             resolved_ns_ips = []
+
             for nsn in ns_names[:3]:
-                ns_resp = iterative_resolve(nsn, QTYPE["A"], timeout=timeout, max_steps=max_steps)
-                if not ns_resp:
-                    continue
-                ns_parsed = parse_sections(ns_resp)
-                for a_rr in ns_parsed["answers"]:
-                    if a_rr["type"] == QTYPE["A"] and a_rr["rdlen"] == 4:
-                        b = bytearray(a_rr["rdata"])
-                        resolved_ns_ips.append("%d.%d.%d.%d" % (b[0], b[1], b[2], b[3]))
+                resolved_ns_ips = []
+
+                for qt in (QTYPE["AAAA"], QTYPE["A"]):
+                    ns_resp = iterative_resolve(nsn, qt, timeout=timeout, max_steps=max_steps)
+                    if not ns_resp:
+                        continue
+
+                    ns_parsed = parse_sections(ns_resp)
+
+                    for rr in ns_parsed["answers"]:
+                        if rr["type"] == QTYPE["A"] and rr["rdlen"] == 4:
+                            b = bytearray(rr["rdata"])
+                            resolved_ns_ips.append("%d.%d.%d.%d" % (b[0], b[1], b[2], b[3]))
+                        elif rr["type"] == QTYPE["AAAA"] and rr["rdlen"] == 16:
+                            resolved_ns_ips.append(socket.inet_ntop(socket.AF_INET6, rr["rdata"]))
+
+                    if resolved_ns_ips:
+                        break  # prefer AAAA if it worked
+
                 if resolved_ns_ips:
-                    break
+                    break  # first NS that yields IPs
+
             if resolved_ns_ips:
                 random.shuffle(resolved_ns_ips)
                 next_servers = resolved_ns_ips + next_servers
@@ -397,8 +421,20 @@ def handle_query_wire(query_wire, client_addr=None):
     CACHE.put(key, resp, ttl=ttl)
     return resp
 
+def _bind_family(bind_ip):
+    return socket.AF_INET6 if ":" in bind_ip else socket.AF_INET
+
 def udp_server(bind_ip="127.0.0.1", port=5353):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    fam = _bind_family(bind_ip)
+    s = socket.socket(fam, socket.SOCK_DGRAM)
+
+    # Optional dual-stack (may be ignored on Android)
+    if fam == socket.AF_INET6:
+        try:
+            s.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+        except Exception:
+            pass
+
     s.bind((bind_ip, port))
     print("UDP DNS stub listening on %s:%d" % (bind_ip, port))
     while True:
@@ -410,8 +446,17 @@ def udp_server(bind_ip="127.0.0.1", port=5353):
         s.sendto(resp, addr)
 
 def tcp_server(bind_ip="127.0.0.1", port=5353):
-    ss = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    fam = _bind_family(bind_ip)
+    ss = socket.socket(fam, socket.SOCK_STREAM)
     ss.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    # Optional dual-stack (may be ignored on Android)
+    if fam == socket.AF_INET6:
+        try:
+            ss.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+        except Exception:
+            pass
+
     ss.bind((bind_ip, port))
     ss.listen(50)
     print("TCP DNS stub listening on %s:%d" % (bind_ip, port))
@@ -489,7 +534,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Apply runtime config
+    # Apply runtime config (top-level assignments; no 'global' needed)
     UPSTREAM_TIMEOUT = float(args.upstream_timeout)
     if args.timeout is not None:
         UPSTREAM_TIMEOUT = float(args.timeout)
