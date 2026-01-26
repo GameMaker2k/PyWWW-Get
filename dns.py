@@ -33,6 +33,101 @@ def _byte_at(b, i):
     return v if isinstance(v, int) else ord(v)
 
 
+def _sock_family_for_server(host):
+    # If it contains ':' treat as IPv6 literal (including IPv6%zone)
+    return socket.AF_INET6 if ":" in host else socket.AF_INET
+
+def _split_ipv6_zone(host):
+    """
+    Split IPv6 address and zone-id if present:
+      'fe80::1%wlan0' -> ('fe80::1', 'wlan0')
+      '::1' -> ('::1', None)
+    """
+    if "%" in host:
+        addr, zone = host.split("%", 1)
+        return addr, zone
+    return host, None
+
+def _scope_id_from_zone(zone):
+    """
+    Convert zone string to numeric scope id.
+    - If zone is digits, use it directly.
+    - Else try socket.if_nametoindex(zone) (Linux/Android usually supports this).
+    """
+    if zone is None:
+        return 0
+    if zone.isdigit():
+        try:
+            return int(zone)
+        except Exception:
+            return 0
+    if hasattr(socket, "if_nametoindex"):
+        try:
+            return socket.if_nametoindex(zone)
+        except Exception:
+            return 0
+    return 0
+
+def _is_ipv6_literal(s):
+    # crude but effective: IPv6 literals contain ':'
+    return ":" in s
+
+def _addr_tuple(host, port):
+    """
+    Return a sockaddr suitable for sendto/connect:
+      IPv4: (host, port)
+      IPv6: (addr, port, flowinfo, scopeid)
+
+    Supports IPv6 zone IDs like 'fe80::1%wlan0'.
+    """
+    port = int(port)
+    if _is_ipv6_literal(host):
+        addr, zone = _split_ipv6_zone(host)
+        scopeid = _scope_id_from_zone(zone)
+        return (addr, port, 0, scopeid)
+    return (host, port)
+
+def _iter_server_addrs(dns_server, port):
+    """
+    Yield sockaddr tuples to try, in a good order.
+    - If dns_server is an IP literal (v4 or v6%zone), just yield that.
+    - If it's a hostname, resolve with getaddrinfo and yield all candidates.
+    """
+    port = int(port)
+
+    # IP literal path (IPv6 includes %zone)
+    if _is_ipv6_literal(dns_server) or dns_server.replace(".", "").isdigit():
+        yield _addr_tuple(dns_server, port)
+        return
+
+    # Hostname path
+    try:
+        infos = socket.getaddrinfo(
+            dns_server,
+            port,
+            socket.AF_UNSPEC,
+            0,
+            0,
+            socket.AI_ADDRCONFIG
+        )
+    except Exception:
+        # fallback without AI_ADDRCONFIG
+        infos = socket.getaddrinfo(dns_server, port, socket.AF_UNSPEC)
+
+    # Prefer IPv6 first, then IPv4 (you can flip this if you want)
+    def _rank(info):
+        fam = info[0]
+        return 0 if fam == socket.AF_INET6 else 1
+
+    seen = set()
+    for fam, socktype, proto, canonname, sockaddr in sorted(infos, key=_rank):
+        # sockaddr can be 2-tuple (v4) or 4-tuple (v6)
+        if sockaddr in seen:
+            continue
+        seen.add(sockaddr)
+        yield sockaddr
+
+
 def encode_qname(domain):
     """
     Encode a domain name into DNS QNAME format:
@@ -325,36 +420,45 @@ def _recvn(sock, n):
 
 
 def query_udp(dns_server, query, port, timeout):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.settimeout(float(timeout))
-    try:
-        sock.sendto(query, (dns_server, int(port)))
-        msg, _ = sock.recvfrom(4096)  # allow EDNS-size-ish in practice; still fine
-        return msg
-    finally:
-        sock.close()
+    last_err = None
+    for sockaddr in _iter_server_addrs(dns_server, port):
+        fam = socket.AF_INET6 if len(sockaddr) == 4 else socket.AF_INET
+        sock = socket.socket(fam, socket.SOCK_DGRAM)
+        sock.settimeout(float(timeout))
+        try:
+            sock.sendto(query, sockaddr)
+            msg, _ = sock.recvfrom(4096)
+            return msg
+        except Exception as e:
+            last_err = e
+        finally:
+            sock.close()
+    raise last_err if last_err else RuntimeError("UDP query failed for all addresses")
 
 
 def query_tcp(dns_server, query, port, timeout):
-    """
-    DNS over TCP: prefix query with 2-byte length; response also length-prefixed.
-    """
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(float(timeout))
-    try:
-        sock.connect((dns_server, int(port)))
-        sock.sendall(struct.pack("!H", len(query)) + query)
+    last_err = None
+    for sockaddr in _iter_server_addrs(dns_server, port):
+        fam = socket.AF_INET6 if len(sockaddr) == 4 else socket.AF_INET
+        sock = socket.socket(fam, socket.SOCK_STREAM)
+        sock.settimeout(float(timeout))
+        try:
+            sock.connect(sockaddr)
+            sock.sendall(struct.pack("!H", len(query)) + query)
 
-        hdr = _recvn(sock, 2)
-        if hdr is None:
-            raise RuntimeError("TCP DNS: no length header")
-        (msg_len,) = struct.unpack("!H", hdr)
-        msg = _recvn(sock, msg_len)
-        if msg is None:
-            raise RuntimeError("TCP DNS: incomplete message")
-        return msg
-    finally:
-        sock.close()
+            hdr = _recvn(sock, 2)
+            if hdr is None:
+                raise RuntimeError("TCP DNS: no length header")
+            (msg_len,) = struct.unpack("!H", hdr)
+            msg = _recvn(sock, msg_len)
+            if msg is None:
+                raise RuntimeError("TCP DNS: incomplete message")
+            return msg
+        except Exception as e:
+            last_err = e
+        finally:
+            sock.close()
+    raise last_err if last_err else RuntimeError("TCP query failed for all addresses")
 
 
 def decode_dns_message(msg, wanted_type=None, show_all=False,
@@ -502,7 +606,8 @@ def main():
     parser = argparse.ArgumentParser(
         description="DNS Query Script (Python 2/3): A/AAAA/MX/CNAME/NS/TXT, TCP fallback, optional authority/additional"
     )
-    parser.add_argument('--dns-server', type=str, help='DNS server IP address (e.g., 8.8.8.8)')
+    parser.add_argument('--dns-server', type=str,
+    help='DNS server address (IPv4, IPv6, IPv6%zone, or hostname; e.g. 8.8.8.8, ::1, fe80::1%wlan0, localhost)')
     parser.add_argument('--domain', type=str, help='Domain to look up (e.g., example.com)')
     parser.add_argument('--record-type', type=str, default='A',
                         help='DNS record type (A, AAAA, MX, CNAME, NS, TXT)')
@@ -517,6 +622,10 @@ def main():
     parser.add_argument('--include-additional', action='store_true',
                         help='Also parse/show Additional section (ARCOUNT)')
     parser.add_argument('--quiet', action='store_true', help='Less header/debug output')
+    parser.add_argument('--prefer-ipv4', action='store_true',
+                    help='Prefer IPv4 addresses first when --dns-server is a hostname')
+    parser.add_argument('--prefer-ipv6', action='store_true',
+                    help='Prefer IPv6 addresses first when --dns-server is a hostname (default)')
     args = parser.parse_args()
 
     # Python 2 input compatibility
@@ -531,6 +640,14 @@ def main():
 
     verbose = (not args.quiet)
 
+    # Default preference is IPv6 first (unless user prefers IPv4)
+    prefer_ipv6 = True
+    if args.prefer_ipv4:
+        prefer_ipv6 = False
+    if args.prefer_ipv6:
+        prefer_ipv6 = True
+
+
     try:
         records = perform_dns_query(
             dns_server=dns_server,
@@ -542,7 +659,8 @@ def main():
             show_all=args.show_all,
             include_authority=args.include_authority,
             include_additional=args.include_additional,
-            verbose=verbose
+            verbose=verbose,
+            prefer_ipv6=prefer_ipv6,
         )
 
         if records:
