@@ -418,11 +418,21 @@ def exchange_with_tc_fallback(server_ip, wire_query, timeout=2, port=53):
 # -----------------------------
 # Iterative resolution (with bailiwick glue)
 # -----------------------------
-def iterative_resolve(qname, qtype, timeout=2, max_steps=25, edns_size=None, do=False):
+def iterative_resolve(qname, qtype, timeout=2, max_steps=25, edns_size=None, do=False, overall_timeout=4.0):
     """
     Returns a DNS response message (bytes) from the last server contacted.
     Follows referrals iteratively from the root.
+
+    Changes:
+      - Enforces an overall deadline (overall_timeout seconds total)
+      - Stops early on terminal responses:
+          * RCODE != 0 (e.g., NXDOMAIN)
+          * SOA in authority with no answers (NODATA / negative)
+      - For resolving NS hostnames, tries A before AAAA (IPv4 first)
+      - Shares overall timeout into recursive NS-name lookups (prevents runaway time)
     """
+    deadline = time.time() + float(overall_timeout)
+
     next_servers = list(ROOT_SERVERS)
     random.shuffle(next_servers)
     last_msg = None
@@ -430,37 +440,61 @@ def iterative_resolve(qname, qtype, timeout=2, max_steps=25, edns_size=None, do=
     for _step in range(max_steps):
         if not next_servers:
             break
+        if time.time() >= deadline:
+            break
 
         server = next_servers.pop(0)
 
         _tid, wire = build_query(qname, qtype, rd=False, edns_size=edns_size, do=do)
+
+        # cap per-try timeout by remaining budget
+        remaining = deadline - time.time()
+        if remaining <= 0:
+            break
+        per_try = min(float(timeout), max(0.05, remaining))
+
         try:
-            resp = exchange_with_tc_fallback(server, wire, timeout=timeout, port=53)
+            resp = exchange_with_tc_fallback(server, wire, timeout=per_try, port=53)
         except Exception:
             continue
 
         last_msg = resp
-        parsed = parse_sections(resp)
 
-        # If got answers, done
+        try:
+            parsed = parse_sections(resp)
+        except Exception:
+            # if parsing fails, try next server
+            continue
+
+        # ---- Terminal conditions ----
+        # Any upstream error (NXDOMAIN, SERVFAIL, etc.)
+        if parsed["rcode"] != 0:
+            return resp
+
+        # Got direct answers
         if parsed["answers"]:
             return resp
 
-        # Referral: authority NS + additional glue
+        # Authoritative negative (NODATA): SOA in authority
+        if any(rr["type"] == QTYPE["SOA"] for rr in parsed["authority"]):
+            return resp
+
+        # ---- Referral processing: authority NS + additional glue ----
         ns_names = []
-        bailiwick_zone = None
         for rr in parsed["authority"]:
             if rr["type"] == QTYPE["NS"]:
-                bailiwick_zone = rr["name"]  # delegation zone
                 nsn, _ = decode_name(resp, rr["rdata_off"])
-                ns_names.append(nsn)
+                ns_names.append(_dnsname_norm(nsn))
 
+        # Prefer glue that matches the referred NS hostnames (even if out-of-bailiwick)
         glue_ips = []
-        if bailiwick_zone:
+        if ns_names:
+            ns_set = set(ns_names)
             for rr in parsed["additional"]:
                 if rr["type"] not in (QTYPE["A"], QTYPE["AAAA"]):
                     continue
-                if not _is_in_bailiwick(rr.get("name"), bailiwick_zone):
+                owner = _dnsname_norm(rr.get("name"))
+                if owner not in ns_set:
                     continue
                 ip = rr_ip_from_additional(rr)
                 if ip:
@@ -471,29 +505,52 @@ def iterative_resolve(qname, qtype, timeout=2, max_steps=25, edns_size=None, do=
             next_servers = glue_ips + next_servers
             continue
 
-        # No usable glue: resolve NS hostnames (AAAA first, then A)
+        # ---- No usable glue: resolve NS hostnames ----
         if ns_names:
             random.shuffle(ns_names)
             resolved_ns_ips = []
 
+            # try a few NS names
             for nsn in ns_names[:3]:
                 resolved_ns_ips = []
-                for qt in (QTYPE["AAAA"], QTYPE["A"]):
+
+                # IMPORTANT CHANGE: prefer IPv4 first, then IPv6
+                for qt in (QTYPE["A"], QTYPE["AAAA"]):
+                    # Keep NS-name lookups cheaper + share overall budget
+                    remaining = deadline - time.time()
+                    if remaining <= 0:
+                        break
+
                     ns_resp = iterative_resolve(
-                        nsn, qt, timeout=timeout, max_steps=max_steps,
-                        edns_size=edns_size, do=do
+                        nsn, qt,
+                        timeout=min(float(timeout), 0.5),
+                        max_steps=10,
+                        edns_size=edns_size,
+                        do=do,
+                        overall_timeout=max(0.1, remaining)
                     )
                     if not ns_resp:
                         continue
-                    ns_parsed = parse_sections(ns_resp)
+
+                    try:
+                        ns_parsed = parse_sections(ns_resp)
+                    except Exception:
+                        continue
+
+                    # If NS-name lookup got an error, ignore and try next
+                    if ns_parsed["rcode"] != 0:
+                        continue
+
                     for rr in ns_parsed["answers"]:
                         if rr["type"] == QTYPE["A"] and rr["rdlen"] == 4:
                             b = bytearray(rr["rdata"])
                             resolved_ns_ips.append("%d.%d.%d.%d" % (b[0], b[1], b[2], b[3]))
                         elif rr["type"] == QTYPE["AAAA"] and rr["rdlen"] == 16:
                             resolved_ns_ips.append(socket.inet_ntop(socket.AF_INET6, rr["rdata"]))
+
                     if resolved_ns_ips:
                         break
+
                 if resolved_ns_ips:
                     break
 
@@ -502,6 +559,7 @@ def iterative_resolve(qname, qtype, timeout=2, max_steps=25, edns_size=None, do=
                 next_servers = resolved_ns_ips + next_servers
                 continue
 
+        # nothing else to try; return what we got
         return resp
 
     return last_msg
@@ -635,20 +693,45 @@ def min_ttl_from_answers(resp_msg):
         return 30
 
 
+def _query_question_wire(query_msg):
+    """
+    Return the raw Question section (QNAME/QTYPE/QCLASS) from a client QUERY message.
+    This excludes any EDNS OPT or other additional records that may be present.
+    """
+    _tid, _flags, qd, _an, _ns, _ar, _tc, _rcode = parse_header(query_msg)
+    off = 12
+    off2 = skip_questions(query_msg, off, qd)
+    return query_msg[12:off2]
+
+
 def make_servfail(query_wire):
+    """
+    Return a minimal SERVFAIL response that echoes the Question section only.
+    Avoids dig's 'extra bytes at end' warning.
+    """
     if len(query_wire) < 12:
+        # minimal fallback (rare)
         return b"\x00\x00" + struct.pack("!H", 0x8002) + b"\x00\x01\x00\x00\x00\x00\x00\x00"
+
     tid = query_wire[:2]
-    hdr = tid + struct.pack("!H", 0x8002) + struct.pack("!HHHH", 1, 0, 0, 0)
-    return hdr + query_wire[12:]
+    flags = 0x8000 | 0x0002  # QR=1, RCODE=2 (SERVFAIL)
+    qwire = _query_question_wire(query_wire)
+    hdr = tid + struct.pack("!H", flags) + struct.pack("!HHHH", 1, 0, 0, 0)
+    return hdr + qwire
 
 
 def make_nxdomain(query_wire):
+    """
+    Return a minimal NXDOMAIN response that echoes the Question section only.
+    """
     if len(query_wire) < 12:
         return b"\x00\x00" + struct.pack("!H", 0x8003) + b"\x00\x01\x00\x00\x00\x00\x00\x00"
+
     tid = query_wire[:2]
-    hdr = tid + struct.pack("!H", 0x8003) + struct.pack("!HHHH", 1, 0, 0, 0)
-    return hdr + query_wire[12:]
+    flags = 0x8000 | 0x0003  # QR=1, RCODE=3 (NXDOMAIN)
+    qwire = _query_question_wire(query_wire)
+    hdr = tid + struct.pack("!H", flags) + struct.pack("!HHHH", 1, 0, 0, 0)
+    return hdr + qwire
 
 
 def _rewrite_response_for_client(resp, client_tid_bytes, client_query_flags):

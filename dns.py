@@ -687,7 +687,7 @@ def main():
         description="DNS Query Script: strict TXID validation + IPv6 + dig/nslookup styles"
     )
     parser.add_argument('--dns-server', type=str,
-                        help='DNS server address (IPv4, IPv6, IPv6%zone, or hostname)')
+                        help='DNS server address (IPv4, IPv6, IPv6%%zone, or hostname)')
     parser.add_argument('--domain', type=str, help='Domain to look up (e.g., example.com)')
     parser.add_argument('--record-type', type=str, default='A',
                         help='DNS record type (A, AAAA, MX, CNAME, NS, TXT)')
