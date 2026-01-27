@@ -63,6 +63,7 @@ import os
 import io
 import re
 import sys
+import json
 import random
 import platform
 import secrets
@@ -101,9 +102,10 @@ except ImportError:
 
 try:
     # Py3
-    from urllib.parse import quote_from_bytes, unquote_to_bytes
+    from urllib.parse import quote_from_bytes, unquote_to_bytes, urlencode
 except ImportError:
     # Py2
+    from urllib import urlencode
     from urllib import quote as _quote
     from urllib import unquote as _unquote
 
@@ -1745,7 +1747,151 @@ def decode_headers_any(headers):
         for k, v in pairs
     }
 
-def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, timeout=60, returnstats=False):
+def _is_many_specs(value):
+    # True if value looks like: [ [field, fobj, ctype], [field, fobj, ctype], ... ]
+    return (
+        isinstance(value, (list, tuple)) and value and
+        isinstance(value[0], (list, tuple)) and len(value[0]) >= 2
+    )
+
+
+def _normalize_ctype(filename, ctype):
+    if ctype == "textplain":
+        return "text/plain"
+    if ctype:
+        return ctype
+    if guess_type:
+        guessed = guess_type(filename)[0]
+        if guessed:
+            return guessed
+    return "application/octet-stream"
+
+
+def _ensure_ext(filename, default_ext=".txt"):
+    if "." not in filename:
+        return filename + default_ext
+    return filename
+
+
+def _read_fileobj(fobj):
+    data = fobj.read()
+    # rewind if possible so caller can reuse the file object
+    try:
+        fobj.seek(0)
+    except Exception:
+        pass
+    return data
+
+
+def to_requests_files(payload, default_ext=".txt"):
+    """
+    Input payload format:
+      {
+        "hello.txt": ["file[]", fobj, "text/plain"],
+        "goodbye":   ["file[]", fobj2, "textplain"],
+        "multi.bin": [
+            ["file[]", fobj3, "application/octet-stream"],
+            ["file[]", fobj4, None],
+        ],
+      }
+
+    Output:
+      [
+        ("file[]", ("hello.txt", b"...", "text/plain")),
+        ("file[]", ("goodbye.txt", b"...", "text/plain")),
+        ("file[]", ("multi.bin", b"...", "application/octet-stream")),
+        ("file[]", ("multi.bin", b"...", "application/octet-stream")),
+      ]
+    """
+    out = []
+
+    # Py2 dict iteration
+    items = payload.items()
+
+    for filename, spec in items:
+        # ensure filename is a text string
+        if not isinstance(filename, text_type):
+            filename = text_type(filename)
+
+        filename2 = _ensure_ext(filename, default_ext)
+
+        specs = spec if _is_many_specs(spec) else [spec]
+
+        for one in specs:
+            if not isinstance(one, (list, tuple)) or len(one) < 2:
+                raise ValueError("Bad spec for %r: expected [fieldname, fileobj, (optional) ctype]" % filename)
+
+            fieldname = one[0]
+            fobj = one[1]
+            ctype = one[2] if len(one) > 2 else None
+
+            ctype = _normalize_ctype(filename2, ctype)
+            data = _read_fileobj(fobj)
+
+            out.append((fieldname, (filename2, data, ctype)))
+
+    return out
+
+def to_pycurl_httpost(payload, default_ext=".txt"):
+    """
+    Input payload format (same as your requests converter):
+      {
+        "hello.txt": ["file[]", fobj, "text/plain"],
+        "goodbye":   ["file[]", fobj2, "textplain"],
+        "multi.txt": [
+            ["file[]", fobj3, "text/plain"],
+            ["file[]", fobj4, None],
+        ],
+      }
+
+    Output:
+      [
+        ('file[]', (pycurl.FORM_BUFFER, 'hello.txt',  pycurl.FORM_BUFFERPTR, b'...', pycurl.FORM_CONTENTTYPE, 'text/plain')),
+        ('file[]', (pycurl.FORM_BUFFER, 'goodbye.txt',pycurl.FORM_BUFFERPTR, b'...', pycurl.FORM_CONTENTTYPE, 'text/plain')),
+        ...
+      ]
+    """
+
+    http_post = []
+    for filename, spec in payload.items():
+        if not isinstance(filename, text_type):
+            filename = text_type(filename)
+
+        filename2 = _ensure_ext(filename, default_ext)
+        specs = spec if _is_many_specs(spec) else [spec]
+
+        for one in specs:
+            if not isinstance(one, (list, tuple)) or len(one) < 2:
+                raise ValueError("Bad spec for %r: expected [fieldname, fileobj, (optional) ctype]" % filename)
+
+            fieldname = one[0]
+            fobj = one[1]
+            ctype = one[2] if len(one) > 2 else None
+            ctype = _normalize_ctype(filename2, ctype)
+
+            data = fobj.read()
+            try:
+                fobj.seek(0)
+            except Exception:
+                pass
+
+            # Important: pycurl wants bytes for FORM_BUFFERPTR
+            # If someone fed you text in Py3, encode it.
+            if isinstance(data, text_type):
+                data = data.encode("utf-8")
+
+            http_post.append((
+                fieldname,
+                (
+                    pycurl.FORM_BUFFER, filename2,
+                    pycurl.FORM_BUFFERPTR, data,
+                    pycurl.FORM_CONTENTTYPE, ctype,
+                )
+            ))
+
+    return http_post
+
+def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, timeout=60, returnstats=False):
     if headers is None:
         headers = {}
     else:
@@ -1760,6 +1906,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
     if p.port:
         netloc += ":" + str(p.port)
     rebuilt_url = urlunparse((p.scheme, netloc, p.path, p.params, p.query, p.fragment))
+    extendargs = {}
 
     # HTTP resume: ?resume=1&resume_to=/path
     qs = parse_qs(p.query or "")
@@ -1800,19 +1947,36 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
 
     socket.setdefaulttimeout(float(timeout))
     start_time = time.time()
+
     # Requests
     if usehttp == "requests" and haverequests:
         auth = (username, password) if (username and password) else None
+        extendargs.update({'url': rebuilt_url, 'headers': headers, 'auth': auth, 'cookies': httpcookie, 'stream': True, 'timeout': (float(timeout), float(timeout))})
         try:
             if(httpmethod == "GET"):
-                r = requests.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(float(timeout), float(timeout)))
+                extendargs.update({'method': "GET"})
             elif(httpmethod == "POST"):
-                r = requests.post(rebuilt_url, data=postdata, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(float(timeout), float(timeout)))
+                extendargs.update({'method': "POST"})
+                if(sendfiles is not None):
+                    jsonpost = False
+                    sendfiles = to_requests_files(sendfiles)
+                    if(sendfiles is not None):
+                        for _, (_, fobj, *_) in sendfiles:
+                            if hasattr(fobj, "seek"):
+                                fobj.seek(0)
+                    extendargs.update({'files': sendfiles})
+                if(jsonpost and postdata is not None):
+                    extendargs.update({'json': postdata})
+                elif(not jsonpost and postdata is not None):
+                    extendargs.update({'data': postdata})
             else:
-                r = requests.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie, stream=True, timeout=(float(timeout), float(timeout)))
+                extendargs.update({'method': "GET"})
+            r = requests.request(**extendargs)
+            r.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            r = e.response
         except (socket.timeout, socket.gaierror, requests.exceptions.ConnectionError):
             return False
-        r.raise_for_status()
         r.raw.decode_content = True
         #shutil.copyfileobj(r.raw, httpfile)
         for chunk in r.iter_content(chunk_size=1024 * 1024):
@@ -1843,18 +2007,34 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         try:
             with httpx.Client(follow_redirects=True, http1=True, http2=usehttp2, trust_env=True, timeout=float(timeout)) as client:
                 auth = (username, password) if (username and password) else None
+                extendargs.update({'url': rebuilt_url, 'headers': headers, 'auth': auth, 'cookies': httpcookie})
                 if(httpmethod == "GET"):
-                    r = client.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie)
-                if(httpmethod == "POST"):
-                    r = client.post(rebuilt_url, data=postdata, headers=headers, auth=auth, cookies=httpcookie)
+                    extendargs.update({'method': "GET"})
+                elif(httpmethod == "POST"):
+                    extendargs.update({'method': "POST"})
+                    if(sendfiles is not None):
+                        jsonpost = False
+                        sendfiles = to_requests_files(sendfiles)
+                        if(sendfiles is not None):
+                            for _, (_, fobj, *_) in sendfiles:
+                                if hasattr(fobj, "seek"):
+                                    fobj.seek(0)
+                        extendargs.update({'files': sendfiles})
+                    if(jsonpost and postdata is not None):
+                        extendargs.update({'json': postdata})
+                    elif(not jsonpost and postdata is not None):
+                        extendargs.update({'data': postdata})
                 else:
-                    r = client.get(rebuilt_url, headers=headers, auth=auth, cookies=httpcookie)
+                    extendargs.update({'method': "GET"})
+                r = client.request(**extendargs)
                 r.raise_for_status()
-                for chunk in r.iter_bytes(chunk_size=1024 * 1024):
-                    if chunk:
-                        httpfile.write(chunk)
+        except httpx.HTTPStatusError as e:
+            r = e.response
         except (socket.timeout, socket.gaierror, httpx.ConnectError):
             return False
+        for chunk in r.iter_bytes(chunk_size=1024 * 1024):
+            if chunk:
+                httpfile.write(chunk)
         httpcodeout = r.status_code
         try:
             httpcodereason = r.reason_phrase
@@ -1891,8 +2071,24 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                 httpcorem = "GET"
                 content = None
             timeoutdict = {"connect": float(timeout), "read": float(timeout), "write": float(timeout), "pool": float(timeout)}
+            extendargs.update({'url': rebuilt_url, 'extensions': {"timeout": timeoutdict}})
+            if(httpmethod == "GET"):
+                extendargs.update({'method': "GET"})
+            elif(httpmethod == "POST"):
+                extendargs.update({'method': "POST"})
+                if(jsonpost and postdata is not None):
+                    if('Content-Type' in headers):
+                        headers['Content-Type'] = "application/json"
+                    else:
+                        headers.update({'Content-Type': "application/json"})
+                    extendargs.update({'content': json.dumps(postdata).encode('UTF-8')})
+                elif(not jsonpost and postdata is not None):
+                    extendargs.update({'content': urlencode(postdata).encode('UTF-8')})
+            else:
+                extendargs.update({'method': "GET"})
+            extendargs.update({'headers': headers})
             try:
-                with client.stream(httpcorem, rebuilt_url, headers=headers, content=content, extensions={"timeout": timeoutdict}, ) as r:
+                with client.stream(**extendargs, ) as r:
                     for chunk in r.iter_stream():
                         if chunk:
                             httpfile.write(chunk)
@@ -1913,20 +2109,33 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         br = mechanize.Browser()
         br.set_cookiejar(httpcookie)
         br.set_handle_robots(False)
-        if headers:
-            br.addheaders = list(headers.items())
         if username and password:
             br.add_password(rebuilt_url, username, password)
-        if(postdata is not None and not isinstance(postdata, dict)):
-            postdata = urlencode(postdata)
+        if(not jsonpost and postdata is not None and not isinstance(postdata, dict)):
+            postdata = urlencode(postdata).encode('UTF-8')
+        elif(jsonpost and postdata is not None and not isinstance(postdata, dict)):
+            postdata = json.dumps(postdata).encode('UTF-8')
         try:
             if(httpmethod == "GET"):
+                if headers:
+                    br.addheaders = list(headers.items())
                 resp = br.open(rebuilt_url, timeout=timeout)
             elif(httpmethod == "POST"):
+                if(jsonpost and postdata is not None):
+                    if('Content-Type' in headers):
+                        headers['Content-Type'] = "application/json"
+                    else:
+                        headers.update({'Content-Type': "application/json"})
+                if headers:
+                    br.addheaders = list(headers.items())
                 resp = br.open(rebuilt_url, data=postdata, timeout=float(timeout))
             else:
+                if headers:
+                    br.addheaders = list(headers.items())
                 resp = br.open(rebuilt_url, timeout=timeout)
-        except (socket.timeout, socket.gaierror, URLError, HTTPError):
+        except HTTPError as e:
+            resp = e
+        except (socket.timeout, socket.gaierror, URLError):
             return False
         shutil.copyfileobj(resp, httpfile, length=1024 * 1024)
         httpcodeout = resp.code
@@ -1953,12 +2162,29 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             headers.update(auth_headers)
         # Request with preload_content=False to get a file-like object
         try:
+            extendargs.update({'url': rebuilt_url, 'headers': headers, 'preload_content': False, 'decode_content': True})
             if(httpmethod == "GET"):
-                resp = http.request("GET", rebuilt_url, headers=headers, preload_content=False, decode_content=True)
-            if(httpmethod == "POST"):
-                resp = http.request("POST", rebuilt_url, body=postdata, headers=headers, preload_content=False, decode_content=True)
+                extendargs.update({'method': "GET"})
+            elif(httpmethod == "POST"):
+                extendargs.update({'method': "POST"})
+                if(sendfiles is not None):
+                    jsonpost = False
+                    sendfiles = to_requests_files(sendfiles)
+                    if(sendfiles is not None):
+                        for _, (_, fobj, *_) in sendfiles:
+                            if hasattr(fobj, "seek"):
+                                fobj.seek(0)
+                    extendargs.update({'fields': sendfiles})
+                if(jsonpost and postdata is not None):
+                    extendargs.update({'json': postdata})
+                elif(not jsonpost and postdata is not None):
+                    if('fields' in headers):
+                        extendargs['fields'].update({postdata})
+                    else:
+                        extendargs.update({'fields': postdata})
             else:
-                resp = http.request("GET", rebuilt_url, headers=headers, preload_content=False, decode_content=True)
+                extendargs.update({'method': "GET"})
+            resp = http.request(**extendargs)
         except (socket.timeout, socket.gaierror, urllib3.exceptions.MaxRetryError):
             return False
         shutil.copyfileobj(resp, httpfile, length=1024 * 1024)
@@ -1992,7 +2218,6 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         curlreq.setopt(pycurl.URL, rebuilt_url)
         curlreq.setopt(pycurl.HTTP_VERSION, usehttpver)
         curlreq.setopt(pycurl.WRITEDATA, retrieved_body)
-        curlreq.setopt(pycurl.HTTPHEADER, headers)
         curlreq.setopt(pycurl.WRITEHEADER, retrieved_headers)
         curlreq.setopt(pycurl.VERBOSE, 1)
         curlreq.setopt(pycurl.DEBUGFUNCTION, lambda t, m: sentout_headers.write(m))
@@ -2002,12 +2227,26 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             curlreq.setopt(pycurl.HTTPGET, True)
         elif(httpmethod == "POST"):
             curlreq.setopt(pycurl.POST, True)
-            curlreq.setopt(pycurl.POSTFIELDS, postdata)
+            if(sendfiles is not None):
+                jsonpost = False
+                sendfiles = to_pycurl_httpost(sendfiles)
+                curlreq.setopt(pycurl.HTTPPOST, sendfiles)
+            if(jsonpost and postdata is not None):
+                if('Content-Type' in headers):
+                    headers['Content-Type'] = "application/json"
+                else:
+                    headers.update({'Content-Type': "application/json"})
+                    curlreq.setopt(pycurl.POSTFIELDS, json.dumps(postdata).encode('UTF-8'))
+            elif(not jsonpost and postdata is not None):
+                curlreq.setopt(pycurl.POSTFIELDS, urlencode(postdata).encode('UTF-8'))
         else:
             curlreq.setopt(pycurl.HTTPGET, True)
+        headers = make_http_headers_from_dict_to_pycurl(headers)
+        curlreq.setopt(pycurl.HTTPHEADER, headers)
         try:
             curlreq.perform()
         except (socket.timeout, socket.gaierror, pycurl.error):
+            curlreq.close()
             return False
         retrieved_headers.seek(0, 0)
         sentout_headers.seek(0, 0)
@@ -2037,6 +2276,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         httpversionout = HTTP_VERSION_MAP.get(ver_enum, "HTTP/1.1")
         httpmethodout = httpmethod
         httpurlout = curlreq.getinfo(pycurl.EFFECTIVE_URL)
+        curlreq.close()
         httpheaderout = pycurlheadersout
         try:
             httpheadersentout = httpheadersentpre['request']['headers']
@@ -2045,7 +2285,23 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
 
     # urllib fallback
     else:
-        req = Request(rebuilt_url, headers=headers)
+        extendargs.update({'url': rebuilt_url})
+        if(httpmethod == "GET"):
+            extendargs.update({'method': "GET"})
+        elif(httpmethod == "POST"):
+            extendargs.update({'method': "POST"})
+            if(jsonpost and postdata is not None):
+                if('Content-Type' in headers):
+                    headers['Content-Type'] = "application/json"
+                else:
+                    headers.update({'Content-Type': "application/json"})
+                extendargs.update({'data': json.dumps(postdata).encode('UTF-8')})
+            elif(not jsonpost and postdata is not None):
+                extendargs.update({'data': urlencode(postdata).encode('UTF-8')})
+        else:
+            extendargs.update({'method': "GET"})
+        extendargs.update({'headers': headers})
+        req = Request(**extendargs)
         if username and password:
             mgr = HTTPPasswordMgrWithDefaultRealm()
             mgr.add_password(None, rebuilt_url, username, password)
@@ -2053,14 +2309,10 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         else:
             opener = build_opener()
         try:
-            if(httpmethod == "GET"):
-                resp = opener.open(req, timeout=float(timeout))
-            elif(httpmethod == "POST"):
-                postdata = urlencode(postdata)
-                resp = geturls_opener.open(req, data=postdata, timeout=timeout)
-            else:
-                resp = opener.open(req, timeout=timeout)
-        except (socket.timeout, socket.gaierror, URLError, HTTPError):
+            resp = opener.open(req, timeout=timeout)
+        except HTTPError as e:
+            resp = e;
+        except (socket.timeout, socket.gaierror, URLError):
             return False
         resp2 = decoded_stream(resp)
         shutil.copyfileobj(resp2, httpfile, length=1024 * 1024)
@@ -2104,15 +2356,15 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
     else:
         return httpfile
 
-def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", timeout=60, returnstats=False):
-    fp = download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, timeout, returnstats)
+def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, timeout=60, returnstats=False):
+    fp = download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, timeout, returnstats)
     return fp.read() if fp else False
 
-def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, timeout=60, returnstats=False):
-    return download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, timeout, returnstats)
+def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, timeout=60, returnstats=False):
+    return download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, timeout, returnstats)
 
-def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, timeout=60, returnstats=False):
-    return download_file_from_http_string(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, timeout, returnstats)
+def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, timeout=60, returnstats=False):
+    return download_file_from_http_string(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, timeout, returnstats)
 
 # --------------------------
 # TCP/UDP transport (receiver + sender)
