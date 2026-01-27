@@ -10,23 +10,61 @@ import time
 import random
 
 # -----------------------------
-# Root server IPs
+# Root Server Data (IPv4 & IPv6)
 # -----------------------------
-ROOT_SERVERS = [
-    "198.41.0.4",     # a.root-servers.net
-    "199.9.14.201",   # b.root-servers.net
-    "192.33.4.12",    # c.root-servers.net
-    "199.7.91.13",    # d.root-servers.net
-    "192.203.230.10", # e.root-servers.net
-    "192.5.5.241",    # f.root-servers.net
-    "192.112.36.4",   # g.root-servers.net
-    "198.97.190.53",  # h.root-servers.net
-    "192.36.148.17",  # i.root-servers.net
-    "192.58.128.30",  # j.root-servers.net
-    "193.0.14.129",   # k.root-servers.net
-    "199.7.83.42",    # l.root-servers.net
-    "202.12.27.33",   # m.root-servers.net
-]
+ROOT_SERVERS_DATA = {
+    "a": {"ipv4": "198.41.0.4",     "ipv6": "2001:503:ba3e::2:30"},
+    "b": {"ipv4": "199.9.14.201",   "ipv6": "2001:500:200::b"},
+    "c": {"ipv4": "192.33.4.12",    "ipv6": "2001:500:2::c"},
+    "d": {"ipv4": "199.7.91.13",    "ipv6": "2001:500:2d::d"},
+    "e": {"ipv4": "192.203.230.10", "ipv6": "2001:500:a8::e"},
+    "f": {"ipv4": "192.5.5.241",    "ipv6": "2001:500:2f::f"},
+    "g": {"ipv4": "192.112.36.4",   "ipv6": "2001:500:12::d0d"},
+    "h": {"ipv4": "198.97.190.53",  "ipv6": "2001:500:1::53"},
+    "i": {"ipv4": "192.36.148.17",  "ipv6": "2001:7fe::53"},
+    "j": {"ipv4": "192.58.128.30",  "ipv6": "2001:503:c27::2:30"},
+    "k": {"ipv4": "193.0.14.129",   "ipv6": "2001:7fd::1"},
+    "l": {"ipv4": "199.7.83.42",    "ipv6": "2001:500:9f::42"},
+    "m": {"ipv4": "202.12.27.33",   "ipv6": "2001:dc3::35"},
+}
+
+def default_root_servers(family="both"):
+    """
+    family:
+      - 'both'  -> include ipv6 + ipv4
+      - 'ipv6'  -> only ipv6
+      - 'ipv4'  -> only ipv4
+      - 'auto'  -> ipv6 if socket.has_ipv6 else ipv4
+    """
+    fam = (family or "both").lower()
+    out = []
+
+    if fam == "auto":
+        fam = "ipv6" if getattr(socket, "has_ipv6", False) else "ipv4"
+
+    keys = sorted(ROOT_SERVERS_DATA.keys())
+    if fam in ("both", "ipv6"):
+        for k in keys:
+            ip6 = ROOT_SERVERS_DATA[k].get("ipv6")
+            if ip6:
+                out.append(ip6)
+    if fam in ("both", "ipv4"):
+        for k in keys:
+            ip4 = ROOT_SERVERS_DATA[k].get("ipv4")
+            if ip4:
+                out.append(ip4)
+
+    # fallback safety
+    if not out:
+        for k in keys:
+            ip4 = ROOT_SERVERS_DATA[k].get("ipv4")
+            if ip4:
+                out.append(ip4)
+
+    return out
+
+# Will be set in main() based on --roots-family (unless --roots file provided)
+ROOT_SERVERS = default_root_servers("both")
 
 QTYPE = {
     "A": 1, "NS": 2, "CNAME": 5, "SOA": 6,
@@ -43,20 +81,24 @@ LOG_QUERIES = False
 BLOCKLIST = set()
 
 # EDNS/DNSSEC defaults (CLI)
-EDNS_SIZE_DEFAULT = 1232   # good modern UDP size; avoids fragmentation
+EDNS_SIZE_DEFAULT = 1232
 FORCE_DNSSEC_DO = False
 NO_EDNS = False
 
 # Minimal-ish DIY validation (NOT full DNSSEC validation)
 VALIDATE_BASIC = False
 STRICT_BAILIWICK = False
-VALIDATION_LOG = False   # extra logs when validate-basic rejects things
+VALIDATION_LOG = False
 
 
 # -----------------------------
 # Helpers for loading lists
 # -----------------------------
 def load_roots(path):
+    """
+    Load root server IPs from a file (one IP per line; # comments allowed).
+    If file is empty/bad -> keep current ROOT_SERVERS.
+    """
     if not path:
         return ROOT_SERVERS
     try:
@@ -265,10 +307,6 @@ def _is_in_bailiwick(ns_host, zone):
 # Minimal-ish upstream validation helpers (NOT DNSSEC)
 # -----------------------------
 def _qkey_from_wire(msg):
-    """
-    Extract (qname_norm, qtype, qclass) from a DNS message's first question.
-    Returns None if cannot parse.
-    """
     try:
         _tid, _flags, qd, _an, _ns, _ar, _tc, _rcode = parse_header(msg)
         if qd < 1:
@@ -284,21 +322,17 @@ def _qkey_from_wire(msg):
 
 
 def _upstream_sanity_check(query_wire, resp_wire):
-    """
-    Minimal checks to reject obviously-wrong upstream responses.
-    Returns (ok: bool, reason: str).
-    """
     if not resp_wire or len(resp_wire) < 12:
         return False, "resp too short"
 
-    # TXID should match our upstream query TXID
+    # TXID must match our upstream TXID
     if len(query_wire) >= 2 and len(resp_wire) >= 2:
         q_tid = struct.unpack("!H", query_wire[:2])[0]
         r_tid = struct.unpack("!H", resp_wire[:2])[0]
         if q_tid != r_tid:
             return False, "txid mismatch q=%04x r=%04x" % (q_tid, r_tid)
 
-    # If response includes a question, ensure it matches what we asked
+    # Question match if response includes question
     qk = _qkey_from_wire(query_wire)
     rk = _qkey_from_wire(resp_wire)
     if rk is not None and qk is not None and rk != qk:
@@ -321,15 +355,9 @@ def _authority_ns_set(parsed):
 
 
 def _filter_glue(parsed, zone_hint=None):
-    """
-    Return list of glue IPs after basic checks.
-    - Only accept A/AAAA in additional whose OWNER NAME matches an NS hostname from authority.
-    - If STRICT_BAILIWICK and zone_hint provided, also require owner is in bailiwick of zone_hint.
-    """
     ns_set = _authority_ns_set(parsed)
     if not ns_set:
         return []
-
     glue = []
     for rr in parsed["additional"]:
         if rr["type"] not in (QTYPE["A"], QTYPE["AAAA"]):
@@ -362,7 +390,7 @@ def _build_opt_rr(edns_size, do=False):
     rtype = struct.pack("!H", QTYPE["OPT"])
     rclass = struct.pack("!H", edns_size)
     flags = 0x8000 if do else 0x0000
-    ttl = struct.pack("!I", flags)  # ext_rcode=0, ver=0, flags=flags
+    ttl = struct.pack("!I", flags)
     rdlen = struct.pack("!H", 0)
     return name + rtype + rclass + ttl + rdlen
 
@@ -391,7 +419,7 @@ def build_query(qname, qtype, rd=False, edns_size=None, do=False):
     tid = random.randint(0, 0xFFFF)
     flags = 0x0000
     if rd:
-        flags |= 0x0100  # RD
+        flags |= 0x0100
     qdcount = 1
     ancount = 0
     nscount = 0
@@ -408,7 +436,7 @@ def build_query(qname, qtype, rd=False, edns_size=None, do=False):
 
 
 # -----------------------------
-# SOA parsing for negative caching TTL (RFC2308-ish)
+# SOA parsing for negative caching TTL
 # -----------------------------
 def _soa_negative_ttl(resp_msg):
     try:
@@ -422,8 +450,8 @@ def _soa_negative_ttl(resp_msg):
             continue
         try:
             off = rr["rdata_off"]
-            _, off = decode_name(raw, off)  # mname
-            _, off = decode_name(raw, off)  # rname
+            _, off = decode_name(raw, off)
+            _, off = decode_name(raw, off)
             if off + 20 > len(raw):
                 return rr["ttl"]
             _serial, _refresh, _retry, _expire, minimum = struct.unpack("!IIIII", raw[off:off + 20])
@@ -511,7 +539,7 @@ def exchange_with_tc_fallback(server_ip, wire_query, timeout=2, port=53):
 
 
 # -----------------------------
-# Iterative resolution (with bailiwick glue + overall timeout)
+# Iterative resolution (with overall timeout)
 # -----------------------------
 def iterative_resolve(qname, qtype, timeout=2, max_steps=25,
                       edns_size=None, do=False, overall_timeout=4.0):
@@ -548,19 +576,15 @@ def iterative_resolve(qname, qtype, timeout=2, max_steps=25,
         except Exception:
             continue
 
-        # Terminal: upstream error codes (NXDOMAIN/SERVFAIL/etc.)
         if parsed["rcode"] != 0:
             return resp
 
-        # Direct answers
         if parsed["answers"]:
             return resp
 
-        # Authoritative negative (NODATA): SOA in authority
         if any(rr["type"] == QTYPE["SOA"] for rr in parsed["authority"]):
             return resp
 
-        # Collect NS names from authority
         ns_names = []
         for rr in parsed["authority"]:
             if rr["type"] == QTYPE["NS"]:
@@ -570,7 +594,6 @@ def iterative_resolve(qname, qtype, timeout=2, max_steps=25,
                 except Exception:
                     continue
 
-        # Glue selection
         glue_ips = []
         if ns_names:
             if VALIDATE_BASIC:
@@ -580,30 +603,29 @@ def iterative_resolve(qname, qtype, timeout=2, max_steps=25,
                     if len(parts) >= 2:
                         zone_hint = ".".join(parts[1:])
                 glue_ips = _filter_glue(parsed, zone_hint=zone_hint)
-                if (VALIDATION_LOG or LOG_QUERIES) and not glue_ips and parsed["additional"]:
-                    # Some additionals existed, but none accepted as glue
-                    print("[VALIDATE] glue filtered out (server=%s qname=%s strict=%s)"
-                          % (server, qname, "1" if STRICT_BAILIWICK else "0"))
             else:
+                ns_set = set(ns_names)
                 for rr in parsed["additional"]:
-                    if rr["type"] in (QTYPE["A"], QTYPE["AAAA"]):
-                        ip = rr_ip_from_additional(rr)
-                        if ip:
-                            glue_ips.append(ip)
+                    if rr["type"] not in (QTYPE["A"], QTYPE["AAAA"]):
+                        continue
+                    owner = _dnsname_norm(rr.get("name"))
+                    if owner not in ns_set:
+                        continue
+                    ip = rr_ip_from_additional(rr)
+                    if ip:
+                        glue_ips.append(ip)
 
         if glue_ips:
             random.shuffle(glue_ips)
             next_servers = glue_ips + next_servers
             continue
 
-        # No usable glue: resolve NS hostnames (IPv4 first, then IPv6)
         if ns_names:
             random.shuffle(ns_names)
             resolved_ns_ips = []
 
             for nsn in ns_names[:3]:
                 resolved_ns_ips = []
-
                 for qt in (QTYPE["A"], QTYPE["AAAA"]):
                     remaining = deadline - time.time()
                     if remaining <= 0:
@@ -699,8 +721,7 @@ def resolve_with_cname_chase(qname, qtype, timeout, edns_size=None, do=False,
             if chain:
                 combined = chain + [rr["wire"] for rr in parsed["answers"] if rr["type"] == want]
                 base = chain_base_resp if "chain_base_resp" in locals() else resp
-                out = _build_combined_response(base, combined)
-                return out
+                return _build_combined_response(base, combined)
             return resp
 
         cname_rr = None
@@ -736,7 +757,7 @@ def resolve_with_cname_chase(qname, qtype, timeout, edns_size=None, do=False,
 class Cache(object):
     def __init__(self):
         self._lock = threading.Lock()
-        self._store = {}  # key -> (expires_at, wire_response_template)
+        self._store = {}
 
     def get(self, key):
         now = time.time()
@@ -754,7 +775,6 @@ class Cache(object):
         exp = time.time() + max(1, int(ttl))
         with self._lock:
             self._store[key] = (exp, msg)
-
 
 CACHE = Cache()
 
@@ -793,9 +813,8 @@ def _query_question_wire(query_msg):
 def make_servfail(query_wire):
     if len(query_wire) < 12:
         return b"\x00\x00" + struct.pack("!H", 0x8002) + b"\x00\x01\x00\x00\x00\x00\x00\x00"
-
     tid = query_wire[:2]
-    flags = 0x8000 | 0x0002  # QR=1, RCODE=2
+    flags = 0x8000 | 0x0002
     qwire = _query_question_wire(query_wire)
     hdr = tid + struct.pack("!H", flags) + struct.pack("!HHHH", 1, 0, 0, 0)
     return hdr + qwire
@@ -804,9 +823,8 @@ def make_servfail(query_wire):
 def make_nxdomain(query_wire):
     if len(query_wire) < 12:
         return b"\x00\x00" + struct.pack("!H", 0x8003) + b"\x00\x01\x00\x00\x00\x00\x00\x00"
-
     tid = query_wire[:2]
-    flags = 0x8000 | 0x0003  # QR=1, RCODE=3
+    flags = 0x8000 | 0x0003
     qwire = _query_question_wire(query_wire)
     hdr = tid + struct.pack("!H", flags) + struct.pack("!HHHH", 1, 0, 0, 0)
     return hdr + qwire
@@ -817,12 +835,11 @@ def _rewrite_response_for_client(resp, client_tid_bytes, client_query_flags):
         return resp
 
     client_rd = bool(client_query_flags & 0x0100)
-
     _up_tid, up_flags, qd, an, ns, ar = struct.unpack("!HHHHHH", resp[:12])
 
-    up_flags |= 0x8000      # QR=1
-    up_flags &= ~0x0400     # AA=0
-    up_flags |= 0x0080      # RA=1
+    up_flags |= 0x8000
+    up_flags &= ~0x0400
+    up_flags |= 0x0080
 
     if client_rd:
         up_flags |= 0x0100
@@ -873,10 +890,7 @@ def handle_query_wire(query_wire, client_addr=None):
     client_tid = query_wire[:2] if len(query_wire) >= 2 else b"\x00\x00"
     client_flags = struct.unpack("!H", query_wire[2:4])[0] if len(query_wire) >= 4 else 0
 
-    # Client EDNS options (if any)
     client_edns_size, client_do = _client_edns_options(query_wire)
-
-    # Effective upstream EDNS/DO policy
     eff_do = bool(client_do) or bool(FORCE_DNSSEC_DO)
 
     if NO_EDNS:
@@ -893,25 +907,16 @@ def handle_query_wire(query_wire, client_addr=None):
               (who, qname, qtype, str(eff_edns), "1" if eff_do else "0"))
 
     if is_blocked(qname):
-        if LOG_QUERIES:
-            print("[DNS] BLOCKED %s" % qname)
         resp = make_nxdomain(query_wire)
         return _rewrite_response_for_client(resp, client_tid, client_flags)
 
-    # Cache key includes DO flag (DNSSEC responses differ)
     key = (_dnsname_norm(qname), qtype, qclass, 1 if eff_do else 0)
 
     cached_template = CACHE.get(key)
     if cached_template:
         return _apply_template(cached_template, client_tid, client_flags)
 
-    resp = resolve_with_cname_chase(
-        qname, qtype,
-        timeout=UPSTREAM_TIMEOUT,
-        edns_size=eff_edns,
-        do=eff_do
-    )
-
+    resp = resolve_with_cname_chase(qname, qtype, timeout=UPSTREAM_TIMEOUT, edns_size=eff_edns, do=eff_do)
     if not resp:
         resp = make_servfail(query_wire)
         return _rewrite_response_for_client(resp, client_tid, client_flags)
@@ -922,12 +927,7 @@ def handle_query_wire(query_wire, client_addr=None):
     except Exception:
         rcode = 0
 
-    if rcode == 3:  # NXDOMAIN
-        ttl = _negative_cache_ttl(resp)
-        CACHE.put(key, _template_response(resp), ttl=ttl)
-        return _rewrite_response_for_client(resp, client_tid, client_flags)
-
-    if _is_nodata(resp):
+    if rcode == 3 or _is_nodata(resp):
         ttl = _negative_cache_ttl(resp)
         CACHE.put(key, _template_response(resp), ttl=ttl)
         return _rewrite_response_for_client(resp, client_tid, client_flags)
@@ -1034,8 +1034,7 @@ def run_stub(bind_ip="127.0.0.1", port=5353):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Iterative DNS stub resolver: UDP+TCP, TXID rewrite, upstream TCP fallback on TC=1, "
-                    "IPv6, CNAME chase, negative cache, bailiwick glue, EDNS0+DO, "
-                    "optional minimal upstream sanity checks + validation logging"
+                    "IPv6, CNAME chase, negative cache, glue filtering, EDNS0+DO"
     )
 
     parser.add_argument("--bind", default="127.0.0.1",
@@ -1055,8 +1054,14 @@ if __name__ == "__main__":
                         help="Log queries to stdout")
     parser.add_argument("--blocklist", type=str, default=None,
                         help="Path to blocklist file (one domain per line)")
+
+    # Roots
     parser.add_argument("--roots", type=str, default=None,
-                        help="Path to root server IP list (one IP per line)")
+                        help="Path to root server IP list (one IP per line). Overrides built-in root table.")
+    parser.add_argument("--roots-family", type=str, default="both",
+                        choices=["both", "ipv4", "ipv6", "auto"],
+                        help="Which built-in root addresses to use when --roots is not set "
+                             "(both|ipv4|ipv6|auto). Default: both")
 
     # EDNS/DNSSEC
     parser.add_argument("--edns-size", type=int, default=EDNS_SIZE_DEFAULT,
@@ -1067,7 +1072,7 @@ if __name__ == "__main__":
     parser.add_argument("--dnssec", action="store_true",
                         help="Force DNSSEC DO=1 upstream even if client didn't request it")
 
-    # Minimal-ish DIY validation (not DNSSEC)
+    # Minimal-ish validation (not DNSSEC)
     parser.add_argument("--validate-basic", action="store_true",
                         help="Enable minimal upstream sanity checks + glue filtering (NOT full DNSSEC validation)")
     parser.add_argument("--strict-bailiwick", action="store_true",
@@ -1087,8 +1092,11 @@ if __name__ == "__main__":
     if args.blocklist:
         BLOCKLIST = load_blocklist(args.blocklist)
 
+    # Roots selection
     if args.roots:
         ROOT_SERVERS = load_roots(args.roots)
+    else:
+        ROOT_SERVERS = default_root_servers(args.roots_family)
 
     EDNS_SIZE_DEFAULT = int(args.edns_size) if args.edns_size else 0
     NO_EDNS = bool(args.no_edns)
@@ -1106,6 +1114,8 @@ if __name__ == "__main__":
         print("Blocklist: %s (%d entries)" % (args.blocklist, len(BLOCKLIST)))
     if args.roots:
         print("Roots: %s (%d IPs)" % (args.roots, len(ROOT_SERVERS)))
+    else:
+        print("Roots: built-in (%s) (%d IPs)" % (args.roots_family, len(ROOT_SERVERS)))
     if LOG_QUERIES:
         print("Query logging: ON")
     print("EDNS default size: %s" % (str(EDNS_SIZE_DEFAULT) if EDNS_SIZE_DEFAULT else "OFF"))
