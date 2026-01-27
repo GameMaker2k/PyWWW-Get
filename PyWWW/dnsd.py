@@ -28,7 +28,10 @@ ROOT_SERVERS = [
     "202.12.27.33",   # m.root-servers.net
 ]
 
-QTYPE = {"A": 1, "NS": 2, "CNAME": 5, "SOA": 6, "MX": 15, "TXT": 16, "AAAA": 28, "OPT": 41}
+QTYPE = {
+    "A": 1, "NS": 2, "CNAME": 5, "SOA": 6,
+    "MX": 15, "TXT": 16, "AAAA": 28, "OPT": 41
+}
 QCLASS_IN = 1
 
 # -----------------------------
@@ -43,6 +46,11 @@ BLOCKLIST = set()
 EDNS_SIZE_DEFAULT = 1232   # good modern UDP size; avoids fragmentation
 FORCE_DNSSEC_DO = False
 NO_EDNS = False
+
+# Minimal-ish DIY validation (NOT full DNSSEC validation)
+VALIDATE_BASIC = False
+STRICT_BAILIWICK = False
+VALIDATION_LOG = False   # extra logs when validate-basic rejects things
 
 
 # -----------------------------
@@ -254,24 +262,100 @@ def _is_in_bailiwick(ns_host, zone):
 
 
 # -----------------------------
+# Minimal-ish upstream validation helpers (NOT DNSSEC)
+# -----------------------------
+def _qkey_from_wire(msg):
+    """
+    Extract (qname_norm, qtype, qclass) from a DNS message's first question.
+    Returns None if cannot parse.
+    """
+    try:
+        _tid, _flags, qd, _an, _ns, _ar, _tc, _rcode = parse_header(msg)
+        if qd < 1:
+            return None
+        off = 12
+        qname, off = decode_name(msg, off)
+        if off + 4 > len(msg):
+            return None
+        qtype, qclass = struct.unpack("!HH", msg[off:off + 4])
+        return (_dnsname_norm(qname), int(qtype), int(qclass))
+    except Exception:
+        return None
+
+
+def _upstream_sanity_check(query_wire, resp_wire):
+    """
+    Minimal checks to reject obviously-wrong upstream responses.
+    Returns (ok: bool, reason: str).
+    """
+    if not resp_wire or len(resp_wire) < 12:
+        return False, "resp too short"
+
+    # TXID should match our upstream query TXID
+    if len(query_wire) >= 2 and len(resp_wire) >= 2:
+        q_tid = struct.unpack("!H", query_wire[:2])[0]
+        r_tid = struct.unpack("!H", resp_wire[:2])[0]
+        if q_tid != r_tid:
+            return False, "txid mismatch q=%04x r=%04x" % (q_tid, r_tid)
+
+    # If response includes a question, ensure it matches what we asked
+    qk = _qkey_from_wire(query_wire)
+    rk = _qkey_from_wire(resp_wire)
+    if rk is not None and qk is not None and rk != qk:
+        return False, "question mismatch q=%r r=%r" % (qk, rk)
+
+    return True, ""
+
+
+def _authority_ns_set(parsed):
+    out = set()
+    raw = parsed["raw"]
+    for rr in parsed["authority"]:
+        if rr["type"] == QTYPE["NS"]:
+            try:
+                nsn, _ = decode_name(raw, rr["rdata_off"])
+                out.add(_dnsname_norm(nsn))
+            except Exception:
+                continue
+    return out
+
+
+def _filter_glue(parsed, zone_hint=None):
+    """
+    Return list of glue IPs after basic checks.
+    - Only accept A/AAAA in additional whose OWNER NAME matches an NS hostname from authority.
+    - If STRICT_BAILIWICK and zone_hint provided, also require owner is in bailiwick of zone_hint.
+    """
+    ns_set = _authority_ns_set(parsed)
+    if not ns_set:
+        return []
+
+    glue = []
+    for rr in parsed["additional"]:
+        if rr["type"] not in (QTYPE["A"], QTYPE["AAAA"]):
+            continue
+        owner = _dnsname_norm(rr.get("name"))
+        if owner not in ns_set:
+            continue
+        if STRICT_BAILIWICK and zone_hint:
+            if not _is_in_bailiwick(owner, zone_hint):
+                continue
+        ip = rr_ip_from_additional(rr)
+        if ip:
+            glue.append(ip)
+    return glue
+
+
+# -----------------------------
 # EDNS0 (OPT) + DO bit
 # -----------------------------
 def _build_opt_rr(edns_size, do=False):
-    """
-    Build an OPT RR (RFC6891):
-      NAME=.
-      TYPE=41
-      CLASS=UDP payload size
-      TTL=ext_rcode(8) | version(8) | flags(16)  (DO bit is 0x8000 in flags)
-      RDLEN=0 (no options)
-    """
     if not edns_size:
         return b""
     edns_size = int(edns_size)
     if edns_size < 512:
         edns_size = 512
     if edns_size > 4096:
-        # you can raise this if you want, but 4096 is a reasonable cap for most networks
         edns_size = 4096
 
     name = b"\x00"
@@ -284,15 +368,10 @@ def _build_opt_rr(edns_size, do=False):
 
 
 def _client_edns_options(query_wire):
-    """
-    If client included OPT in Additional section, return (udp_size, do_bit).
-    Else (None, False).
-    """
     try:
         _tid, _flags, qd, an, ns, ar, _tc, _rcode = parse_header(query_wire)
         off = 12
         off = skip_questions(query_wire, off, qd)
-        # skip any answer/authority in query (normally 0)
         for _ in range(an):
             _, off = parse_rr(query_wire, off)
         for _ in range(ns):
@@ -300,7 +379,7 @@ def _client_edns_options(query_wire):
         for _ in range(ar):
             rr, off = parse_rr(query_wire, off)
             if rr["type"] == QTYPE["OPT"]:
-                udp_size = rr["class"]          # for OPT, CLASS is udp payload size
+                udp_size = rr["class"]
                 do_bit = bool(rr["ttl"] & 0x8000)
                 return int(udp_size), do_bit
     except Exception:
@@ -403,34 +482,39 @@ def tcp_exchange(server_ip, wire_query, timeout=2, port=53):
 
 def exchange_with_tc_fallback(server_ip, wire_query, timeout=2, port=53):
     resp = udp_exchange(server_ip, wire_query, timeout=timeout, port=port)
+
+    if VALIDATE_BASIC:
+        ok, reason = _upstream_sanity_check(wire_query, resp)
+        if not ok:
+            if VALIDATION_LOG or LOG_QUERIES:
+                print("[VALIDATE] reject UDP from %s: %s" % (server_ip, reason))
+            raise RuntimeError("Upstream sanity check failed (UDP): %s" % reason)
+
     try:
         _tid, _flags, _qd, _an, _ns, _ar, tc, _rcode = parse_header(resp)
     except Exception:
         return resp
+
     if tc:
         try:
-            return tcp_exchange(server_ip, wire_query, timeout=timeout, port=port)
+            resp2 = tcp_exchange(server_ip, wire_query, timeout=timeout, port=port)
+            if VALIDATE_BASIC:
+                ok, reason = _upstream_sanity_check(wire_query, resp2)
+                if not ok:
+                    if VALIDATION_LOG or LOG_QUERIES:
+                        print("[VALIDATE] reject TCP from %s: %s" % (server_ip, reason))
+                    raise RuntimeError("Upstream sanity check failed (TCP): %s" % reason)
+            return resp2
         except Exception:
             return resp
     return resp
 
 
 # -----------------------------
-# Iterative resolution (with bailiwick glue)
+# Iterative resolution (with bailiwick glue + overall timeout)
 # -----------------------------
-def iterative_resolve(qname, qtype, timeout=2, max_steps=25, edns_size=None, do=False, overall_timeout=4.0):
-    """
-    Returns a DNS response message (bytes) from the last server contacted.
-    Follows referrals iteratively from the root.
-
-    Changes:
-      - Enforces an overall deadline (overall_timeout seconds total)
-      - Stops early on terminal responses:
-          * RCODE != 0 (e.g., NXDOMAIN)
-          * SOA in authority with no answers (NODATA / negative)
-      - For resolving NS hostnames, tries A before AAAA (IPv4 first)
-      - Shares overall timeout into recursive NS-name lookups (prevents runaway time)
-    """
+def iterative_resolve(qname, qtype, timeout=2, max_steps=25,
+                      edns_size=None, do=False, overall_timeout=4.0):
     deadline = time.time() + float(overall_timeout)
 
     next_servers = list(ROOT_SERVERS)
@@ -447,7 +531,6 @@ def iterative_resolve(qname, qtype, timeout=2, max_steps=25, edns_size=None, do=
 
         _tid, wire = build_query(qname, qtype, rd=False, edns_size=edns_size, do=do)
 
-        # cap per-try timeout by remaining budget
         remaining = deadline - time.time()
         if remaining <= 0:
             break
@@ -463,15 +546,13 @@ def iterative_resolve(qname, qtype, timeout=2, max_steps=25, edns_size=None, do=
         try:
             parsed = parse_sections(resp)
         except Exception:
-            # if parsing fails, try next server
             continue
 
-        # ---- Terminal conditions ----
-        # Any upstream error (NXDOMAIN, SERVFAIL, etc.)
+        # Terminal: upstream error codes (NXDOMAIN/SERVFAIL/etc.)
         if parsed["rcode"] != 0:
             return resp
 
-        # Got direct answers
+        # Direct answers
         if parsed["answers"]:
             return resp
 
@@ -479,44 +560,51 @@ def iterative_resolve(qname, qtype, timeout=2, max_steps=25, edns_size=None, do=
         if any(rr["type"] == QTYPE["SOA"] for rr in parsed["authority"]):
             return resp
 
-        # ---- Referral processing: authority NS + additional glue ----
+        # Collect NS names from authority
         ns_names = []
         for rr in parsed["authority"]:
             if rr["type"] == QTYPE["NS"]:
-                nsn, _ = decode_name(resp, rr["rdata_off"])
-                ns_names.append(_dnsname_norm(nsn))
+                try:
+                    nsn, _ = decode_name(resp, rr["rdata_off"])
+                    ns_names.append(_dnsname_norm(nsn))
+                except Exception:
+                    continue
 
-        # Prefer glue that matches the referred NS hostnames (even if out-of-bailiwick)
+        # Glue selection
         glue_ips = []
         if ns_names:
-            ns_set = set(ns_names)
-            for rr in parsed["additional"]:
-                if rr["type"] not in (QTYPE["A"], QTYPE["AAAA"]):
-                    continue
-                owner = _dnsname_norm(rr.get("name"))
-                if owner not in ns_set:
-                    continue
-                ip = rr_ip_from_additional(rr)
-                if ip:
-                    glue_ips.append(ip)
+            if VALIDATE_BASIC:
+                zone_hint = None
+                if STRICT_BAILIWICK:
+                    parts = _dnsname_norm(qname).split(".")
+                    if len(parts) >= 2:
+                        zone_hint = ".".join(parts[1:])
+                glue_ips = _filter_glue(parsed, zone_hint=zone_hint)
+                if (VALIDATION_LOG or LOG_QUERIES) and not glue_ips and parsed["additional"]:
+                    # Some additionals existed, but none accepted as glue
+                    print("[VALIDATE] glue filtered out (server=%s qname=%s strict=%s)"
+                          % (server, qname, "1" if STRICT_BAILIWICK else "0"))
+            else:
+                for rr in parsed["additional"]:
+                    if rr["type"] in (QTYPE["A"], QTYPE["AAAA"]):
+                        ip = rr_ip_from_additional(rr)
+                        if ip:
+                            glue_ips.append(ip)
 
         if glue_ips:
             random.shuffle(glue_ips)
             next_servers = glue_ips + next_servers
             continue
 
-        # ---- No usable glue: resolve NS hostnames ----
+        # No usable glue: resolve NS hostnames (IPv4 first, then IPv6)
         if ns_names:
             random.shuffle(ns_names)
             resolved_ns_ips = []
 
-            # try a few NS names
             for nsn in ns_names[:3]:
                 resolved_ns_ips = []
 
-                # IMPORTANT CHANGE: prefer IPv4 first, then IPv6
                 for qt in (QTYPE["A"], QTYPE["AAAA"]):
-                    # Keep NS-name lookups cheaper + share overall budget
                     remaining = deadline - time.time()
                     if remaining <= 0:
                         break
@@ -537,7 +625,6 @@ def iterative_resolve(qname, qtype, timeout=2, max_steps=25, edns_size=None, do=
                     except Exception:
                         continue
 
-                    # If NS-name lookup got an error, ignore and try next
                     if ns_parsed["rcode"] != 0:
                         continue
 
@@ -559,7 +646,6 @@ def iterative_resolve(qname, qtype, timeout=2, max_steps=25, edns_size=None, do=
                 next_servers = resolved_ns_ips + next_servers
                 continue
 
-        # nothing else to try; return what we got
         return resp
 
     return last_msg
@@ -569,7 +655,7 @@ def iterative_resolve(qname, qtype, timeout=2, max_steps=25, edns_size=None, do=
 # CNAME chasing (build combined response)
 # -----------------------------
 def _response_question_wire(resp_msg):
-    tid, flags, qd, an, ns, ar, tc, rcode = parse_header(resp_msg)
+    _tid, _flags, qd, _an, _ns, _ar, _tc, _rcode = parse_header(resp_msg)
     off = 12
     off2 = skip_questions(resp_msg, off, qd)
     return resp_msg[12:off2]
@@ -579,7 +665,7 @@ def _build_combined_response(original_resp, rr_wires_answer_list):
     if len(original_resp) < 12:
         return original_resp
 
-    tid, flags, qd, an, ns, ar, tc, rcode = parse_header(original_resp)
+    tid, flags, qd, _an, _ns, _ar, _tc, _rcode = parse_header(original_resp)
     qwire = _response_question_wire(original_resp)
 
     new_an = len(rr_wires_answer_list)
@@ -591,8 +677,10 @@ def _build_combined_response(original_resp, rr_wires_answer_list):
     return hdr + qwire + ans
 
 
-def resolve_with_cname_chase(qname, qtype, timeout, edns_size=None, do=False, max_steps=25, max_cname=8):
-    resp = iterative_resolve(qname, qtype, timeout=timeout, max_steps=max_steps, edns_size=edns_size, do=do)
+def resolve_with_cname_chase(qname, qtype, timeout, edns_size=None, do=False,
+                            max_steps=25, max_cname=8):
+    resp = iterative_resolve(qname, qtype, timeout=timeout, max_steps=max_steps,
+                            edns_size=edns_size, do=do)
     if not resp:
         return resp
 
@@ -606,6 +694,7 @@ def resolve_with_cname_chase(qname, qtype, timeout, edns_size=None, do=False, ma
 
     for _ in range(max_cname):
         parsed = parse_sections(resp)
+
         if any(rr["type"] == want for rr in parsed["answers"]):
             if chain:
                 combined = chain + [rr["wire"] for rr in parsed["answers"] if rr["type"] == want]
@@ -633,7 +722,8 @@ def resolve_with_cname_chase(qname, qtype, timeout, edns_size=None, do=False, ma
         seen.add(norm_t)
         current = target
 
-        resp = iterative_resolve(current, want, timeout=timeout, max_steps=max_steps, edns_size=edns_size, do=do)
+        resp = iterative_resolve(current, want, timeout=timeout, max_steps=max_steps,
+                                edns_size=edns_size, do=do)
         if not resp:
             return resp
 
@@ -694,10 +784,6 @@ def min_ttl_from_answers(resp_msg):
 
 
 def _query_question_wire(query_msg):
-    """
-    Return the raw Question section (QNAME/QTYPE/QCLASS) from a client QUERY message.
-    This excludes any EDNS OPT or other additional records that may be present.
-    """
     _tid, _flags, qd, _an, _ns, _ar, _tc, _rcode = parse_header(query_msg)
     off = 12
     off2 = skip_questions(query_msg, off, qd)
@@ -705,30 +791,22 @@ def _query_question_wire(query_msg):
 
 
 def make_servfail(query_wire):
-    """
-    Return a minimal SERVFAIL response that echoes the Question section only.
-    Avoids dig's 'extra bytes at end' warning.
-    """
     if len(query_wire) < 12:
-        # minimal fallback (rare)
         return b"\x00\x00" + struct.pack("!H", 0x8002) + b"\x00\x01\x00\x00\x00\x00\x00\x00"
 
     tid = query_wire[:2]
-    flags = 0x8000 | 0x0002  # QR=1, RCODE=2 (SERVFAIL)
+    flags = 0x8000 | 0x0002  # QR=1, RCODE=2
     qwire = _query_question_wire(query_wire)
     hdr = tid + struct.pack("!H", flags) + struct.pack("!HHHH", 1, 0, 0, 0)
     return hdr + qwire
 
 
 def make_nxdomain(query_wire):
-    """
-    Return a minimal NXDOMAIN response that echoes the Question section only.
-    """
     if len(query_wire) < 12:
         return b"\x00\x00" + struct.pack("!H", 0x8003) + b"\x00\x01\x00\x00\x00\x00\x00\x00"
 
     tid = query_wire[:2]
-    flags = 0x8000 | 0x0003  # QR=1, RCODE=3 (NXDOMAIN)
+    flags = 0x8000 | 0x0003  # QR=1, RCODE=3
     qwire = _query_question_wire(query_wire)
     hdr = tid + struct.pack("!H", flags) + struct.pack("!HHHH", 1, 0, 0, 0)
     return hdr + qwire
@@ -802,13 +880,10 @@ def handle_query_wire(query_wire, client_addr=None):
     eff_do = bool(client_do) or bool(FORCE_DNSSEC_DO)
 
     if NO_EDNS:
-        # only honor client EDNS if they sent it
         eff_edns = client_edns_size
     else:
-        # prefer client size if present, else default
-        eff_edns = client_edns_size if client_edns_size else EDNS_SIZE_DEFAULT
+        eff_edns = client_edns_size if client_edns_size else (EDNS_SIZE_DEFAULT if EDNS_SIZE_DEFAULT else None)
 
-    # If nothing needs EDNS, disable OPT
     if not eff_do and not client_edns_size and (NO_EDNS or not EDNS_SIZE_DEFAULT):
         eff_edns = None
 
@@ -823,7 +898,7 @@ def handle_query_wire(query_wire, client_addr=None):
         resp = make_nxdomain(query_wire)
         return _rewrite_response_for_client(resp, client_tid, client_flags)
 
-    # Cache key must include DO flag (DNSSEC responses differ)
+    # Cache key includes DO flag (DNSSEC responses differ)
     key = (_dnsname_norm(qname), qtype, qclass, 1 if eff_do else 0)
 
     cached_template = CACHE.get(key)
@@ -958,7 +1033,9 @@ def run_stub(bind_ip="127.0.0.1", port=5353):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Iterative DNS stub resolver: UDP+TCP, TXID rewrite, upstream TCP fallback on TC=1, IPv6, CNAME chase, negative cache, bailiwick glue, EDNS0+DO"
+        description="Iterative DNS stub resolver: UDP+TCP, TXID rewrite, upstream TCP fallback on TC=1, "
+                    "IPv6, CNAME chase, negative cache, bailiwick glue, EDNS0+DO, "
+                    "optional minimal upstream sanity checks + validation logging"
     )
 
     parser.add_argument("--bind", default="127.0.0.1",
@@ -983,11 +1060,20 @@ if __name__ == "__main__":
 
     # EDNS/DNSSEC
     parser.add_argument("--edns-size", type=int, default=EDNS_SIZE_DEFAULT,
-                        help="EDNS0 UDP payload size to advertise upstream (default: 1232). Set 0 to disable unless client uses EDNS.")
+                        help="EDNS0 UDP payload size to advertise upstream (default: 1232). "
+                             "Set 0 to disable unless client uses EDNS.")
     parser.add_argument("--no-edns", action="store_true",
                         help="Do not add EDNS0 unless the client query already has OPT")
     parser.add_argument("--dnssec", action="store_true",
                         help="Force DNSSEC DO=1 upstream even if client didn't request it")
+
+    # Minimal-ish DIY validation (not DNSSEC)
+    parser.add_argument("--validate-basic", action="store_true",
+                        help="Enable minimal upstream sanity checks + glue filtering (NOT full DNSSEC validation)")
+    parser.add_argument("--strict-bailiwick", action="store_true",
+                        help="When validating, only accept glue that is in-bailiwick (stricter; may reduce success)")
+    parser.add_argument("--validation-log", action="store_true",
+                        help="Log reasons when validation rejects upstream responses / filters glue")
 
     args = parser.parse_args()
 
@@ -1008,6 +1094,10 @@ if __name__ == "__main__":
     NO_EDNS = bool(args.no_edns)
     FORCE_DNSSEC_DO = bool(args.dnssec)
 
+    VALIDATE_BASIC = bool(args.validate_basic)
+    STRICT_BAILIWICK = bool(args.strict_bailiwick)
+    VALIDATION_LOG = bool(args.validation_log)
+
     print("Starting DNS stub on %s:%d" % (args.bind, args.port))
     print("Upstream timeout: %.2fs" % UPSTREAM_TIMEOUT)
     if CACHE_TTL_CAP:
@@ -1021,5 +1111,8 @@ if __name__ == "__main__":
     print("EDNS default size: %s" % (str(EDNS_SIZE_DEFAULT) if EDNS_SIZE_DEFAULT else "OFF"))
     print("NO_EDNS: %s" % ("ON" if NO_EDNS else "OFF"))
     print("Force DO (dnssec): %s" % ("ON" if FORCE_DNSSEC_DO else "OFF"))
+    print("Validate basic: %s" % ("ON" if VALIDATE_BASIC else "OFF"))
+    print("Strict bailiwick: %s" % ("ON" if STRICT_BAILIWICK else "OFF"))
+    print("Validation log: %s" % ("ON" if VALIDATION_LOG else "OFF"))
 
     run_stub(args.bind, args.port)
