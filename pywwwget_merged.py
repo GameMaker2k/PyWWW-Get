@@ -2431,7 +2431,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         return returnval
     else:
         if(httpmethod == "HEAD"):
-            return httpheadersentout
+            return httpheaderout
         else:
             return httpfile
 
