@@ -2175,8 +2175,6 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         # Request with preload_content=False to get a file-like object
         try:
             extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'headers': headers, 'preload_content': False, 'decode_content': True})
-            if(putfile is not None and sendfiles is not None):
-                sendfiles = None
             if(httpmethod == "POST"):
                 if(putfile is not None and sendfiles is not None):
                     putfile = None
