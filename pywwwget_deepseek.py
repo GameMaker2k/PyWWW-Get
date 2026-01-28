@@ -1980,7 +1980,9 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
     p = urlparse(url)
     username = unquote(p.username) if p.username else None
     password = unquote(p.password) if p.password else None
-
+    if(httpmethod is None):
+        httpmethod = "GET"
+    httpmethod = httpmethod.upper()
     # Strip auth from URL
     netloc = p.hostname or ""
     if p.port:
@@ -2031,13 +2033,13 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
     # Requests
     if usehttp == "requests" and haverequests:
         auth = (username, password) if (username and password) else None
-        extendargs.update({'url': rebuilt_url, 'headers': headers, 'auth': auth, 'cookies': httpcookie, 'stream': True, 'timeout': (float(timeout), float(timeout))})
+        extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'headers': headers, 'auth': auth, 'cookies': httpcookie, 'stream': True, 'allow_redirects': True, 'timeout': (float(timeout), float(timeout))})
         try:
-            if(httpmethod == "GET"):
-                extendargs.update({'method': "GET"})
-            elif(httpmethod == "POST"):
-                extendargs.update({'method': "POST"})
-                if(sendfiles is not None):
+            if(httpmethod == "POST"):
+                if(sendfiles is not None and not isinstance(sendfiles, dict)):
+                    sendfiles.seek(0, 0)
+                    extendargs.update({'data': sendfiles})
+                elif(sendfiles is not None and isinstance(sendfiles, dict)):
                     jsonpost = False
                     sendfiles = to_requests_files(sendfiles)
                     if(sendfiles is not None):
@@ -2049,8 +2051,22 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                     extendargs.update({'json': postdata})
                 elif(not jsonpost and postdata is not None):
                     extendargs.update({'data': postdata})
-            else:
-                extendargs.update({'method': "GET"})
+            elif(httpmethod == "PUT" or httpmethod == "PATCH" or httpmethod == "DELETE"):
+                if(sendfiles is not None and not isinstance(sendfiles, dict)):
+                    sendfiles.seek(0, 0)
+                    extendargs.update({'data': sendfiles})
+                elif(sendfiles is not None and isinstance(sendfiles, dict)):
+                    jsonpost = False
+                    sendfiles = to_requests_files(sendfiles)
+                    if(sendfiles is not None):
+                        for _, (_, fobj, *_) in sendfiles:
+                            if hasattr(fobj, "seek"):
+                                fobj.seek(0)
+                    extendargs.update({'files': sendfiles})
+                if(jsonpost and postdata is not None):
+                    extendargs.update({'json': postdata})
+                elif(not jsonpost and postdata is not None and (isinstance(sendfiles, dict) or sendfiles is None)):
+                    extendargs.update({'data': postdata})
             r = requests.request(**extendargs)
             r.raise_for_status()
         except requests.exceptions.HTTPError as e:
@@ -2087,12 +2103,12 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         try:
             with httpx.Client(follow_redirects=True, http1=True, http2=usehttp2, trust_env=True, timeout=float(timeout)) as client:
                 auth = (username, password) if (username and password) else None
-                extendargs.update({'url': rebuilt_url, 'headers': headers, 'auth': auth, 'cookies': httpcookie})
-                if(httpmethod == "GET"):
-                    extendargs.update({'method': "GET"})
-                elif(httpmethod == "POST"):
-                    extendargs.update({'method': "POST"})
-                    if(sendfiles is not None):
+                extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'headers': headers, 'auth': auth, 'cookies': httpcookie})
+                if(httpmethod == "POST"):
+                    if(sendfiles is not None and not isinstance(sendfiles, dict)):
+                        sendfiles.seek(0, 0)
+                        extendargs.update({'content': sendfiles})
+                    elif(sendfiles is not None and isinstance(sendfiles, dict)):
                         jsonpost = False
                         sendfiles = to_requests_files(sendfiles)
                         if(sendfiles is not None):
@@ -2104,8 +2120,22 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                         extendargs.update({'json': postdata})
                     elif(not jsonpost and postdata is not None):
                         extendargs.update({'data': postdata})
-                else:
-                    extendargs.update({'method': "GET"})
+                elif(httpmethod == "PUT" or httpmethod == "PATCH" or httpmethod == "DELETE"):
+                    if(sendfiles is not None and not isinstance(sendfiles, dict)):
+                        sendfiles.seek(0, 0)
+                        extendargs.update({'content': sendfiles})
+                    elif(sendfiles is not None and isinstance(sendfiles, dict)):
+                        jsonpost = False
+                        sendfiles = to_requests_files(sendfiles)
+                        if(sendfiles is not None):
+                            for _, (_, fobj, *_) in sendfiles:
+                                if hasattr(fobj, "seek"):
+                                    fobj.seek(0)
+                        extendargs.update({'files': sendfiles})
+                    if(jsonpost and postdata is not None):
+                        extendargs.update({'json': postdata})
+                    elif(not jsonpost and postdata is not None):
+                        extendargs.update({'data': postdata})
                 r = client.request(**extendargs)
                 r.raise_for_status()
         except httpx.HTTPStatusError as e:
@@ -2141,31 +2171,24 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         except ImportError:
             usehttp2 = False
         with httpcore.ConnectionPool(http1=True, http2=usehttp2) as client:
-            if(httpmethod == "GET"):
-                httpcorem = "GET"
-                content = None
-            if(httpmethod == "POST"):
-                httpcorem = "POST"
-                content = postdata
-            else:
-                httpcorem = "GET"
-                content = None
             timeoutdict = {"connect": float(timeout), "read": float(timeout), "write": float(timeout), "pool": float(timeout)}
-            extendargs.update({'url': rebuilt_url, 'extensions': {"timeout": timeoutdict}})
-            if(httpmethod == "GET"):
-                extendargs.update({'method': "GET"})
-            elif(httpmethod == "POST"):
-                extendargs.update({'method': "POST"})
-                if(jsonpost and postdata is not None):
+            extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'extensions': {"timeout": timeoutdict}})
+            if(httpmethod == "POST" or httpmethod == "PUT" or httpmethod == "PATCH" or httpmethod == "DELETE"):
+                if(jsonpost and postdata is not None and sendfiles is None):
                     if('Content-Type' in headers):
                         headers['Content-Type'] = "application/json"
                     else:
                         headers.update({'Content-Type': "application/json"})
                     extendargs.update({'content': json.dumps(postdata).encode('UTF-8')})
-                elif(not jsonpost and postdata is not None):
+                elif(not jsonpost and postdata is not None and sendfiles is None):
+                    if('Content-Type' in headers):
+                        headers['Content-Type'] = "application/x-www-form-urlencoded"
+                    else:
+                        headers.update({'Content-Type': "application/x-www-form-urlencoded"})
                     extendargs.update({'content': urlencode(postdata).encode('UTF-8')})
-            else:
-                extendargs.update({'method': "GET"})
+                elif(sendfiles is not None):
+                    sendfiles.seek(0, 0)
+                    extendargs.update({'content': sendfiles.read()})
             extendargs.update({'headers': headers})
             try:
                 with client.stream(**extendargs, ) as r:
@@ -2242,12 +2265,12 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             headers.update(auth_headers)
         # Request with preload_content=False to get a file-like object
         try:
-            extendargs.update({'url': rebuilt_url, 'headers': headers, 'preload_content': False, 'decode_content': True})
-            if(httpmethod == "GET"):
-                extendargs.update({'method': "GET"})
-            elif(httpmethod == "POST"):
-                extendargs.update({'method': "POST"})
-                if(sendfiles is not None):
+            extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'headers': headers, 'preload_content': False, 'decode_content': True})
+            if(httpmethod == "POST"):
+                if(sendfiles is not None and not isinstance(sendfiles, dict)):
+                    sendfiles.seek(0, 0)
+                    extendargs.update({'body': sendfiles})
+                elif(sendfiles is not None and isinstance(sendfiles, dict)):
                     jsonpost = False
                     sendfiles = to_requests_files(sendfiles)
                     if(sendfiles is not None):
@@ -2262,8 +2285,25 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                         extendargs['fields'].update({postdata})
                     else:
                         extendargs.update({'fields': postdata})
-            else:
-                extendargs.update({'method': "GET"})
+            elif(httpmethod == "PUT" or httpmethod == "PATCH" or httpmethod == "DELETE"):
+                if(sendfiles is not None and not isinstance(sendfiles, dict)):
+                    sendfiles.seek(0, 0)
+                    extendargs.update({'body': sendfiles})
+                elif(sendfiles is not None and isinstance(sendfiles, dict)):
+                    jsonpost = False
+                    sendfiles = to_requests_files(sendfiles)
+                    if(sendfiles is not None):
+                        for _, (_, fobj, *_) in sendfiles:
+                            if hasattr(fobj, "seek"):
+                                fobj.seek(0)
+                    extendargs.update({'fields': sendfiles})
+                if(jsonpost and postdata is not None):
+                    extendargs.update({'json': postdata})
+                elif(not jsonpost and postdata is not None):
+                    if('fields' in headers):
+                        extendargs['fields'].update({postdata})
+                    else:
+                        extendargs.update({'fields': postdata})
             resp = http.request(**extendargs)
         except (socket.timeout, socket.gaierror, urllib3.exceptions.MaxRetryError):
             return False
@@ -2319,6 +2359,11 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                     curlreq.setopt(pycurl.POSTFIELDS, json.dumps(postdata).encode('UTF-8'))
             elif(not jsonpost and postdata is not None):
                 curlreq.setopt(pycurl.POSTFIELDS, urlencode(postdata).encode('UTF-8'))
+        elif(httpmethod == "PUT" or httpmethod == "PATCH"):
+            curlreq.setopt(pycurl.CUSTOMREQUEST, httpmethod)
+            curlreq.setopt(pycurl.UPLOAD, True)
+            sendfiles.seek(0, 0)
+            curlreq.setopt(pycurl.READDATA, sendfiles)
         else:
             curlreq.setopt(pycurl.HTTPGET, True)
         headers = make_http_headers_from_dict_to_pycurl(headers)
@@ -2434,7 +2479,10 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': usehttp, 'RequestTime': {'StartTime': start_time, 'EndTime': end_time, 'TotalTime': total_time}}
         return returnval
     else:
-        return httpfile
+        if(httpmethod == "HEAD"):
+            return httpheadersentout
+        else:
+            return httpfile
 
 def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, timeout=60, returnstats=False):
     fp = download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, timeout, returnstats)
