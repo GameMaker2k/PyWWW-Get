@@ -1872,7 +1872,7 @@ def to_pycurl_httpost(payload, default_ext=".txt"):
 
     return http_post
 
-def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, timeout=60, returnstats=False):
+def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
     if headers is None:
         headers = {}
     else:
@@ -1937,10 +1937,12 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'headers': headers, 'auth': auth, 'cookies': httpcookie, 'stream': True, 'allow_redirects': True, 'timeout': (float(timeout), float(timeout))})
         try:
             if(httpmethod == "POST"):
-                if(sendfiles is not None and not isinstance(sendfiles, dict)):
-                    sendfiles.seek(0, 0)
-                    extendargs.update({'data': sendfiles})
-                elif(sendfiles is not None and isinstance(sendfiles, dict)):
+                if(putfile is not None and sendfiles is not None):
+                    putfile = None
+                if(putfile is not None):
+                    putfile.seek(0, 0)
+                    extendargs.update({'data': putfile})
+                if(sendfiles is not None and isinstance(sendfiles, dict)):
                     jsonpost = False
                     sendfiles = to_requests_files(sendfiles)
                     if(sendfiles is not None):
@@ -1953,10 +1955,12 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                 elif(not jsonpost and postdata is not None):
                     extendargs.update({'data': postdata})
             elif(httpmethod == "PUT" or httpmethod == "PATCH" or httpmethod == "DELETE"):
-                if(sendfiles is not None and not isinstance(sendfiles, dict)):
-                    sendfiles.seek(0, 0)
-                    extendargs.update({'data': sendfiles})
-                elif(sendfiles is not None and isinstance(sendfiles, dict)):
+                if(putfile is not None and sendfiles is not None):
+                    sendfiles = None
+                if(putfile is not None):
+                    putfile.seek(0, 0)
+                    extendargs.update({'data': putfile})
+                if(sendfiles is not None and isinstance(sendfiles, dict)):
                     jsonpost = False
                     sendfiles = to_requests_files(sendfiles)
                     if(sendfiles is not None):
@@ -2006,10 +2010,12 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                 auth = (username, password) if (username and password) else None
                 extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'headers': headers, 'auth': auth, 'cookies': httpcookie})
                 if(httpmethod == "POST"):
-                    if(sendfiles is not None and not isinstance(sendfiles, dict)):
-                        sendfiles.seek(0, 0)
-                        extendargs.update({'content': sendfiles})
-                    elif(sendfiles is not None and isinstance(sendfiles, dict)):
+                    if(putfile is not None and sendfiles is not None):
+                        putfile = None
+                    if(putfile is not None):
+                        putfile.seek(0, 0)
+                        extendargs.update({'content': putfile})
+                    if(sendfiles is not None and isinstance(sendfiles, dict)):
                         jsonpost = False
                         sendfiles = to_requests_files(sendfiles)
                         if(sendfiles is not None):
@@ -2022,10 +2028,12 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                     elif(not jsonpost and postdata is not None):
                         extendargs.update({'data': postdata})
                 elif(httpmethod == "PUT" or httpmethod == "PATCH" or httpmethod == "DELETE"):
-                    if(sendfiles is not None and not isinstance(sendfiles, dict)):
-                        sendfiles.seek(0, 0)
-                        extendargs.update({'content': sendfiles})
-                    elif(sendfiles is not None and isinstance(sendfiles, dict)):
+                    if(putfile is not None and sendfiles is not None):
+                        sendfiles = None
+                    if(putfile is not None):
+                        putfile.seek(0, 0)
+                        extendargs.update({'content': putfile})
+                    if(sendfiles is not None and isinstance(sendfiles, dict)):
                         jsonpost = False
                         sendfiles = to_requests_files(sendfiles)
                         if(sendfiles is not None):
@@ -2075,21 +2083,21 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             timeoutdict = {"connect": float(timeout), "read": float(timeout), "write": float(timeout), "pool": float(timeout)}
             extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'extensions': {"timeout": timeoutdict}})
             if(httpmethod == "POST" or httpmethod == "PUT" or httpmethod == "PATCH" or httpmethod == "DELETE"):
-                if(jsonpost and postdata is not None and sendfiles is None):
+                if(jsonpost and postdata is not None and putfile is None):
                     if('Content-Type' in headers):
                         headers['Content-Type'] = "application/json"
                     else:
                         headers.update({'Content-Type': "application/json"})
                     extendargs.update({'content': json.dumps(postdata).encode('UTF-8')})
-                elif(not jsonpost and postdata is not None and sendfiles is None):
+                elif(not jsonpost and postdata is not None and putfile is None):
                     if('Content-Type' in headers):
                         headers['Content-Type'] = "application/x-www-form-urlencoded"
                     else:
                         headers.update({'Content-Type': "application/x-www-form-urlencoded"})
                     extendargs.update({'content': urlencode(postdata).encode('UTF-8')})
-                elif(sendfiles is not None):
-                    sendfiles.seek(0, 0)
-                    extendargs.update({'content': sendfiles.read()})
+                elif(putfile is not None):
+                    putfile.seek(0, 0)
+                    extendargs.update({'content': putfile})
             extendargs.update({'headers': headers})
             try:
                 with client.stream(**extendargs, ) as r:
@@ -2167,11 +2175,15 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         # Request with preload_content=False to get a file-like object
         try:
             extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'headers': headers, 'preload_content': False, 'decode_content': True})
+            if(putfile is not None and sendfiles is not None):
+                sendfiles = None
             if(httpmethod == "POST"):
-                if(sendfiles is not None and not isinstance(sendfiles, dict)):
-                    sendfiles.seek(0, 0)
-                    extendargs.update({'body': sendfiles})
-                elif(sendfiles is not None and isinstance(sendfiles, dict)):
+                if(putfile is not None and sendfiles is not None):
+                    putfile = None
+                if(putfile is not None and not isinstance(putfile, dict)):
+                    putfile.seek(0, 0)
+                    extendargs.update({'body': putfile})
+                if(sendfiles is not None and isinstance(sendfiles, dict)):
                     jsonpost = False
                     sendfiles = to_requests_files(sendfiles)
                     if(sendfiles is not None):
@@ -2187,10 +2199,12 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                     else:
                         extendargs.update({'fields': postdata})
             elif(httpmethod == "PUT" or httpmethod == "PATCH" or httpmethod == "DELETE"):
-                if(sendfiles is not None and not isinstance(sendfiles, dict)):
-                    sendfiles.seek(0, 0)
-                    extendargs.update({'body': sendfiles})
-                elif(sendfiles is not None and isinstance(sendfiles, dict)):
+                if(putfile is not None and sendfiles is not None):
+                    sendfiles = None
+                if(putfile is not None and not isinstance(putfile, dict)):
+                    putfile.seek(0, 0)
+                    extendargs.update({'body': putfile})
+                if(sendfiles is not None and isinstance(sendfiles, dict)):
                     jsonpost = False
                     sendfiles = to_requests_files(sendfiles)
                     if(sendfiles is not None):
@@ -2247,6 +2261,8 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         if(httpmethod == "GET"):
             curlreq.setopt(pycurl.HTTPGET, True)
         elif(httpmethod == "POST"):
+            if(putfile is not None and sendfiles is not None):
+                putfile = None
             curlreq.setopt(pycurl.POST, True)
             if(sendfiles is not None):
                 jsonpost = False
@@ -2260,11 +2276,26 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                     curlreq.setopt(pycurl.POSTFIELDS, json.dumps(postdata).encode('UTF-8'))
             elif(not jsonpost and postdata is not None):
                 curlreq.setopt(pycurl.POSTFIELDS, urlencode(postdata).encode('UTF-8'))
-        elif(httpmethod == "PUT" or httpmethod == "PATCH"):
+        elif(httpmethod == "PUT" or httpmethod == "PATCH" or httpmethod == "DELETE"):
+            if(putfile is not None and sendfiles is not None):
+                sendfiles = None
             curlreq.setopt(pycurl.CUSTOMREQUEST, httpmethod)
-            curlreq.setopt(pycurl.UPLOAD, True)
-            sendfiles.seek(0, 0)
-            curlreq.setopt(pycurl.READDATA, sendfiles)
+            if(putfile is not None):
+                curlreq.setopt(pycurl.UPLOAD, True)
+                putfile.seek(0, 0)
+                curlreq.setopt(pycurl.READDATA, putfile)
+            if(sendfiles is not None):
+                jsonpost = False
+                sendfiles = to_pycurl_httpost(sendfiles)
+                curlreq.setopt(pycurl.HTTPPOST, sendfiles)
+            if(jsonpost and postdata is not None):
+                if('Content-Type' in headers):
+                    headers['Content-Type'] = "application/json"
+                else:
+                    headers.update({'Content-Type': "application/json"})
+                    curlreq.setopt(pycurl.POSTFIELDS, json.dumps(postdata).encode('UTF-8'))
+            elif(not jsonpost and postdata is not None):
+                curlreq.setopt(pycurl.POSTFIELDS, urlencode(postdata).encode('UTF-8'))
         else:
             curlreq.setopt(pycurl.HTTPGET, True)
         headers = make_http_headers_from_dict_to_pycurl(headers)
@@ -2385,15 +2416,15 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         else:
             return httpfile
 
-def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, timeout=60, returnstats=False):
-    fp = download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, timeout, returnstats)
+def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
+    fp = download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
     return fp.read() if fp else False
 
-def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, timeout=60, returnstats=False):
-    return download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, timeout, returnstats)
+def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
+    return download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
 
-def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, timeout=60, returnstats=False):
-    return download_file_from_http_string(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, timeout, returnstats)
+def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
+    return download_file_from_http_string(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
 
 # --------------------------
 # TCP/UDP transport (receiver + sender)
