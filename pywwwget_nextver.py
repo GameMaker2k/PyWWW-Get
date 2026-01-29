@@ -2284,10 +2284,6 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
         else:
             headers.update({'Referer': httpreferer})
 
-    if(usehttp == "pycurl"):
-        if(isinstance(headers, dict)):
-            headers = make_http_headers_from_dict_to_pycurl(headers)
-
     socket.setdefaulttimeout(float(timeout))
     start_time = time.time()
 
@@ -2679,7 +2675,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
             http.clear()
             httpsession = None
 
-    elif(usehttp == "pycurl"):
+    elif(usehttp == "pycurl" and havepycurl):
         retrieved_body = MkTempFile()
         retrieved_headers = MkTempFile()
         sentout_headers = MkTempFile()
