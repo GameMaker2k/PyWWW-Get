@@ -952,6 +952,355 @@ def _copy_fileobj_to_path(fileobj, path, overwrite=False):
             pass
         shutil.copyfileobj(fileobj, out)
 
+# TFTP opcodes
+OP_RRQ   = 1
+OP_WRQ   = 2
+OP_DATA  = 3
+OP_ACK   = 4
+OP_ERROR = 5
+
+BLOCK_SIZE = 512
+
+
+class TFTPError(Exception):
+    pass
+
+
+def _make_rrq(filename, mode=b"octet"):
+    # RRQ: 2 bytes opcode, filename, 0, mode, 0
+    return struct.pack("!H", OP_RRQ) + _to_bytes(filename) + b"\x00" + _to_bytes(mode) + b"\x00"
+
+
+def _make_wrq(filename, mode=b"octet"):
+    return struct.pack("!H", OP_WRQ) + _to_bytes(filename) + b"\x00" + _to_bytes(mode) + b"\x00"
+
+
+def _make_data(blockno, payload):
+    return struct.pack("!HH", OP_DATA, blockno) + payload
+
+
+def _make_ack(blockno):
+    return struct.pack("!HH", OP_ACK, blockno)
+
+
+def _parse_packet(pkt):
+    if len(pkt) < 2:
+        raise TFTPError("Short packet")
+    op = struct.unpack("!H", pkt[:2])[0]
+    return op
+
+
+def _parse_ack(pkt):
+    if len(pkt) < 4:
+        raise TFTPError("Short ACK")
+    op, blockno = struct.unpack("!HH", pkt[:4])
+    if op != OP_ACK:
+        raise TFTPError("Expected ACK, got opcode %d" % op)
+    return blockno
+
+
+def _parse_data(pkt):
+    if len(pkt) < 4:
+        raise TFTPError("Short DATA")
+    op, blockno = struct.unpack("!HH", pkt[:4])
+    if op != OP_DATA:
+        raise TFTPError("Expected DATA, got opcode %d" % op)
+    return blockno, pkt[4:]
+
+
+def _parse_error(pkt):
+    # ERROR: opcode(2) + errcode(2) + errmsg + 0
+    if len(pkt) < 4:
+        raise TFTPError("Short ERROR")
+    op, errcode = struct.unpack("!HH", pkt[:4])
+    if op != OP_ERROR:
+        raise TFTPError("Not an ERROR packet")
+    msg = pkt[4:]
+    if b"\x00" in msg:
+        msg = msg.split(b"\x00", 1)[0]
+    try:
+        msg = msg.decode("utf-8", "replace")
+    except Exception:
+        msg = repr(msg)
+    raise TFTPError("TFTP ERROR %d: %s" % (errcode, msg))
+
+
+def _mk_sock(proxy, timeout):
+    """
+    proxy: dict or None
+      If dict, expected keys:
+        host, port, username(optional), password(optional)
+    """
+    s = socks.socksocket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(timeout)
+
+    if proxy:
+        # Only SOCKS5 is realistic for UDP.
+        s.set_proxy(
+            proxy_type=socks.SOCKS5,
+            addr=proxy["host"],
+            port=int(proxy["port"]),
+            username=proxy.get("username"),
+            password=proxy.get("password"),
+            rdns=True,
+        )
+    return s
+
+
+def tftp_upload(server_host, remote_filename, fileobj,
+                server_port=69, mode="octet",
+                proxy=None, timeout=5.0, retries=5):
+    """
+    Upload to a TFTP server using a file object opened for reading (binary).
+
+    Args:
+      server_host (str): TFTP server hostname/IP
+      remote_filename (str): destination filename on server
+      fileobj: readable file-like object (must return bytes)
+      proxy (dict|None): {"host": "...", "port": 1080, "username": "...", "password": "..."}
+      timeout (float): socket timeout seconds
+      retries (int): retransmit attempts per block
+
+    Returns:
+      None (raises TFTPError on failure)
+    """
+    sock = _mk_sock(proxy, timeout)
+
+    try:
+        # Send WRQ to well-known port
+        wrq = _make_wrq(remote_filename, mode=_to_bytes(mode))
+        sock.sendto(wrq, (server_host, int(server_port)))
+
+        # Server should respond from a new ephemeral port with ACK(0)
+        for attempt in range(retries):
+            try:
+                pkt, addr = sock.recvfrom(4 + 128)
+                op = _parse_packet(pkt)
+                if op == OP_ERROR:
+                    _parse_error(pkt)
+                if op != OP_ACK:
+                    raise TFTPError("Expected ACK(0), got opcode %d" % op)
+                ack_block = _parse_ack(pkt)
+                if ack_block != 0:
+                    raise TFTPError("Expected ACK block 0, got %d" % ack_block)
+                server_tid = addr  # (ip, port) for rest of transfer
+                break
+            except socket.timeout:
+                # Retransmit WRQ
+                sock.sendto(wrq, (server_host, int(server_port)))
+        else:
+            raise TFTPError("Timeout waiting for ACK(0)")
+
+        # Send DATA blocks starting at 1
+        blockno = 1
+        while True:
+            data = fileobj.read(BLOCK_SIZE)
+            if data is None:
+                data = b""
+            if not isinstance(data, (bytes, bytearray)):
+                raise TFTPError("fileobj.read() must return bytes")
+
+            data_pkt = _make_data(blockno, data)
+
+            # retransmit loop for this block
+            for attempt in range(retries):
+                sock.sendto(data_pkt, server_tid)
+                try:
+                    pkt, addr = sock.recvfrom(4 + 128)
+                    # TID check: ignore packets from other ports/hosts
+                    if addr != server_tid:
+                        continue
+                    op = _parse_packet(pkt)
+                    if op == OP_ERROR:
+                        _parse_error(pkt)
+                    ackb = _parse_ack(pkt)
+                    if ackb == blockno:
+                        break
+                except socket.timeout:
+                    continue
+            else:
+                raise TFTPError("Timeout waiting for ACK(%d)" % blockno)
+
+            # Last block is < 512 bytes (including 0 bytes if exact multiple requires final 0-length block)
+            if len(data) < BLOCK_SIZE:
+                return
+
+            blockno = (blockno + 1) & 0xFFFF
+            if blockno == 0:
+                # TFTP block rolls over after 65535; handling wrap robustly is more involved.
+                raise TFTPError("Block number rollover not supported in this simple implementation.")
+
+    finally:
+        try:
+            sock.close()
+        except Exception:
+            pass
+
+
+def tftp_download(server_host, remote_filename,
+                  server_port=69, mode="octet",
+                  proxy=None, timeout=5.0, retries=5):
+    """
+    Download from a TFTP server and return a file-like object containing bytes.
+
+    Args:
+      server_host (str): TFTP server hostname/IP
+      remote_filename (str): filename on server
+      proxy (dict|None): {"host": "...", "port": 1080, "username": "...", "password": "..."}
+      timeout (float): socket timeout seconds
+      retries (int): retransmit attempts
+
+    Returns:
+      io.BytesIO: file-like object positioned at start
+    """
+    sock = _mk_sock(proxy, timeout)
+    out = MkTempFile()
+
+    rrq = _make_rrq(remote_filename, mode=_to_bytes(mode))
+
+    try:
+        # Send RRQ to well-known port
+        sock.sendto(rrq, (server_host, int(server_port)))
+
+        expected = 1
+        server_tid = None
+        last_ack = 0
+
+        while True:
+            for attempt in range(retries):
+                try:
+                    pkt, addr = sock.recvfrom(4 + BLOCK_SIZE + 128)
+                    op = _parse_packet(pkt)
+
+                    if op == OP_ERROR:
+                        _parse_error(pkt)
+
+                    if op != OP_DATA:
+                        raise TFTPError("Expected DATA, got opcode %d" % op)
+
+                    blockno, payload = _parse_data(pkt)
+
+                    # First DATA defines server TID
+                    if server_tid is None:
+                        server_tid = addr
+
+                    # Ignore packets from unexpected TID
+                    if addr != server_tid:
+                        continue
+
+                    if blockno == expected:
+                        out.write(payload)
+                        ack = _make_ack(blockno)
+                        sock.sendto(ack, server_tid)
+                        last_ack = blockno
+
+                        # end condition
+                        if len(payload) < BLOCK_SIZE:
+                            out.seek(0)
+                            return out
+
+                        expected = (expected + 1) & 0xFFFF
+                        if expected == 0:
+                            raise TFTPError("Block number rollover not supported in this simple implementation.")
+                        break
+
+                    elif blockno == last_ack:
+                        # Duplicate DATA; re-ACK to help server
+                        sock.sendto(_make_ack(blockno), server_tid)
+                        break
+
+                    else:
+                        # Out-of-order: ACK last good block
+                        sock.sendto(_make_ack(last_ack), server_tid)
+                        break
+
+                except socket.timeout:
+                    # On timeout, retransmit RRQ initially, else retransmit last ACK
+                    if server_tid is None:
+                        sock.sendto(rrq, (server_host, int(server_port)))
+                    else:
+                        sock.sendto(_make_ack(last_ack), server_tid)
+            else:
+                raise TFTPError("Timeout receiving DATA block %d" % expected)
+
+    finally:
+        try:
+            sock.close()
+        except Exception:
+            pass
+
+def download_file_from_tftp_file(url, resumefile=None, timeout=60, returnstats=False):
+    p = urlparse(url)
+    if p.scheme != "tftp":
+        return False
+
+    host = p.hostname
+    port = p.port or 69
+    user = p.username
+    pw = p.password
+    path = p.path or "/"
+    file_dir = os.path.dirname(path)
+    start_time = time.time()
+    socket.setdefaulttimeout(float(timeout))
+    try:
+        bio = tftp_download(host, p.path, port, timeout=float(timeout))
+        fulldatasize = bio.tell()
+        bio.seek(0, 0)
+        end_time = time.time()
+        total_time = end_time - start_time
+        if(returnstats):
+            returnval = {'Type': "Buffer", 'Buffer': bio, 'Contentsize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': None, 'Version': None, 'Method': None, 'HeadersSent': None, 'URL': url, 'Code': None, 'RequestTime': {'StartTime': start_time, 'EndTime': end_time, 'TotalTime': total_time}, 'FTPLib': 'pyftp'}
+        else:
+            return bio
+    except Exception:
+        try:
+            ftp.close()
+        except Exception:
+            pass
+        return False
+
+def download_file_from_tftp_string(url, resumefile=None, timeout=60, returnstats=False):
+    fp = download_file_from_tftp_file(url, resumefile, timeout, returnstats)
+    return fp.read() if fp else False
+
+def upload_file_to_tftp_file(fileobj, url, timeout=60):
+    p = urlparse(url)
+    if p.scheme != "tftp":
+        return False
+
+    socket.setdefaulttimeout(float(timeout))
+    host = p.hostname
+    port = p.port or 21
+    user = p.username
+    pw = p.password
+    path = p.path or "/"
+    file_dir = os.path.dirname(path)
+    fname = os.path.basename(path) or "upload.bin"
+
+    try:
+        try:
+            fileobj.seek(0, 0)
+        except Exception:
+            pass
+        tftp_upload(host, p.path, fileobj, port, timeout=float(timeout))
+        try:
+            fileobj.seek(0, 0)
+        except Exception:
+            pass
+
+        return fileobj
+    except Exception:
+        return False
+
+def upload_file_to_tftp_string(data, url, timeout=60):
+    bio = MkTempFile(_to_bytes(data))
+    out = upload_file_to_tftp_file(bio, url, timeout)
+    try:
+        bio.close()
+    except Exception:
+        pass
+    return out
+
 # --------------------------
 # FTP helpers
 # --------------------------
@@ -5149,6 +5498,8 @@ def download_file_from_internet_file(url, **kwargs):
         return download_file_from_http_file(url, **kwargs)
     if p.scheme in ("ftp", "ftps"):
         return download_file_from_ftp_file(url, **kwargs)
+    if p.scheme in ("tftp", ):
+        return download_file_from_tftp_file(url, **kwargs)
     if p.scheme in ("sftp", "scp"):
         if __use_pysftp__ and havepysftp:
             return download_file_from_pysftp_file(url, **kwargs)
@@ -5945,6 +6296,8 @@ def upload_file_to_internet_file(fileobj, url):
         return _serve_file_over_http(fileobj, url)
     if p.scheme in ("ftp", "ftps"):
         return upload_file_to_ftp_file(fileobj, url)
+    if p.scheme in ("tftp", ):
+        return upload_file_to_tftp_file(fileobj, url)
     if p.scheme in ("sftp", "scp"):
         if __use_pysftp__ and havepysftp:
             return upload_file_to_pysftp_file(fileobj, url)
