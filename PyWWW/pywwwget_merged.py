@@ -103,11 +103,13 @@ except ImportError:
 try:
     # Py3
     from urllib.parse import quote_from_bytes, unquote_to_bytes, urlencode
+    from urllib.request import install_opener
 except ImportError:
     # Py2
     from urllib import urlencode
     from urllib import quote as _quote
     from urllib import unquote as _unquote
+    from urllib2 import install_opener
 
     def quote_from_bytes(b, safe=''):
         # Py2 urllib.quote expects "str" (bytes)
@@ -975,7 +977,7 @@ def _ftp_login(ftp, user, pw):
         pw = "anonymous" if user == "anonymous" else ""
     ftp.login(user, pw)
 
-def download_file_from_ftp_file(url, timeout=60, returnstats=False):
+def download_file_from_ftp_file(url, resumefile=None, timeout=60, returnstats=False):
     p = urlparse(url)
     if p.scheme not in ("ftp", "ftps"):
         return False
@@ -1003,8 +1005,13 @@ def download_file_from_ftp_file(url, timeout=60, returnstats=False):
         # Try cwd into directory; if it works, RETR just basename.
         use_cwd = detect_cwd_ftp(ftp, file_dir)
         retr_path = os.path.basename(path) if use_cwd else path
-
-        bio = MkTempFile()
+        extendargs = {}
+        if(resumefile is not None and hasattr(resumefile, "write")):
+            resumefile.seek(0, 2)
+            bio = resumefile
+            extendargs = {'rest': resumefile.tell()}
+        else:
+            bio = MkTempFile()
         ftp.retrbinary("RETR " + retr_path, bio.write)
         ftp.quit()
         fulldatasize = bio.tell()
@@ -1022,15 +1029,15 @@ def download_file_from_ftp_file(url, timeout=60, returnstats=False):
             pass
         return False
 
-def download_file_from_ftp_string(url, timeout=60, returnstats=False):
-    fp = download_file_from_ftp_file(url, timeout, returnstats)
+def download_file_from_ftp_string(url, resumefile=None, timeout=60, returnstats=False):
+    fp = download_file_from_ftp_file(url, resumefile, timeout, returnstats)
     return fp.read() if fp else False
 
-def download_file_from_ftps_file(url, timeout=60, returnstats=False):
-    return download_file_from_ftp_file(url, timeout, returnstats)
+def download_file_from_ftps_file(url, resumefile=None, timeout=60, returnstats=False):
+    return download_file_from_ftp_file(url, resumefile, timeout, returnstats)
 
-def download_file_from_ftps_string(url, timeout=60, returnstats=False):
-    return download_file_from_ftp_string(url, timeout, returnstats)
+def download_file_from_ftps_string(url, resumefile=None, timeout=60, returnstats=False):
+    return download_file_from_ftp_string(url, resumefile, timeout, returnstats)
 
 def upload_file_to_ftp_file(fileobj, url, timeout=60):
     p = urlparse(url)
@@ -1891,12 +1898,28 @@ def to_pycurl_httpost(payload, default_ext=".txt"):
 
     return http_post
 
-def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
+def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, resumefile=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
     if headers is None:
         headers = {}
     else:
         if(isinstance(headers, list)):
             headers = make_http_headers_from_list_to_dict(headers)
+    if(httpcookie is None):
+        httpcookie = os.devnull
+    cookie_name, cookie_ext = os.path.splitext(httpcookie)
+    cookiefile = httpcookie
+    if(usehttp!="pycurl"):
+        if(cookie_ext == ".lwp"):
+            policy = cookielib.DefaultCookiePolicy(netscape=True, rfc2965=False, hide_cookie2=True)
+            httpcookie = cookielib.LWPCookieJar(httpcookie, policy=policy)
+        else:
+            policy = cookielib.DefaultCookiePolicy(netscape=True, rfc2965=False, hide_cookie2=True)
+            httpcookie = cookielib.MozillaCookieJar(httpcookie, policy=policy)
+        if os.path.exists(cookie_ext):
+            httpcookie.load(ignore_discard=True, ignore_expires=True)
+        if(usehttp=="httpcore" or usehttp=="urllib3"):
+            openeralt = build_opener(HTTPCookieProcessor(httpcookie))
+            install_opener(openeralt)
     p = urlparse(url)
     username = unquote(p.username) if p.username else None
     password = unquote(p.password) if p.password else None
@@ -1910,27 +1933,15 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
     rebuilt_url = urlunparse((p.scheme, netloc, p.path, p.params, p.query, p.fragment))
     extendargs = {}
 
-    # HTTP resume: ?resume=1&resume_to=/path
-    qs = parse_qs(p.query or "")
-    resume = _qflag(qs, "resume", False)
-    resume_to = _qstr(qs, "resume_to", None)
-    httpfile = MkTempFile()
-    resume_off = 0
-    if resume and resume_to:
-        try:
-            if os.path.exists(resume_to):
-                httpfile = open(resume_to, "ab+")
-                httpfile.seek(0, 2)
-                resume_off = int(httpfile.tell())
-            else:
-                _ensure_dir(os.path.dirname(resume_to) or ".")
-                httpfile = open(resume_to, "wb+")
-                resume_off = 0
-        except Exception:
-            httpfile = MkTempFile()
-            resume_off = 0
-    if resume_off and "Range" not in headers and "range" not in headers:
-        headers["Range"] = "bytes=%d-" % resume_off
+    if(resumefile is not None and hasattr(resumefile, "write")):
+        resumefile.seek(0, 2)
+        if('Range' in headers):
+            headers['Range'] = "bytes=%d-" % resumefile.tell()
+        else:
+            headers.update({'Range': "bytes=%d-" % resumefile.tell()})
+        httpfile = resumefile
+    else:
+        httpfile = MkTempFile()
 
     if(httpuseragent is not None):
         if('User-Agent' in headers):
@@ -1954,6 +1965,8 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
     if usehttp == "requests" and haverequests:
         auth = (username, password) if (username and password) else None
         extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'headers': headers, 'auth': auth, 'cookies': httpcookie, 'stream': True, 'allow_redirects': True, 'timeout': (float(timeout), float(timeout))})
+        session = requests.Session()
+        session.cookies = httpcookie
         try:
             if(httpmethod == "POST"):
                 if(putfile is not None and sendfiles is not None):
@@ -1991,17 +2004,24 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                     extendargs.update({'json': postdata})
                 elif(not jsonpost and postdata is not None and (isinstance(sendfiles, dict) or sendfiles is None)):
                     extendargs.update({'data': postdata})
-            r = requests.request(**extendargs)
+            r = session.request(**extendargs)
             r.raise_for_status()
         except requests.exceptions.HTTPError as e:
             r = e.response
         except (socket.timeout, socket.gaierror, requests.exceptions.ConnectionError):
             return False
         r.raw.decode_content = True
+        if(resumefile is not None and hasattr(resumefile, "write")):
+            if r.status_code == 206 and "Content-Range" in r.headers:
+                pass
+            else:
+                httpfile.truncate(0)
+                httpfile.seek(0, 0)
         #shutil.copyfileobj(r.raw, httpfile)
         for chunk in r.iter_content(chunk_size=1024 * 1024):
             if chunk:
                 httpfile.write(chunk)
+        session.cookies.save(ignore_discard=True, ignore_expires=True)
         httpcodeout = r.status_code
         httpcodereason = r.reason
         vertostr = {
@@ -2025,7 +2045,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         except ImportError:
             usehttp2 = False
         try:
-            with httpx.Client(follow_redirects=True, http1=True, http2=usehttp2, trust_env=True, timeout=float(timeout)) as client:
+            with httpx.Client(follow_redirects=True, http1=True, http2=usehttp2, trust_env=True, timeout=float(timeout), cookies=httpcookie) as client:
                 auth = (username, password) if (username and password) else None
                 extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'headers': headers, 'auth': auth, 'cookies': httpcookie})
                 if(httpmethod == "POST"):
@@ -2070,9 +2090,16 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             r = e.response
         except (socket.timeout, socket.gaierror, httpx.ConnectError):
             return False
+        if(resumefile is not None and hasattr(resumefile, "write")):
+            if r.status_code == 206 and "Content-Range" in r.headers:
+                pass
+            else:
+                httpfile.truncate(0)
+                httpfile.seek(0, 0)
         for chunk in r.iter_bytes(chunk_size=1024 * 1024):
             if chunk:
                 httpfile.write(chunk)
+        httpcookie.save(cookiefile, ignore_discard=True, ignore_expires=True)
         httpcodeout = r.status_code
         try:
             httpcodereason = r.reason_phrase
@@ -2115,16 +2142,33 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                         headers.update({'Content-Type': "application/x-www-form-urlencoded"})
                     extendargs.update({'content': urlencode(postdata).encode('UTF-8')})
                 elif(putfile is not None):
+                    putfile.seek(0, 2)
+                    if('Content-Type' in headers):
+                        headers['Content-Type'] = "application/octet-stream"
+                    else:
+                        headers.update({'Content-Type': "application/octet-stream"})
+                    if('Content-Length' in headers):
+                        headers['Content-Length'] = str(putfile.tell())
+                    else:
+                        headers.update({'Content-Length': str(putfile.tell())})
                     putfile.seek(0, 0)
                     extendargs.update({'content': putfile})
             extendargs.update({'headers': headers})
             try:
                 with client.stream(**extendargs, ) as r:
+                    decoded_headers = decode_headers_any(r.headers)
+                    if(resumefile is not None and hasattr(resumefile, "write")):
+                        if r.status == 206 and "Content-Range" in decoded_headers:
+                            pass
+                        else:
+                            httpfile.truncate(0)
+                            httpfile.seek(0, 0)
                     for chunk in r.iter_stream():
                         if chunk:
                             httpfile.write(chunk)
             except (socket.timeout, socket.gaierror, httpcore.ConnectError):
                 return False
+        httpcookie.save(cookiefile, ignore_discard=True, ignore_expires=True)
         httpcodeout = r.status
         httpcodereason = http_status_to_reason(r.status)
         httpversionout = r.extensions.get("http_version")
@@ -2132,7 +2176,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             httpversionout = httpversionout.decode("ascii", errors="replace")
         httpmethodout = httpmethod
         httpurlout = str(rebuilt_url)
-        httpheaderout = decode_headers_any(r.headers)
+        httpheaderout = decoded_headers
         httpheadersentout = headers
 
     # Mechanize
@@ -2168,7 +2212,14 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             resp = e
         except (socket.timeout, socket.gaierror, URLError):
             return False
+        if(resumefile is not None and hasattr(resumefile, "write")):
+            if resp.code == 206 and "Content-Range" in resp.info():
+                pass
+            else:
+                httpfile.truncate(0)
+                httpfile.seek(0, 0)
         shutil.copyfileobj(resp, httpfile, length=1024 * 1024)
+        httpcookie.save(cookiefile, ignore_discard=True, ignore_expires=True)
         httpcodeout = resp.code
         httpcodereason = resp.msg
         vertostr = {
@@ -2194,8 +2245,6 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         # Request with preload_content=False to get a file-like object
         try:
             extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'headers': headers, 'preload_content': False, 'decode_content': True})
-            if(putfile is not None and sendfiles is not None):
-                sendfiles = None
             if(httpmethod == "POST"):
                 if(putfile is not None and sendfiles is not None):
                     putfile = None
@@ -2213,7 +2262,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                 if(jsonpost and postdata is not None):
                     extendargs.update({'json': postdata})
                 elif(not jsonpost and postdata is not None):
-                    if('fields' in headers):
+                    if('fields' in extendargs):
                         extendargs['fields'].update({postdata})
                     else:
                         extendargs.update({'fields': postdata})
@@ -2234,14 +2283,21 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                 if(jsonpost and postdata is not None):
                     extendargs.update({'json': postdata})
                 elif(not jsonpost and postdata is not None):
-                    if('fields' in headers):
+                    if('fields' in extendargs):
                         extendargs['fields'].update({postdata})
                     else:
                         extendargs.update({'fields': postdata})
             resp = http.request(**extendargs)
         except (socket.timeout, socket.gaierror, urllib3.exceptions.MaxRetryError):
             return False
+        if(resumefile is not None and hasattr(resumefile, "write")):
+            if resp.status == 206 and "Content-Range" in resp.info():
+                pass
+            else:
+                httpfile.truncate(0)
+                httpfile.seek(0, 0)
         shutil.copyfileobj(resp, httpfile, length=1024 * 1024)
+        httpcookie.save(cookiefile, ignore_discard=True, ignore_expires=True)
         httpcodeout = resp.status
         httpcodereason = resp.reason
         vertostr = {
@@ -2277,6 +2333,10 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         curlreq.setopt(pycurl.DEBUGFUNCTION, lambda t, m: sentout_headers.write(m))
         curlreq.setopt(pycurl.FOLLOWLOCATION, True)
         curlreq.setopt(pycurl.TIMEOUT, timeout)
+        # Load cookies from this file at the start
+        curlreq.setopt(pycurl.COOKIEFILE, cookiefile)
+        # Save cookies to this file when c.close() is called
+        curlreq.setopt(pycurl.COOKIEJAR, cookiefile)
         if(httpmethod == "GET"):
             curlreq.setopt(pycurl.HTTPGET, True)
         elif(httpmethod == "POST"):
@@ -2300,6 +2360,15 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
                 sendfiles = None
             curlreq.setopt(pycurl.CUSTOMREQUEST, httpmethod)
             if(putfile is not None):
+                putfile.seek(0, 2)
+                if('Content-Type' in headers):
+                    headers['Content-Type'] = "application/octet-stream"
+                else:
+                    headers.update({'Content-Type': "application/octet-stream"})
+                if('Content-Length' in headers):
+                    headers['Content-Length'] = str(putfile.tell())
+                else:
+                    headers.update({'Content-Length': str(putfile.tell())})
                 curlreq.setopt(pycurl.UPLOAD, True)
                 putfile.seek(0, 0)
                 curlreq.setopt(pycurl.READDATA, putfile)
@@ -2361,21 +2430,28 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
 
     # urllib fallback
     else:
-        extendargs.update({'url': rebuilt_url})
-        if(httpmethod == "GET"):
-            extendargs.update({'method': "GET"})
-        elif(httpmethod == "POST"):
-            extendargs.update({'method': "POST"})
-            if(jsonpost and postdata is not None):
+        extendargs.update({'url': rebuilt_url, 'method': httpmethod})
+        if(httpmethod == "POST" or httpmethod == "PUT" or httpmethod == "PATCH" or httpmethod == "DELETE"):
+            if(putfile is not None and postdata is None):
+                putfile.seek(0, 2)
+                if('Content-Type' in headers):
+                    headers['Content-Type'] = "application/octet-stream"
+                else:
+                    headers.update({'Content-Type': "application/octet-stream"})
+                if('Content-Length' in headers):
+                    headers['Content-Length'] = str(putfile.tell())
+                else:
+                    headers.update({'Content-Length': str(putfile.tell())})
+                putfile.seek(0, 0)
+                extendargs.update({'data': putfile})
+            if(jsonpost and postdata is not None and putfile is None):
                 if('Content-Type' in headers):
                     headers['Content-Type'] = "application/json"
                 else:
                     headers.update({'Content-Type': "application/json"})
-                extendargs.update({'data': json.dumps(postdata).encode('UTF-8')})
-            elif(not jsonpost and postdata is not None):
-                extendargs.update({'data': urlencode(postdata).encode('UTF-8')})
-        else:
-            extendargs.update({'method': "GET"})
+                extendargs.update({'data': postdata})
+            elif(not jsonpost and postdata is not None and putfile is None):
+                extendargs.update({'data': postdata})
         extendargs.update({'headers': headers})
         req = Request(**extendargs)
         if username and password:
@@ -2383,7 +2459,8 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
             mgr.add_password(None, rebuilt_url, username, password)
             opener = build_opener(HTTPBasicAuthHandler(mgr), HTTPCookieProcessor(httpcookie))
         else:
-            opener = build_opener()
+            opener = build_opener(HTTPCookieProcessor(httpcookie))
+        install_opener(opener)
         try:
             resp = opener.open(req, timeout=timeout)
         except HTTPError as e:
@@ -2391,7 +2468,14 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         except (socket.timeout, socket.gaierror, URLError):
             return False
         resp2 = decoded_stream(resp)
+        if(resumefile is not None and hasattr(resumefile, "write")):
+            if resp.getcode() == 206 and "Content-Range" in resp.info():
+                pass
+            else:
+                httpfile.truncate(0)
+                httpfile.seek(0, 0)
         shutil.copyfileobj(resp2, httpfile, length=1024 * 1024)
+        httpcookie.save(cookiefile, ignore_discard=True, ignore_expires=True)
         httpcodeout = resp.getcode()
         try:
             httpcodereason = resp.reason
@@ -2435,15 +2519,15 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, ht
         else:
             return httpfile
 
-def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
-    fp = download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
+def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__, resumefile=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
+    fp = download_file_from_http_file(url, headers, usehttp, resumefile, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
     return fp.read() if fp else False
 
-def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
-    return download_file_from_http_file(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
+def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, resumefile=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
+    return download_file_from_http_file(url, headers, usehttp, resumefile, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
 
-def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, httpuseragent=None, httpreferer=None, httpcookie=geturls_cj, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
-    return download_file_from_http_string(url, headers, usehttp, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
+def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, resumefile=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
+    return download_file_from_http_string(url, headers, usehttp, resumefile, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
 
 # --------------------------
 # TCP/UDP transport (receiver + sender)
