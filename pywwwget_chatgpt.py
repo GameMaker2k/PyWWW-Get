@@ -1086,10 +1086,10 @@ def upload_file_to_ftp_string(data, url, timeout=60):
         pass
     return out
 
-def upload_file_to_ftp_file(fileobj, url, timeout=60):
+def upload_file_to_ftps_file(fileobj, url, timeout=60):
     return upload_file_to_ftp_file(fileobj, url, timeout)
 
-def upload_file_to_ftp_string(fileobj, url, timeout=60):
+def upload_file_to_ftps_string(fileobj, url, timeout=60):
     return upload_file_to_ftp_string(fileobj, url, timeout)
 
 # --------------------------
