@@ -2212,7 +2212,7 @@ def to_pycurl_httpost(payload, default_ext=".txt"):
 
     return http_post
 
-def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, resumefile=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
+def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, resumefile=None, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
     if headers is None:
         headers = {}
     else:
@@ -2279,7 +2279,10 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
     if usehttp == "requests" and haverequests:
         auth = (username, password) if (username and password) else None
         extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'headers': headers, 'auth': auth, 'cookies': httpcookie, 'stream': True, 'allow_redirects': True, 'timeout': (float(timeout), float(timeout))})
-        session = requests.Session()
+        if(insessionvar is not None):
+            session = insessionvar
+        else:
+            session = requests.Session()
         session.cookies = httpcookie
         try:
             if(httpmethod == "POST"):
@@ -2350,6 +2353,10 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
         httpurlout = r.url
         httpheaderout = r.headers
         httpheadersentout = r.request.headers
+        httpsession = session
+        if((not keepsession and not returnstats) or not keepsession or httpmethod == "HEAD"):
+            session.close()
+            httpsession = None
 
     # HTTPX
     elif usehttp == "httpx" and havehttpx:
@@ -2359,47 +2366,50 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
         except ImportError:
             usehttp2 = False
         try:
-            with httpx.Client(follow_redirects=True, http1=True, http2=usehttp2, trust_env=True, timeout=float(timeout), cookies=httpcookie) as client:
-                auth = (username, password) if (username and password) else None
-                extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'headers': headers, 'auth': auth, 'cookies': httpcookie})
-                if(httpmethod == "POST"):
-                    if(putfile is not None and sendfiles is not None):
-                        putfile = None
-                    if(putfile is not None):
-                        putfile.seek(0, 0)
-                        extendargs.update({'content': putfile})
-                    if(sendfiles is not None and isinstance(sendfiles, dict)):
-                        jsonpost = False
-                        sendfiles = to_requests_files(sendfiles)
-                        if(sendfiles is not None):
-                            for _, (_, fobj, *_) in sendfiles:
-                                if hasattr(fobj, "seek"):
-                                    fobj.seek(0)
-                        extendargs.update({'files': sendfiles})
-                    if(jsonpost and postdata is not None):
-                        extendargs.update({'json': postdata})
-                    elif(not jsonpost and postdata is not None):
-                        extendargs.update({'data': postdata})
-                elif(httpmethod == "PUT" or httpmethod == "PATCH" or httpmethod == "DELETE"):
-                    if(putfile is not None and sendfiles is not None):
-                        sendfiles = None
-                    if(putfile is not None):
-                        putfile.seek(0, 0)
-                        extendargs.update({'content': putfile})
-                    if(sendfiles is not None and isinstance(sendfiles, dict)):
-                        jsonpost = False
-                        sendfiles = to_requests_files(sendfiles)
-                        if(sendfiles is not None):
-                            for _, (_, fobj, *_) in sendfiles:
-                                if hasattr(fobj, "seek"):
-                                    fobj.seek(0)
-                        extendargs.update({'files': sendfiles})
-                    if(jsonpost and postdata is not None):
-                        extendargs.update({'json': postdata})
-                    elif(not jsonpost and postdata is not None):
-                        extendargs.update({'data': postdata})
-                r = client.request(**extendargs)
-                r.raise_for_status()
+            if(insessionvar is not None):
+                client = insessionvar
+            else:
+                client = httpx.Client(follow_redirects=True, http1=True, http2=usehttp2, trust_env=True, timeout=float(timeout), cookies=httpcookie)
+            auth = (username, password) if (username and password) else None
+            extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'headers': headers, 'auth': auth, 'cookies': httpcookie})
+            if(httpmethod == "POST"):
+                if(putfile is not None and sendfiles is not None):
+                    putfile = None
+                if(putfile is not None):
+                    putfile.seek(0, 0)
+                    extendargs.update({'content': putfile})
+                if(sendfiles is not None and isinstance(sendfiles, dict)):
+                    jsonpost = False
+                    sendfiles = to_requests_files(sendfiles)
+                    if(sendfiles is not None):
+                        for _, (_, fobj, *_) in sendfiles:
+                            if hasattr(fobj, "seek"):
+                                fobj.seek(0)
+                    extendargs.update({'files': sendfiles})
+                if(jsonpost and postdata is not None):
+                    extendargs.update({'json': postdata})
+                elif(not jsonpost and postdata is not None):
+                    extendargs.update({'data': postdata})
+            elif(httpmethod == "PUT" or httpmethod == "PATCH" or httpmethod == "DELETE"):
+                if(putfile is not None and sendfiles is not None):
+                    sendfiles = None
+                if(putfile is not None):
+                    putfile.seek(0, 0)
+                    extendargs.update({'content': putfile})
+                if(sendfiles is not None and isinstance(sendfiles, dict)):
+                    jsonpost = False
+                    sendfiles = to_requests_files(sendfiles)
+                    if(sendfiles is not None):
+                        for _, (_, fobj, *_) in sendfiles:
+                            if hasattr(fobj, "seek"):
+                                fobj.seek(0)
+                    extendargs.update({'files': sendfiles})
+                if(jsonpost and postdata is not None):
+                    extendargs.update({'json': postdata})
+                elif(not jsonpost and postdata is not None):
+                    extendargs.update({'data': postdata})
+            r = client.request(**extendargs)
+            r.raise_for_status()
         except httpx.HTTPStatusError as e:
             r = e.response
         except (socket.timeout, socket.gaierror, httpx.ConnectError):
@@ -2430,6 +2440,10 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
             for k, v in r.headers.items()
         }
         httpheadersentout = r.request.headers
+        httpsession = client
+        if((not keepsession and not returnstats) or not keepsession or httpmethod == "HEAD"):
+            client.close()
+            httpsession = None
 
 
     # HTTPCore
@@ -2439,34 +2453,37 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
             usehttp2 = True
         except ImportError:
             usehttp2 = False
-        with httpcore.ConnectionPool(http1=True, http2=usehttp2) as client:
-            timeoutdict = {"connect": float(timeout), "read": float(timeout), "write": float(timeout), "pool": float(timeout)}
-            extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'extensions': {"timeout": timeoutdict}})
-            if(httpmethod == "POST" or httpmethod == "PUT" or httpmethod == "PATCH" or httpmethod == "DELETE"):
-                if(jsonpost and postdata is not None and putfile is None):
-                    if('Content-Type' in headers):
-                        headers['Content-Type'] = "application/json"
-                    else:
-                        headers.update({'Content-Type': "application/json"})
-                    extendargs.update({'content': json.dumps(postdata).encode('UTF-8')})
-                elif(not jsonpost and postdata is not None and putfile is None):
-                    if('Content-Type' in headers):
-                        headers['Content-Type'] = "application/x-www-form-urlencoded"
-                    else:
-                        headers.update({'Content-Type': "application/x-www-form-urlencoded"})
-                    extendargs.update({'content': urlencode(postdata).encode('UTF-8')})
-                elif(putfile is not None):
-                    putfile.seek(0, 2)
-                    if('Content-Type' in headers):
-                        headers['Content-Type'] = "application/octet-stream"
-                    else:
-                        headers.update({'Content-Type': "application/octet-stream"})
-                    if('Content-Length' in headers):
-                        headers['Content-Length'] = str(putfile.tell())
-                    else:
-                        headers.update({'Content-Length': str(putfile.tell())})
-                    putfile.seek(0, 0)
-                    extendargs.update({'content': putfile})
+        if(insessionvar is not None):
+            client = insessionvar
+        else:
+            client = httpcore.ConnectionPool(http1=True, http2=usehttp2)
+        timeoutdict = {"connect": float(timeout), "read": float(timeout), "write": float(timeout), "pool": float(timeout)}
+        extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'extensions': {"timeout": timeoutdict}})
+        if(httpmethod == "POST" or httpmethod == "PUT" or httpmethod == "PATCH" or httpmethod == "DELETE"):
+            if(jsonpost and postdata is not None and putfile is None):
+                if('Content-Type' in headers):
+                    headers['Content-Type'] = "application/json"
+                else:
+                    headers.update({'Content-Type': "application/json"})
+                extendargs.update({'content': json.dumps(postdata).encode('UTF-8')})
+            elif(not jsonpost and postdata is not None and putfile is None):
+                if('Content-Type' in headers):
+                    headers['Content-Type'] = "application/x-www-form-urlencoded"
+                else:
+                    headers.update({'Content-Type': "application/x-www-form-urlencoded"})
+                extendargs.update({'content': urlencode(postdata).encode('UTF-8')})
+            elif(putfile is not None):
+                putfile.seek(0, 2)
+                if('Content-Type' in headers):
+                    headers['Content-Type'] = "application/octet-stream"
+                else:
+                    headers.update({'Content-Type': "application/octet-stream"})
+                if('Content-Length' in headers):
+                    headers['Content-Length'] = str(putfile.tell())
+                else:
+                    headers.update({'Content-Length': str(putfile.tell())})
+                putfile.seek(0, 0)
+                extendargs.update({'content': putfile})
             extendargs.update({'headers': headers})
             try:
                 with client.stream(**extendargs, ) as r:
@@ -2492,10 +2509,17 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
         httpurlout = str(rebuilt_url)
         httpheaderout = decoded_headers
         httpheadersentout = headers
+        httpsession = client
+        if((not keepsession and not returnstats) or not keepsession or httpmethod == "HEAD"):
+            client.close()
+            httpsession = None
 
     # Mechanize
     elif usehttp == "mechanize" and havemechanize:
-        br = mechanize.Browser()
+        if(insessionvar is not None):
+            br = insessionvar
+        else:
+            br = mechanize.Browser()
         br.set_cookiejar(httpcookie)
         br.set_handle_robots(False)
         if username and password:
@@ -2549,10 +2573,17 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
         httpheaderout = resp.info()
         reqhead = br.request
         httpheadersentout = reqhead.header_items()
+        httpsession = br
+        if((not keepsession and not returnstats) or not keepsession or httpmethod == "HEAD"):
+            br.close()
+            httpsession = None
 
     # URLLib3
     elif usehttp == "urllib3" and haveurllib3:
-        http = urllib3.PoolManager(timeout=urllib3.Timeout(total=float(timeout)))
+        if(insessionvar is not None):
+            http = insessionvar
+        else:
+            http = urllib3.PoolManager(timeout=urllib3.Timeout(total=float(timeout)))
         if username and password:
             auth_headers = urllib3.make_headers(basic_auth="{}:{}".format(username, password))
             headers.update(auth_headers)
@@ -2624,15 +2655,22 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
             httpversionout = "HTTP/1.1"
         httpmethodout = httpmethod
         httpurlout = resp.geturl()
-        httpheaderout = dict(resp.info().itermerged())
+        httpheaderout = resp.info()
         httpheadersentout = headers
         resp.release_conn()
+        httpsession = http
+        if((not keepsession and not returnstats) or not keepsession or httpmethod == "HEAD"):
+            http.close()
+            httpsession = None
 
     elif(usehttp == "pycurl"):
         retrieved_body = MkTempFile()
         retrieved_headers = MkTempFile()
         sentout_headers = MkTempFile()
-        curlreq = pycurl.Curl()
+        if(insessionvar is not None):
+            curlreq = insessionvar
+        else:
+            curlreq = pycurl.Curl()
         if(hasattr(pycurl, "CURL_HTTP_VERSION_3_0")):
             usehttpver = pycurl.CURL_HTTP_VERSION_3_0
         elif(hasattr(pycurl, "CURL_HTTP_VERSION_2_0")):
@@ -2741,6 +2779,10 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
             httpheadersentout = httpheadersentpre['request']['headers']
         except TypeError:
             httpheadersentout = headers
+        httpsession = curlreq
+        if((not keepsession and not returnstats) or not keepsession or httpmethod == "HEAD"):
+            curlreq.close()
+            httpsession = None
 
     # urllib fallback
     else:
@@ -2767,7 +2809,10 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
             elif(not jsonpost and postdata is not None and putfile is None):
                 extendargs.update({'data': postdata})
         extendargs.update({'headers': headers})
-        req = Request(**extendargs)
+        if(insessionvar is not None):
+            req = insessionvar
+        else:
+            req = Request(**extendargs)
         if username and password:
             mgr = HTTPPasswordMgrWithDefaultRealm()
             mgr.add_password(None, rebuilt_url, username, password)
@@ -2813,6 +2858,12 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
             httpheadersentout =  req.unredirected_hdrs | req.headers
         except AttributeError:
             httpheadersentout = req.header_items()
+        httpsession = req
+        if((not keepsession and not returnstats) or not keepsession or httpmethod == "HEAD"):
+            req.close()
+            httpsession = None
+
+
     fulldatasize = httpfile.tell()
     try:
         httpfile.seek(0, 0)
@@ -2820,11 +2871,13 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
         pass
     end_time = time.time()
     total_time = end_time - start_time
+    if(not httpsession):
+        httpsession = None
     if(returnstats):
         if(isinstance(httpheaderout, list)):
             httpheaderout = make_http_headers_from_list_to_dict(httpheaderout)
         httpheaderout = fix_header_names(httpheaderout)
-        returnval = {'Type': "Buffer", 'Buffer': httpfile, 'ContentSize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(
+        returnval = {'Type': "Buffer", 'Buffer': httpfile, 'Session': httpsession, 'ContentSize': fulldatasize, 'ContentsizeAlt': {'IEC': get_readable_size(
             fulldatasize, 2, "IEC"), 'SI': get_readable_size(fulldatasize, 2, "SI")}, 'Headers': httpheaderout, 'Version': httpversionout, 'Method': httpmethodout, 'HeadersSent': httpheadersentout, 'URL': httpurlout, 'Code': httpcodeout, 'Reason': httpcodereason, 'HTTPLib': usehttp, 'RequestTime': {'StartTime': start_time, 'EndTime': end_time, 'TotalTime': total_time}}
         return returnval
     else:
@@ -2833,15 +2886,15 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
         else:
             return httpfile
 
-def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__, resumefile=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
-    fp = download_file_from_http_file(url, headers, usehttp, resumefile, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
+def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__, resumefile=None, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
+    fp = download_file_from_http_file(url, headers, usehttp, resumefile, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
     return fp.read() if fp else False
 
-def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, resumefile=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
-    return download_file_from_http_file(url, headers, usehttp, resumefile, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
+def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, resumefile=None, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
+    return download_file_from_http_file(url, headers, usehttp, resumefile, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
 
-def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, resumefile=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
-    return download_file_from_http_string(url, headers, usehttp, resumefile, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
+def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, resumefile=None, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
+    return download_file_from_http_string(url, headers, usehttp, resumefile, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
 
 # --------------------------
 # TCP/UDP transport (receiver + sender)
