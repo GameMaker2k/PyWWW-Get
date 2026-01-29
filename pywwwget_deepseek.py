@@ -2595,21 +2595,21 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
                     headers.update({'Content-Length': str(putfile.tell())})
                 putfile.seek(0, 0)
                 extendargs.update({'content': putfile})
-            extendargs.update({'headers': headers})
-            try:
-                with client.stream(**extendargs, ) as r:
-                    decoded_headers = decode_headers_any(r.headers)
-                    if(resumefile is not None and hasattr(resumefile, "write")):
-                        if r.status == 206 and "Content-Range" in decoded_headers:
-                            pass
-                        else:
-                            httpfile.truncate(0)
-                            httpfile.seek(0, 0)
-                    for chunk in r.iter_stream():
-                        if chunk:
-                            httpfile.write(chunk)
-            except (socket.timeout, socket.gaierror, httpcore.ConnectError):
-                return False
+        extendargs.update({'headers': headers})
+        try:
+            with client.stream(**extendargs, ) as r:
+                decoded_headers = decode_headers_any(r.headers)
+                if(resumefile is not None and hasattr(resumefile, "write")):
+                    if r.status == 206 and "Content-Range" in decoded_headers:
+                        pass
+                    else:
+                        httpfile.truncate(0)
+                        httpfile.seek(0, 0)
+                for chunk in r.iter_stream():
+                    if chunk:
+                        httpfile.write(chunk)
+        except (socket.timeout, socket.gaierror, httpcore.ConnectError):
+            return False
         httpcookie.save(cookiefile, ignore_discard=True, ignore_expires=True)
         httpcodeout = r.status
         httpcodereason = http_status_to_reason(r.status)
@@ -2662,7 +2662,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
         except (socket.timeout, socket.gaierror, URLError):
             return False
         if(resumefile is not None and hasattr(resumefile, "write")):
-            if resp.code == 206 and "Content-Range" in resp.info():
+            if resp.code == 206 and "Content-Range" in dict(resp.info()):
                 pass
             else:
                 httpfile.truncate(0)
@@ -2681,7 +2681,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
             httpversionout = "HTTP/1.1"
         httpmethodout = httpmethod
         httpurlout = resp.geturl()
-        httpheaderout = resp.info()
+        httpheaderout = dict(resp.info())
         reqhead = br.request
         httpheadersentout = reqhead.header_items()
         httpsession = br
@@ -2747,7 +2747,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
         except (socket.timeout, socket.gaierror, urllib3.exceptions.MaxRetryError):
             return False
         if(resumefile is not None and hasattr(resumefile, "write")):
-            if resp.status == 206 and "Content-Range" in resp.info():
+            if resp.status == 206 and "Content-Range" in dict(resp.info()):
                 pass
             else:
                 httpfile.truncate(0)
@@ -2766,7 +2766,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
             httpversionout = "HTTP/1.1"
         httpmethodout = httpmethod
         httpurlout = resp.geturl()
-        httpheaderout = resp.info()
+        httpheaderout = dict(resp.info())
         httpheadersentout = headers
         resp.release_conn()
         httpsession = http
@@ -2939,7 +2939,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
             return False
         resp2 = decoded_stream(resp)
         if(resumefile is not None and hasattr(resumefile, "write")):
-            if resp.getcode() == 206 and "Content-Range" in resp.info():
+            if resp.getcode() == 206 and "Content-Range" in dict(resp.info()):
                 pass
             else:
                 httpfile.truncate(0)
@@ -2964,7 +2964,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
         except AttributeError:
             httpmethodout = resp._method
         httpurlout = resp.geturl()
-        httpheaderout = resp.info()
+        httpheaderout = dict(resp.info())
         try:
             httpheadersentout =  req.unredirected_hdrs | req.headers
         except AttributeError:
