@@ -2222,7 +2222,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
         httpcookie = os.devnull
     cookie_name, cookie_ext = os.path.splitext(httpcookie)
     cookiefile = httpcookie
-    if(usehttp!="pycurl"):
+    if(usehttp!="pycurl" or not havepycurl):
         if(cookie_ext == ".lwp"):
             policy = cookielib.DefaultCookiePolicy(netscape=True, rfc2965=False, hide_cookie2=True)
             httpcookie = cookielib.LWPCookieJar(httpcookie, policy=policy)
