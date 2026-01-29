@@ -2640,7 +2640,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
             httpversionout = "HTTP/1.1"
         httpmethodout = httpmethod
         httpurlout = resp.geturl()
-        httpheaderout = resp.info()
+        httpheaderout = dict(resp.info().itermerged())
         httpheadersentout = headers
         resp.release_conn()
 
