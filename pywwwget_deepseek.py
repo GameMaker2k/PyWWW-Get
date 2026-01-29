@@ -2775,7 +2775,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
         resp.release_conn()
         httpsession = http
         if((not keepsession and not returnstats) or not keepsession or httpmethod == "HEAD"):
-            http.close()
+            http.clear()
             httpsession = None
 
     elif(usehttp == "pycurl"):
