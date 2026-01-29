@@ -2975,7 +2975,6 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
             httpheadersentout = req.header_items()
         httpsession = req
         if((not keepsession and not returnstats) or not keepsession or httpmethod == "HEAD"):
-            req.close()
             httpsession = None
 
 
