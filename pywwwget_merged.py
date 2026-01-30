@@ -10,9 +10,9 @@ A small, self-contained subset of PyNeoWWW-Get style helpers that keeps the same
 public API shape you were using:
 
 - download_file_from_internet_file(url, headers=..., usehttp=...)
-- download_file_from_internet_string(url, headers=..., usehttp=...)
+- download_file_from_internet_bytes(url, headers=..., usehttp=...)
 - upload_file_to_internet_file(fileobj, url)
-- upload_file_to_internet_string(bytestr, url)
+- upload_file_to_internet_bytes(bytestr, url)
 
 Plus protocol-specific helpers (http/ftp/ftps/sftp/tcp/udp) and detect_cwd_ftp().
 
@@ -66,7 +66,6 @@ import sys
 import json
 import random
 import platform
-import secrets
 import socket
 import shutil
 import time
@@ -80,6 +79,24 @@ import ssl
 import mimetypes
 import base64
 import threading
+
+try:
+    from secrets import randbits
+except Exception:
+    def randbits(k):
+        if k < 0:
+            raise ValueError('number of bits must be non-negative')
+        num_bytes = (k + 7) // 8
+        raw_bytes = os.urandom(num_bytes)
+        value = int.from_bytes(raw_bytes, 'big')
+        return value >> (num_bytes * 8 - k)
+
+defcert = None
+try:
+    import certifi
+    defcert = certifi.where()
+except ImportError:
+    pass
 
 # Initialize mimetypes
 try:
@@ -1229,7 +1246,7 @@ def tftp_download(server_host, remote_filename,
         except Exception:
             pass
 
-def download_file_from_tftp_file(url, resumefile=None, timeout=60, returnstats=False):
+def download_file_from_tftp_file(url, timeout=60, returnstats=False):
     p = urlparse(url)
     if p.scheme != "tftp":
         return False
@@ -1259,9 +1276,16 @@ def download_file_from_tftp_file(url, resumefile=None, timeout=60, returnstats=F
             pass
         return False
 
-def download_file_from_tftp_string(url, resumefile=None, timeout=60, returnstats=False):
-    fp = download_file_from_tftp_file(url, resumefile, timeout, returnstats)
+def download_file_from_tftp_bytes(url, timeout=60, returnstats=False):
+    fp = download_file_from_tftp_file(url, timeout, returnstats)
     return fp.read() if fp else False
+
+def download_file_from_tftp_to_file(url, outfile, timeout=60):
+    outfile = open(outfile, "wb")
+    httpbytes = download_file_from_tftp_bytes(url, timeout, False)
+    outfile.write(httpbytes)
+    outfile.close()
+    return True
 
 def upload_file_to_tftp_file(fileobj, url, timeout=60):
     p = urlparse(url)
@@ -1292,7 +1316,7 @@ def upload_file_to_tftp_file(fileobj, url, timeout=60):
     except Exception:
         return False
 
-def upload_file_to_tftp_string(data, url, timeout=60):
+def upload_file_to_tftp_bytes(data, url, timeout=60):
     bio = MkTempFile(_to_bytes(data))
     out = upload_file_to_tftp_file(bio, url, timeout)
     try:
@@ -1300,6 +1324,12 @@ def upload_file_to_tftp_string(data, url, timeout=60):
     except Exception:
         pass
     return out
+
+def upload_file_to_tftp_from_file(infile, url, timeout=60):
+    infile = open(infile, "rb")
+    upload_file_to_tftp_file(infile, url, timeout)
+    infile.close()
+    return True
 
 # --------------------------
 # FTP helpers
@@ -1378,15 +1408,31 @@ def download_file_from_ftp_file(url, resumefile=None, timeout=60, returnstats=Fa
             pass
         return False
 
-def download_file_from_ftp_string(url, resumefile=None, timeout=60, returnstats=False):
+def download_file_from_ftp_bytes(url, resumefile=None, timeout=60, returnstats=False):
     fp = download_file_from_ftp_file(url, resumefile, timeout, returnstats)
     return fp.read() if fp else False
+
+def download_file_from_ftp_to_file(url, outfile, timeout=60):
+    if(os.path.exists(outfile)):
+        outfile = open(outfile, "ab")
+        outfile.seek(0, 2)
+        httpbytes = download_file_from_ftp_file(url, outfile, timeout, False)
+        outfile.close()
+    else:
+        outfile = open(outfile, "wb")
+        httpbytes = download_file_from_ftp_bytes(url, None, timeout, False)
+        outfile.write(httpbytes)
+        outfile.close()
+    return True
 
 def download_file_from_ftps_file(url, resumefile=None, timeout=60, returnstats=False):
     return download_file_from_ftp_file(url, resumefile, timeout, returnstats)
 
-def download_file_from_ftps_string(url, resumefile=None, timeout=60, returnstats=False):
-    return download_file_from_ftp_string(url, resumefile, timeout, returnstats)
+def download_file_from_ftps_bytes(url, resumefile=None, timeout=60, returnstats=False):
+    return download_file_from_ftp_bytes(url, resumefile, timeout, returnstats)
+
+def download_file_from_ftps_to_file(url, outfile, timeout=60):
+    return download_file_from_ftp_to_file(url, outfile, timeout, returnstats)
 
 def upload_file_to_ftp_file(fileobj, url, timeout=60):
     p = urlparse(url)
@@ -1434,7 +1480,7 @@ def upload_file_to_ftp_file(fileobj, url, timeout=60):
             pass
         return False
 
-def upload_file_to_ftp_string(data, url, timeout=60):
+def upload_file_to_ftp_bytes(data, url, timeout=60):
     bio = MkTempFile(_to_bytes(data))
     out = upload_file_to_ftp_file(bio, url, timeout)
     try:
@@ -1443,11 +1489,20 @@ def upload_file_to_ftp_string(data, url, timeout=60):
         pass
     return out
 
+def upload_file_to_ftp_from_file(infile, url, timeout=60):
+    infile = open(infile, "rb")
+    upload_file_to_ftp_file(infile, url, timeout)
+    infile.close()
+    return True
+
 def upload_file_to_ftps_file(fileobj, url, timeout=60):
     return upload_file_to_ftp_file(fileobj, url, timeout)
 
-def upload_file_to_ftps_string(fileobj, url, timeout=60):
-    return upload_file_to_ftp_string(fileobj, url, timeout)
+def upload_file_to_ftps_from_file(infile, url, timeout=60):
+    return upload_file_to_ftp_from_file(infile, url, timeout)
+
+def upload_file_to_ftps_bytes(fileobj, url, timeout=60):
+    return upload_file_to_ftp_bytes(fileobj, url, timeout)
 
 # --------------------------
 # SFTP helpers
@@ -1505,9 +1560,16 @@ def download_file_from_sftp_file(url, timeout=60, returnstats=False):
             pass
         return False
 
-def download_file_from_sftp_string(url, timeout=60, returnstats=False):
+def download_file_from_sftp_bytes(url, timeout=60, returnstats=False):
     fp = download_file_from_sftp_file(url, timeout, returnstats)
     return fp.read() if fp else False
+
+def download_file_from_sftp_to_file(url, outfile, timeout=60):
+    outfile = open(outfile, "wb")
+    httpbytes = download_file_from_sftp_bytes(url, timeout, False)
+    outfile.write(httpbytes)
+    outfile.close()
+    return True
 
 def upload_file_to_sftp_file(fileobj, url, timeout=60):
     if not haveparamiko:
@@ -1548,7 +1610,13 @@ def upload_file_to_sftp_file(fileobj, url, timeout=60):
             pass
         return False
 
-def upload_file_to_sftp_string(data, url, timeout=60):
+def upload_file_to_sftp_from_file(infile, url, timeout=60):
+    infile = open(infile, "rb")
+    upload_file_to_sftp_file(infile, url, timeout)
+    infile.close()
+    return True
+
+def upload_file_to_sftp_bytes(data, url, timeout=60):
     bio = MkTempFile(_to_bytes(data))
     out = upload_file_to_sftp_file(bio, url, timeout)
     try:
@@ -1607,9 +1675,16 @@ def download_file_from_pysftp_file(url, timeout=60, returnstats=False):
         except Exception:
             pass
 
-def download_file_from_pysftp_string(url, timeout=60, returnstats=False):
+def download_file_from_pysftp_bytes(url, timeout=60, returnstats=False):
     fp = download_file_from_pysftp_file(url, timeout, returnstats)
     return fp.read() if fp else False
+
+def download_file_from_pysftp_to_file(url, outfile, timeout=60):
+    outfile = open(outfile, "wb")
+    httpbytes = download_file_from_pysftp_bytes(url, timeout, False)
+    outfile.write(httpbytes)
+    outfile.close()
+    return True
 
 def upload_file_to_pysftp_file(fileobj, url, timeout=60):
     if not havepysftp:
@@ -1655,10 +1730,20 @@ def upload_file_to_pysftp_file(fileobj, url, timeout=60):
         except Exception:
             pass
 
-def upload_file_to_pysftp_string(data, url, timeout=60):
-    if not havepysftp:
-        return False
-    return upload_file_to_sftp_string(data, url, timeout)
+def upload_file_to_pysftp_from_file(infile, url, timeout=60):
+    infile = open(infile, "rb")
+    upload_file_to_pysftp_file(infile, url, timeout)
+    infile.close()
+    return True
+
+def upload_file_to_pysftp_bytes(data, url, timeout=60):
+    bio = MkTempFile(_to_bytes(data))
+    out = upload_file_to_pysftp_file(bio, url, timeout)
+    try:
+        bio.close()
+    except Exception:
+        pass
+    return out
 
 def decoded_stream(resp):
     # resp can be urllib response or anything file-like with headers
@@ -2247,7 +2332,18 @@ def to_pycurl_httpost(payload, default_ext=".txt"):
 
     return http_post
 
-def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, resumefile=None, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
+class ResponseStream(io.RawIOBase):
+    def __init__(self, body_iter):
+        self.body = body_iter
+
+    def read(self, n=-1):
+        try:
+            # Yields the next chunk from the HTTPCore stream
+            return next(self.body)
+        except StopIteration:
+            return b""
+
+def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, usesslcert=defcert, resumefile=None, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
     if headers is None:
         headers = {}
     else:
@@ -2352,6 +2448,10 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
                     extendargs.update({'json': postdata})
                 elif(not jsonpost and postdata is not None and (isinstance(sendfiles, dict) or sendfiles is None)):
                     extendargs.update({'data': postdata})
+            if(usesslcert is None):
+                pass
+            else:
+                extendargs.update({'verify': usesslcert})
             r = session.request(**extendargs)
             r.raise_for_status()
         except requests.exceptions.HTTPError as e:
@@ -2400,7 +2500,12 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
             if(insessionvar is not None):
                 client = insessionvar
             else:
-                client = httpx.Client(follow_redirects=True, http1=True, http2=usehttp2, trust_env=True, timeout=float(timeout), cookies=httpcookie)
+                if(usesslcert is None):
+                    client = httpx.Client(follow_redirects=True, http1=True, http2=usehttp2, trust_env=True, timeout=float(timeout), cookies=httpcookie)
+                else:
+                    context = ssl.create_default_context()
+                    context.load_verify_locations(cafile=usesslcert)
+                    client = httpx.Client(follow_redirects=True, http1=True, http2=usehttp2, trust_env=True, timeout=float(timeout), cookies=httpcookie, verify=context)
             auth = (username, password) if (username and password) else None
             extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'headers': headers, 'auth': auth, 'cookies': httpcookie})
             if(httpmethod == "POST"):
@@ -2489,7 +2594,14 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
         else:
             client = httpcore.ConnectionPool(http1=True, http2=usehttp2)
         timeoutdict = {"connect": float(timeout), "read": float(timeout), "write": float(timeout), "pool": float(timeout)}
-        extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'extensions': {"timeout": timeoutdict}})
+        if(usesslcert is None):
+            extdict = {'extensions': {"timeout": timeoutdict}}
+        else:
+            context = ssl.create_default_context()
+            context.load_verify_locations(cafile=usesslcert)
+            extdict = {'extensions': {"timeout": timeoutdict, 'ssl_context': context}}
+        extendargs.update({'url': rebuilt_url, 'method': httpmethod})
+        extendargs.update(extdict)
         if(httpmethod == "POST" or httpmethod == "PUT" or httpmethod == "PATCH" or httpmethod == "DELETE"):
             if(jsonpost and postdata is not None and putfile is None):
                 if('Content-Type' in headers):
@@ -2525,9 +2637,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
                     else:
                         httpfile.truncate(0)
                         httpfile.seek(0, 0)
-                for chunk in r.iter_stream():
-                    if chunk:
-                        httpfile.write(chunk)
+                shutil.copyfileobj(ResponseStream(r.iter_stream()), httpfile, length=1024 * 1024)
         except (socket.timeout, socket.gaierror, httpcore.ConnectError):
             return False
         httpcookie.save(cookiefile, ignore_discard=True, ignore_expires=True)
@@ -2553,6 +2663,12 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
             br = mechanize.Browser()
         br.set_cookiejar(httpcookie)
         br.set_handle_robots(False)
+
+        if(usesslcert is None):
+            pass
+        else:
+            br.set_ca_data(cafile=usesslcert)
+
         if username and password:
             br.add_password(rebuilt_url, username, password)
         if(not jsonpost and postdata is not None and not isinstance(postdata, dict)):
@@ -2614,7 +2730,10 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
         if(insessionvar is not None):
             http = insessionvar
         else:
-            http = urllib3.PoolManager(timeout=urllib3.Timeout(total=float(timeout)))
+            if(usesslcert is None):
+                http = urllib3.PoolManager(timeout=urllib3.Timeout(total=float(timeout)))
+            else:
+                http = urllib3.PoolManager(timeout=urllib3.Timeout(total=float(timeout)), cert_reqs='CERT_REQUIRED', ca_certs=usesslcert)
         if username and password:
             auth_headers = urllib3.make_headers(basic_auth="{}:{}".format(username, password))
             headers.update(auth_headers)
@@ -2713,6 +2832,10 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
         curlreq.setopt(pycurl.WRITEDATA, retrieved_body)
         curlreq.setopt(pycurl.WRITEHEADER, retrieved_headers)
         curlreq.setopt(pycurl.VERBOSE, 1)
+        if(usesslcert is None):
+            pass
+        else:
+            curlreq.setopt(pycurl.CAINFO, usesslcert)
         curlreq.setopt(pycurl.DEBUGFUNCTION, lambda t, m: sentout_headers.write(m))
         curlreq.setopt(pycurl.FOLLOWLOCATION, True)
         curlreq.setopt(pycurl.TIMEOUT, timeout)
@@ -2852,7 +2975,12 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
             opener = build_opener(HTTPCookieProcessor(httpcookie))
         install_opener(opener)
         try:
-            resp = opener.open(req, timeout=timeout)
+            if(usesslcert is None):
+                resp = opener.open(req, timeout=timeout)
+            else:
+                myssl = ssl.create_default_context()
+                myssl.load_verify_locations(usesslcert)
+                resp = opener.open(req, timeout=timeout, context=myssl)
         except HTTPError as e:
             resp = e;
         except (socket.timeout, socket.gaierror, URLError):
@@ -2916,15 +3044,32 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, re
         else:
             return httpfile
 
-def download_file_from_http_string(url, headers=None, usehttp=__use_http_lib__, resumefile=None, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
-    fp = download_file_from_http_file(url, headers, usehttp, resumefile, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
+def download_file_from_http_bytes(url, headers=None, usehttp=__use_http_lib__, usesslcert=defcert, resumefile=None, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
+    fp = download_file_from_http_file(url, headers, usehttp, usesslcert, resumefile, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, False)
     return fp.read() if fp else False
 
-def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, resumefile=None, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
-    return download_file_from_http_file(url, headers, usehttp, resumefile, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
+def download_file_from_http_to_file(url, outfile, headers=None, usehttp=__use_http_lib__, usesslcert=defcert, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60):
+    if(os.path.exists(outfile)):
+        outfile = open(outfile, "ab")
+        outfile.seek(0, 2)
+        httpbytes = download_file_from_http_file(url, headers, usehttp, usesslcert, outfile, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, "GET", postdata, jsonpost, sendfiles, putfile, timeout, False)
+        outfile.close()
+    else:
+        outfile = open(outfile, "wb")
+        httpbytes = download_file_from_http_bytes(url, headers, usehttp, usesslcert, None, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, "GET", postdata, jsonpost, sendfiles, putfile, timeout, False)
+        outfile.write(httpbytes)
+        outfile.close()
+    return True
+        
 
-def download_file_from_https_string(url, headers=None, usehttp=__use_http_lib__, resumefile=None, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
-    return download_file_from_http_string(url, headers, usehttp, resumefile, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
+def download_file_from_https_file(url, headers=None, usehttp=__use_http_lib__, usesslcert=defcert, resumefile=None, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
+    return download_file_from_http_file(url, headers, usehttp, usesslcert, resumefile, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
+
+def download_file_from_https_bytes(url, headers=None, usehttp=__use_http_lib__, usesslcert=defcert, resumefile=None, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
+    return download_file_from_http_bytes(url, headers, usehttp, usesslcert, resumefile, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
+
+def download_file_from_https_file(url, outfile, headers=None, usehttp=__use_http_lib__, usesslcert=defcert, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60):
+    return download_file_from_http_to_file(url, outfile, headers, usehttp, usesslcert, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, postdata, jsonpost, sendfiles, putfile, timeout)
 
 # --------------------------
 # TCP/UDP transport (receiver + sender)
@@ -4085,7 +4230,7 @@ def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
 
     tid = int(kwargs.get("tid", 0) or 0)
     if tid == 0:
-        tid = secrets.randbits(64)
+        tid = randbits(64)
 
     # stats
     stats = {
@@ -5627,7 +5772,7 @@ def download_file_from_internet_file(url, **kwargs):
 
     return False
 
-def download_file_from_internet_string(url, **kwargs):
+def download_file_from_internet_bytes(url, **kwargs):
     fp = download_file_from_internet_file(url, **kwargs)
     return fp.read() if fp else False
 
@@ -6382,7 +6527,7 @@ def upload_file_to_internet_file(fileobj, url):
 
     return False
 
-def upload_file_to_internet_string(data, url):
+def upload_file_to_internet_bytes(data, url):
     bio = MkTempFile(_to_bytes(data))
     out = upload_file_to_internet_file(bio, url)
     try:
