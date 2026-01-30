@@ -86,6 +86,10 @@ except Exception:
 import base64
 import threading
 
+try:
+    from mimetypes import guess_type
+except ImportError:
+    guess_type = None
 
 try:
     from secrets import randbits
@@ -1291,6 +1295,7 @@ def download_file_from_tftp_bytes(url, timeout=60, returnstats=False):
 
 def download_file_from_tftp_to_file(url, outfile, timeout=60):
     outfile = open(outfile, "wb")
+    outfile.seek(0, 0)
     httpbytes = download_file_from_tftp_bytes(url, timeout, False)
     outfile.write(httpbytes)
     outfile.close()
@@ -3042,7 +3047,26 @@ def download_file_from_http_to_file(url, outfile, headers=None, usehttp=__use_ht
         outfile.write(httpbytes)
         outfile.close()
     return True
-        
+
+def file_list_to_file_dict(infiles=None, infields=None):
+    outdict = {}
+    if(infiles is None):
+        infiles = []
+    if(infields is None):
+        infields = []
+    for files, fields in zip(infiles, infields):
+        filename = os.path.basename(files)
+        openfile = open(files, "rb")
+        openfile.seek(0, 0)
+        outdict.update({filename: [fields, openfile]})
+    return outdict
+
+def upload_file_to_http_file(infiles, url, headers=None, usehttp=__use_http_lib__, usesslcert=defcert, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, postdata=None, jsonpost=False, putfile=None, timeout=60, returnstats=False):
+    return download_file_from_http_file(url, headers, usehttp, usesslcert, None, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, "POST", postdata, jsonpost, infiles, putfile, timeout, returnstats)
+
+def upload_file_to_http_from_file(infiles, infields, url, headers=None, usehttp=__use_http_lib__, usesslcert=defcert, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, postdata=None, jsonpost=False, putfile=None, timeout=60, returnstats=False):
+    infilelist = file_list_to_file_dict(infiles, infields)
+    return upload_file_to_http_file(infilelist, url, headers, usehttp, usesslcert, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, postdata, jsonpost, putfile, timeout, returnstats)
 
 def download_file_from_https_file(url, headers=None, usehttp=__use_http_lib__, usesslcert=defcert, resumefile=None, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
     return download_file_from_http_file(url, headers, usehttp, usesslcert, resumefile, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, httpmethod, postdata, jsonpost, sendfiles, putfile, timeout, returnstats)
@@ -3052,6 +3076,12 @@ def download_file_from_https_bytes(url, headers=None, usehttp=__use_http_lib__, 
 
 def download_file_from_https_file(url, outfile, headers=None, usehttp=__use_http_lib__, usesslcert=defcert, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60):
     return download_file_from_http_to_file(url, outfile, headers, usehttp, usesslcert, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, postdata, jsonpost, sendfiles, putfile, timeout)
+
+def upload_file_to_https_file(infiles, url, headers=None, usehttp=__use_http_lib__, usesslcert=defcert, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, postdata=None, jsonpost=False, putfile=None, timeout=60, returnstats=False):
+    return upload_file_to_http_from_file(infiles, url, headers, usehttp, usesslcert, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, postdata, jsonpost, putfile, timeout, returnstats)
+
+def upload_file_to_https_from_file(infiles, infields, url, headers=None, usehttp=__use_http_lib__, usesslcert=defcert, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, postdata=None, jsonpost=False, putfile=None, timeout=60, returnstats=False):
+    return upload_file_to_http_from_file(infiles, infields, url, headers, usehttp, usesslcert, keepsession, insessionvar, httpuseragent, httpreferer, httpcookie, postdata, jsonpost, putfile, timeout, returnstats)
 
 # --------------------------
 # TCP/UDP transport (receiver + sender)
