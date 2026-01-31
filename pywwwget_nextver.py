@@ -107,6 +107,11 @@ try:
 except ImportError:
     import http.cookiejar as cookielib
 
+try:
+    from Cookie import SimpleCookie  # Py2
+except ImportError:
+    from http.cookies import SimpleCookie  # Py3
+
 defcert = None
 try:
     import certifi
@@ -125,13 +130,13 @@ except ImportError:
 try:
     # Py3
     from urllib.parse import quote_from_bytes, unquote_to_bytes, urlencode
-    from urllib.request import install_opener
+    from urllib.request import install_opener, build_opener
 except ImportError:
     # Py2
     from urllib import urlencode
     from urllib import quote as _quote
     from urllib import unquote as _unquote
-    from urllib2 import install_opener
+    from urllib2 import install_opener, build_opener
 
     def quote_from_bytes(b, safe=''):
         # Py2 urllib.quote expects "str" (bytes)
@@ -366,7 +371,7 @@ def data_url_decode(data_url):
 
 try:
     from urllib.parse import urlparse, urlunparse, parse_qs, unquote
-    from urllib.request import Request, build_opener, HTTPBasicAuthHandler, HTTPCookieProcessor
+    from urllib.request import Request, build_opener, HTTPBasicAuthHandler, HTTPCookieProcessor, HTTPSHandler
     from urllib.error import URLError, HTTPError
     from urllib.request import HTTPPasswordMgrWithDefaultRealm
     try:
@@ -375,7 +380,7 @@ try:
         HTTPException = Exception
 except Exception:
     from urlparse import urlparse, urlunparse, parse_qs  # type: ignore
-    from urllib2 import Request, build_opener, HTTPBasicAuthHandler, HTTPCookieProcessor, URLError, HTTPError  # type: ignore
+    from urllib2 import Request, build_opener, HTTPBasicAuthHandler, HTTPCookieProcessor, HTTPSHandler, URLError, HTTPError  # type: ignore
     from urllib2 import HTTPPasswordMgrWithDefaultRealm  # type: ignore
     try:
         from httplib import HTTPException  # type: ignore
@@ -2330,6 +2335,149 @@ class ResponseStream(io.RawIOBase):
         except StopIteration:
             return b""
 
+def fix_localhost_cookies(jar: cookielib.CookieJar) -> None:
+    """
+    Convert cookies stored as localhost.local into host-only cookies for localhost,
+    so they behave more like a real browser and don't break subsequent requests.
+    """
+
+    to_add = []
+    to_del = []
+
+    for c in jar:
+        if getattr(c, "domain", None) == "localhost.local":
+            to_del.append((c.domain, c.path, c.name))
+
+            # Some Python versions store extra attrs in _rest, some in other places.
+            rest = getattr(c, "rest", None)
+            if rest is None:
+                rest = getattr(c, "_rest", {}) or {}
+            if not isinstance(rest, dict):
+                rest = {}
+
+            new_cookie = cookielib.Cookie(
+                version=getattr(c, "version", 0),
+                name=c.name,
+                value=c.value,
+                port=getattr(c, "port", None),
+                port_specified=getattr(c, "port_specified", False),
+
+                domain="localhost",
+                domain_specified=False,       # host-only
+                domain_initial_dot=False,
+
+                path=getattr(c, "path", "/"),
+                path_specified=getattr(c, "path_specified", True),
+
+                secure=getattr(c, "secure", False),
+                expires=getattr(c, "expires", None),
+                discard=getattr(c, "discard", True),
+
+                comment=getattr(c, "comment", None),
+                comment_url=getattr(c, "comment_url", None),
+
+                rest=rest,
+                rfc2109=getattr(c, "rfc2109", False),
+            )
+            to_add.append(new_cookie)
+
+    for dom, path, name in to_del:
+        jar.clear(domain=dom, path=path, name=name)
+
+    for c in to_add:
+        jar.set_cookie(c)
+
+def _cookie_header_from_jar(jar, url):
+    """
+    Build a Cookie header string from a CookieJar for a given URL.
+    Respects domain/path/secure in a best-effort way.
+    """
+    u = urlparse(url)
+    host = (u.hostname or "").lower()
+    path = u.path or "/"
+    secure = (u.scheme == "https")
+
+    pairs = []
+    now = int(time.time())
+
+    for c in jar:
+        # expired?
+        if c.expires is not None and c.expires != 0 and c.expires < now:
+            continue
+        # secure?
+        if c.secure and not secure:
+            continue
+        # domain match
+        cd = (c.domain or "").lstrip(".").lower()
+        if cd and host != cd and not host.endswith("." + cd):
+            continue
+        # path match
+        cp = c.path or "/"
+        if not path.startswith(cp):
+            continue
+
+        pairs.append("{}={}".format(c.name, c.value))
+
+    return "; ".join(pairs)
+
+def _update_jar_from_set_cookie(jar, url, set_cookie_values):
+    """
+    Parse Set-Cookie headers and update a CookieJar.
+    set_cookie_values may be:
+      - a single string
+      - a list of strings
+    """
+    u = urlparse(url)
+    host = (u.hostname or "").lower()
+    default_path = u.path or "/"
+    if "/" in default_path:
+        default_path = default_path.rsplit("/", 1)[0] or "/"
+
+    if not set_cookie_values:
+        return
+
+    # Py2: basestring; Py3: str
+    try:
+        string_types = (basestring,)
+    except NameError:
+        string_types = (str,)
+
+    if isinstance(set_cookie_values, string_types):
+        set_cookie_values = [set_cookie_values]
+
+    for hdr in set_cookie_values:
+        sc = SimpleCookie()
+        sc.load(hdr)
+
+        for name, morsel in sc.items():
+            value = morsel.value
+
+            domain = morsel["domain"] or host
+            path = morsel["path"] or default_path
+            secure = bool(morsel["secure"])
+            expires = None  # (best effort placeholder)
+
+            cookie = cookielib.Cookie(
+                version=0,
+                name=name,
+                value=value,
+                port=None,
+                port_specified=False,
+                domain=domain,
+                domain_specified=bool(morsel["domain"]),
+                domain_initial_dot=domain.startswith("."),
+                path=path,
+                path_specified=bool(morsel["path"]),
+                secure=secure,
+                expires=expires,
+                discard=False,
+                comment=None,
+                comment_url=None,
+                rest={},  # could add HttpOnly/SameSite if desired
+                rfc2109=False,
+            )
+            jar.set_cookie(cookie)
+
 def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, usesslcert=defcert, resumefile=None, keepsession=False, insessionvar=None, httpuseragent=None, httpreferer=None, httpcookie=None, httpmethod="GET", postdata=None, jsonpost=False, sendfiles=None, putfile=None, timeout=60, returnstats=False):
     if headers is None:
         headers = {}
@@ -2343,11 +2491,11 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, us
     if(usehttp!="pycurl" or not havepycurl):
         if(cookie_ext == ".lwp"):
             policy = cookielib.DefaultCookiePolicy(netscape=True, rfc2965=False, hide_cookie2=True)
-            httpcookie = cookielib.LWPCookieJar(httpcookie, policy=policy)
+            httpcookie = cookielib.LWPCookieJar(cookiefile, policy=policy)
         else:
             policy = cookielib.DefaultCookiePolicy(netscape=True, rfc2965=False, hide_cookie2=True)
-            httpcookie = cookielib.MozillaCookieJar(httpcookie, policy=policy)
-        if os.path.exists(cookie_ext):
+            httpcookie = cookielib.MozillaCookieJar(cookiefile, policy=policy)
+        if os.path.exists(cookiefile):
             httpcookie.load(ignore_discard=True, ignore_expires=True)
         if(usehttp=="httpcore" or usehttp=="urllib3"):
             openeralt = build_opener(HTTPCookieProcessor(httpcookie))
@@ -2392,7 +2540,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, us
     # Requests
     if usehttp == "requests" and haverequests:
         auth = (username, password) if (username and password) else None
-        extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'headers': headers, 'auth': auth, 'cookies': httpcookie, 'stream': True, 'allow_redirects': True, 'timeout': (float(timeout), float(timeout))})
+        extendargs.update({'url': rebuilt_url, 'method': httpmethod, 'headers': headers, 'auth': auth, 'stream': True, 'allow_redirects': True, 'timeout': (float(timeout), float(timeout))})
         if(insessionvar is not None):
             session = insessionvar
         else:
@@ -2456,6 +2604,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, us
         for chunk in r.iter_content(chunk_size=1024 * 1024):
             if chunk:
                 httpfile.write(chunk)
+        fix_localhost_cookies(httpcookie)
         session.cookies.save(ignore_discard=True, ignore_expires=True)
         httpcodeout = r.status_code
         httpcodereason = r.reason
@@ -2546,6 +2695,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, us
         for chunk in r.iter_bytes(chunk_size=1024 * 1024):
             if chunk:
                 httpfile.write(chunk)
+        fix_localhost_cookies(httpcookie)
         httpcookie.save(cookiefile, ignore_discard=True, ignore_expires=True)
         httpcodeout = r.status_code
         try:
@@ -2627,6 +2777,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, us
                 shutil.copyfileobj(ResponseStream(r.iter_stream()), httpfile, length=1024 * 1024)
         except (socket.timeout, socket.gaierror, httpcore.ConnectError):
             return False
+        fix_localhost_cookies(httpcookie)
         httpcookie.save(cookiefile, ignore_discard=True, ignore_expires=True)
         httpcodeout = r.status
         httpcodereason = http_status_to_reason(r.status)
@@ -2668,14 +2819,18 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, us
                     br.addheaders = list(headers.items())
                 resp = br.open(rebuilt_url, timeout=timeout)
             elif(httpmethod == "POST"):
+                extendargs.update({'timeout': float(timeout)})
                 if(jsonpost and postdata is not None):
                     if('Content-Type' in headers):
                         headers['Content-Type'] = "application/json"
                     else:
                         headers.update({'Content-Type': "application/json"})
+                    extendargs.update({'data': json.dumps(postdata)})
+                else:
+                    extendargs.update({'data': urlencode(postdata).encode("ascii")})
                 if headers:
                     br.addheaders = list(headers.items())
-                resp = br.open(rebuilt_url, data=postdata, timeout=float(timeout))
+                resp = br.open(rebuilt_url, **extendargs)
             else:
                 if headers:
                     br.addheaders = list(headers.items())
@@ -2691,6 +2846,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, us
                 httpfile.truncate(0)
                 httpfile.seek(0, 0)
         shutil.copyfileobj(resp, httpfile, length=1024 * 1024)
+        fix_localhost_cookies(httpcookie)
         httpcookie.save(cookiefile, ignore_discard=True, ignore_expires=True)
         httpcodeout = resp.code
         httpcodereason = resp.msg
@@ -2769,7 +2925,13 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, us
                         extendargs['fields'].update({postdata})
                     else:
                         extendargs.update({'fields': postdata})
+            cookie_hdr = _cookie_header_from_jar(httpcookie, rebuilt_url)
+            if cookie_hdr:
+                headers["Cookie"] = cookie_hdr
             resp = http.request(**extendargs)
+            # urllib3 stores headers in resp.headers (HTTPHeaderDict)
+            set_cookie_vals = resp.headers.getlist("Set-Cookie")  # returns [] if none
+            _update_jar_from_set_cookie(httpcookie, rebuilt_url, set_cookie_vals)
         except (socket.timeout, socket.gaierror, urllib3.exceptions.MaxRetryError):
             return False
         if(resumefile is not None and hasattr(resumefile, "write")):
@@ -2779,6 +2941,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, us
                 httpfile.truncate(0)
                 httpfile.seek(0, 0)
         shutil.copyfileobj(resp, httpfile, length=1024 * 1024)
+        fix_localhost_cookies(httpcookie)
         httpcookie.save(cookiefile, ignore_discard=True, ignore_expires=True)
         httpcodeout = resp.status
         httpcodereason = resp.reason
@@ -2946,28 +3109,28 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, us
                     headers['Content-Type'] = "application/json"
                 else:
                     headers.update({'Content-Type': "application/json"})
-                extendargs.update({'data': postdata})
+                extendargs.update({'data': json.dumps(postdata)})
             elif(not jsonpost and postdata is not None and putfile is None):
-                extendargs.update({'data': postdata})
+                extendargs.update({'data': urlencode(postdata).encode("ascii")})
         extendargs.update({'headers': headers})
-        if(insessionvar is not None):
-            req = insessionvar
-        else:
-            req = Request(**extendargs)
+        req = Request(**extendargs)
+        handlers = [HTTPCookieProcessor(httpcookie)]
         if username and password:
             mgr = HTTPPasswordMgrWithDefaultRealm()
             mgr.add_password(None, rebuilt_url, username, password)
-            opener = build_opener(HTTPBasicAuthHandler(mgr), HTTPCookieProcessor(httpcookie))
+            handlers.insert(0, HTTPBasicAuthHandler(mgr))
+        if(usesslcert is None):
+            pass
         else:
-            opener = build_opener(HTTPCookieProcessor(httpcookie))
-        install_opener(opener)
+            ssl_context = ssl.create_default_context()
+            ssl_context.load_verify_locations(usesslcert)
+            handlers.append(HTTPSHandler(context=ssl_context))
+        if(insessionvar is not None):
+            opener = insessionvar
+        else:
+            opener = build_opener(*handlers)        
         try:
-            if(usesslcert is None):
-                resp = opener.open(req, timeout=timeout)
-            else:
-                myssl = ssl.create_default_context()
-                myssl.load_verify_locations(usesslcert)
-                resp = opener.open(req, timeout=timeout, context=myssl)
+            resp = opener.open(req, timeout=timeout)
         except HTTPError as e:
             resp = e;
         except (socket.timeout, socket.gaierror, URLError):
@@ -2980,7 +3143,8 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, us
                 httpfile.truncate(0)
                 httpfile.seek(0, 0)
         shutil.copyfileobj(resp2, httpfile, length=1024 * 1024)
-        httpcookie.save(cookiefile, ignore_discard=True, ignore_expires=True)
+        fix_localhost_cookies(httpcookie)
+        httpcookie.save(ignore_discard=True, ignore_expires=True)
         httpcodeout = resp.getcode()
         try:
             httpcodereason = resp.reason
@@ -3004,7 +3168,7 @@ def download_file_from_http_file(url, headers=None, usehttp=__use_http_lib__, us
             httpheadersentout =  req.unredirected_hdrs | req.headers
         except AttributeError:
             httpheadersentout = req.header_items()
-        httpsession = req
+        httpsession = opener
         if((not keepsession and not returnstats) or not keepsession or httpmethod == "HEAD"):
             httpsession = None
 
