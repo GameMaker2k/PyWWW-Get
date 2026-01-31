@@ -270,19 +270,18 @@ def data_url_encode(fileobj,
 _DATA_URL_RE = re.compile(r'^data:(?P<meta>[^,]*?),(?P<data>.*)$', re.DOTALL)
 
 
+def _normalize_b64(s):
+    # Remove whitespace and newlines
+    s = ''.join(s.split())
+    # Normalize URL-safe base64 just in case
+    s = s.replace('-', '+').replace('_', '/')
+    # Fix missing padding
+    s = s + '=' * (-len(s) % 4)
+    return s
+
+
 def data_url_decode(data_url):
-    """
-    Parse a data: URL and return (bytes_io, mime, is_base64).
-
-    Returns:
-        (MkTempFile(data_bytes), mime_string_or_None, is_base64_bool)
-
-    Notes:
-        - If no MIME is provided in the URL, mime will be None (per RFC 2397 default is text/plain;charset=US-ASCII).
-        - This function does not attempt charset transcoding; it returns raw bytes.
-    """
     if not isinstance(data_url, text_type):
-        # Accept bytes input too
         try:
             data_url = data_url.decode('utf-8')
         except Exception:
@@ -300,7 +299,6 @@ def data_url_decode(data_url):
     mime = None
 
     if meta_parts:
-        # First part may be mime if it contains '/' or looks like type/subtype
         if '/' in meta_parts[0]:
             mime = meta_parts[0]
             rest = meta_parts[1:]
@@ -311,25 +309,21 @@ def data_url_decode(data_url):
             if p.lower() == 'base64':
                 is_base64 = True
             else:
-                # keep parameters on mime if present (e.g. charset)
                 if mime is None:
                     mime = p
                 else:
                     mime = mime + ';' + p
 
     if is_base64:
-        # data_part is base64 ascii text
         try:
-            decoded_bytes = base64.b64decode(data_part.encode('ascii'))
-        except Exception:
-            # some inputs may include whitespace/newlines
-            cleaned = ''.join(data_part.split())
-            decoded_bytes = base64.b64decode(cleaned.encode('ascii'))
+            cleaned = _normalize_b64(data_part)
+            decoded_bytes = base64.b64decode(cleaned.encode('ascii'), validate=False)
+        except (binascii.Error, ValueError) as e:
+            raise ValueError(
+                "Invalid base64 data URL payload: {0}".format(e)
+            )
     else:
-        # Percent-decoding; must operate on str, returns bytes in both py2/py3 wrapper
         decoded_bytes = unquote_to_bytes(data_part)
-
-        # Py3 wrapper returns bytes; Py2 returns "str" bytes already.
         if isinstance(decoded_bytes, text_type):
             decoded_bytes = decoded_bytes.encode('latin-1')
 
