@@ -3140,6 +3140,12 @@ def recv_to_fileobj(fileobj, host, port, proto="tcp", path_text=None, **kwargs):
     if proto == "tcp" or proto in _BT_SCHEMES:
         is_bt = proto in _BT_SCHEMES
 
+        # Bluetooth RFCOMM sockets often do not support MSG_PEEK reliably.
+        # Our legacy TCP handshake/path prefaces depend on peeking; default them OFF for BT.
+        if is_bt and 'handshake' not in kwargs:
+            kwargs['handshake'] = False
+        if is_bt and 'send_path' not in kwargs:
+            kwargs['send_path'] = False
         if is_bt:
             if not _has_rfcomm():
                 _emit("Bluetooth RFCOMM is not available (missing AF_BLUETOOTH/BTPROTO_RFCOMM or PyBluez).",
@@ -3588,7 +3594,7 @@ def send_from_fileobj(fileobj, host, port, proto="tcp", path_text=None, **kwargs
             except Exception:
                 pass
 
-        if path_text:
+        if path_text and (not is_bt or kwargs.get('send_path')):
             try:
                 line = ("PATH %s\n" % (path_text or "/")).encode("utf-8")
                 sock.sendall(line)
@@ -6218,6 +6224,10 @@ def upload_file_to_internet_file(fileobj, url: str, **kwargs: Any):
             o2["bind"] = None
             host, port = _bt_host_channel_from_url(parts, qs, o2)
             proto = "bt"
+            # bt:// historically used raw streaming; do not send PATH preface unless requested.
+            send_path = _qflag(qs, \"send_path\", False) or bool(o.get(\"send_path\"))
+            if not send_path:
+                path_text = None
         else:
             host = parts.hostname
             port = parts.port or 0
