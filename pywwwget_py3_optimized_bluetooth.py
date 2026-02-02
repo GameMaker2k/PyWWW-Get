@@ -6225,7 +6225,7 @@ def upload_file_to_internet_file(fileobj, url: str, **kwargs: Any):
             host, port = _bt_host_channel_from_url(parts, qs, o2)
             proto = "bt"
             # bt:// historically used raw streaming; do not send PATH preface unless requested.
-            send_path = _qflag(qs, \"send_path\", False) or bool(o.get(\"send_path\"))
+            send_path = _qflag(qs, "send_path", False) or bool(o.get("send_path"))
             if not send_path:
                 path_text = None
         else:
