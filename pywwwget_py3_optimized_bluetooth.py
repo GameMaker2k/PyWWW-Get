@@ -11,6 +11,12 @@ import getpass
 import random
 import platform
 import socket
+import ipaddress
+
+try:
+    import socks  # type: ignore
+except Exception:
+    socks = None
 
 # Optional Bluetooth RFCOMM support: works via stdlib on Linux (AF_BLUETOOTH/BTPROTO_RFCOMM)
 # and via PyBluez if installed.
@@ -500,8 +506,183 @@ def _logger_from_kwargs(kwargs: Mapping[str, Any]) -> Optional[logging.Logger]:
     except Exception:
         return None
 
+def _strip_ipv6_brackets(host):
+    host = "" if host is None else str(host)
+    host = host.strip()
+    if host.startswith("[") and host.endswith("]") and len(host) >= 2:
+        return host[1:-1]
+    return host
+
+def _is_ipv6_literal(host):
+    host = _strip_ipv6_brackets(host)
+    # allow RFC6874 zone indices (e.g. "fe80::1%en0")
+    base = host.split("%", 1)[0]
+    try:
+        return isinstance(ipaddress.ip_address(base), ipaddress.IPv6Address)
+    except Exception:
+        return False
+
+def _url_host(host):
+    host = _strip_ipv6_brackets(host)
+    if _is_ipv6_literal(host):
+        # RFC6874: zone id must be percent-encoded inside brackets
+        if "%" in host:
+            host = host.replace("%", "%25")
+        return "[" + host + "]"
+    return host
+
+def _set_ipv6_dualstack(sock):
+    # Best-effort dual-stack (IPv4-mapped) support on AF_INET6 sockets.
+    try:
+        sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+    except Exception:
+        pass
+
+def _gai_list(host, port, socktype, flags=0):
+    host = _strip_ipv6_brackets(host) if host else None
+    try:
+        infos = socket.getaddrinfo(host, port, socket.AF_UNSPEC, socktype, 0, flags)
+    except Exception:
+        infos = []
+    # Prefer IPv6 first (helps dual-stack bind & AAAA-first environments)
+    af6 = getattr(socket, "AF_INET6", None)
+    infos.sort(key=lambda it: 0 if it[0] == af6 else 1)
+    return infos
+
+def _tcp_listen_socket(host, port, backlog=1, reuse=True):
+    flags = getattr(socket, "AI_PASSIVE", 0)
+    h = host
+    if h in ("", None, "0.0.0.0", "::"):
+        h = None
+
+    infos = _gai_list(h, int(port), socket.SOCK_STREAM, flags=flags)
+    if not infos:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            if reuse:
+                try:
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                except Exception:
+                    pass
+            s.bind((host or "", int(port)))
+            s.listen(int(backlog))
+            return s
+        except Exception:
+            return None
+
+    for fam, st, pr, _cn, sa in infos:
+        s = None
+        try:
+            s = socket.socket(fam, st, pr)
+            if reuse:
+                try:
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                except Exception:
+                    pass
+            if fam == getattr(socket, "AF_INET6", None):
+                _set_ipv6_dualstack(s)
+            s.bind(sa)
+            s.listen(int(backlog))
+            return s
+        except Exception:
+            try:
+                if s:
+                    s.close()
+            except Exception:
+                pass
+            continue
+    return None
+
+def _tcp_connect_socket(host, port, timeout=None, wait=False, wait_timeout=None, verbose=False, logger=None):
+    # socket.create_connection uses AF_UNSPEC internally (IPv4+IPv6)
+    start_t = time.time()
+    while True:
+        try:
+            to = float(timeout) if timeout is not None else None
+        except Exception:
+            to = None
+        try:
+            s = socket.create_connection((_strip_ipv6_brackets(host), int(port)), timeout=to)
+            return s
+        except Exception:
+            if not wait:
+                return None
+            if wait_timeout is not None:
+                try:
+                    wt = float(wait_timeout)
+                    if wt >= 0 and (time.time() - start_t) >= wt:
+                        return None
+                except Exception:
+                    pass
+            _net_log(verbose, "TCP: waiting for receiver, retrying...", logger=logger)
+            try:
+                time.sleep(0.1)
+            except Exception:
+                pass
+
+def _udp_bind_socket(host, port, reuse=True):
+    flags = getattr(socket, "AI_PASSIVE", 0)
+    h = host
+    if h in ("", None, "0.0.0.0", "::"):
+        h = None
+
+    infos = _gai_list(h, int(port), socket.SOCK_DGRAM, flags=flags)
+    if not infos:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            if reuse:
+                try:
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                except Exception:
+                    pass
+            s.bind((host or "", int(port)))
+            return s
+        except Exception:
+            return None
+
+    for fam, st, pr, _cn, sa in infos:
+        s = None
+        try:
+            s = socket.socket(fam, st, pr)
+            if reuse:
+                try:
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                except Exception:
+                    pass
+            if fam == getattr(socket, "AF_INET6", None):
+                _set_ipv6_dualstack(s)
+            s.bind(sa)
+            return s
+        except Exception:
+            try:
+                if s:
+                    s.close()
+            except Exception:
+                pass
+            continue
+    return None
+
+def _udp_socket_and_addr(host, port):
+    infos = _gai_list(host, int(port), socket.SOCK_DGRAM, flags=0)
+    for fam, st, pr, _cn, sa in infos:
+        s = None
+        try:
+            s = socket.socket(fam, st, pr)
+            if fam == getattr(socket, "AF_INET6", None):
+                _set_ipv6_dualstack(s)
+            return s, sa
+        except Exception:
+            try:
+                if s:
+                    s.close()
+            except Exception:
+                pass
+            continue
+    # fallback (IPv4)
+    return socket.socket(socket.AF_INET, socket.SOCK_DGRAM), (_strip_ipv6_brackets(host), int(port))
+
 def _best_lan_ip():
-    """Attempt to find the best LAN IP address."""
+    """Attempt to find the best LAN IPv4 address."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("8.8.8.8", 80))
@@ -512,7 +693,38 @@ def _best_lan_ip():
         except Exception:
             return "127.0.0.1"
     finally:
-        s.close()
+        try:
+            s.close()
+        except Exception:
+            pass
+
+def _best_lan_ip6():
+    """Attempt to find the best LAN IPv6 address (best-effort)."""
+    try:
+        s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+    except Exception:
+        return "::1"
+    try:
+        # public IPv6 anycast resolver (route selection only; no packets sent)
+        s.connect(("2001:4860:4860::8888", 80, 0, 0))
+        return s.getsockname()[0]
+    except Exception:
+        # fallback: try hostname AAAA
+        try:
+            hn = socket.gethostname()
+            infos = socket.getaddrinfo(hn, None, socket.AF_INET6)
+            for it in infos:
+                ip = it[4][0]
+                if ip:
+                    return ip
+        except Exception:
+            pass
+        return "::1"
+    finally:
+        try:
+            s.close()
+        except Exception:
+            pass
 
 def _listen_urls(scheme, bind_host, port, path, query=""):
     if not path:
@@ -522,14 +734,32 @@ def _listen_urls(scheme, bind_host, port, path, query=""):
     q = ""
     if query:
         q = "?" + query.lstrip("?")
+
     urls = []
-    if not bind_host or bind_host == "0.0.0.0":
-        urls.append("%s://127.0.0.1:%d%s%s" % (scheme, port, path, q))
-        ip = _best_lan_ip()
-        if ip and ip != "127.0.0.1":
-            urls.append("%s://%s:%d%s%s" % (scheme, ip, port, path, q))
+
+    def _add(h):
+        h = _strip_ipv6_brackets(h)
+        if not h:
+            return
+        urls.append("%s://%s:%d%s%s" % (scheme, _url_host(h), int(port), path, q))
+
+    bh = _strip_ipv6_brackets(bind_host or "")
+
+    # If binding to "all", show loopback + LAN (v4 + v6).
+    if not bh or bh in ("0.0.0.0", "::"):
+        _add("127.0.0.1")
+        _add("::1")
+
+        ip4 = _best_lan_ip()
+        if ip4 and ip4 not in ("127.0.0.1", "0.0.0.0"):
+            _add(ip4)
+
+        ip6 = _best_lan_ip6()
+        if ip6 and ip6 not in ("::1", "::"):
+            _add(ip6)
     else:
-        urls.append("%s://%s:%d%s%s" % (scheme, bind_host, port, path, q))
+        _add(bh)
+
     return urls
 
 def _parse_kv_headers(qs, prefix="hdr_"):
@@ -858,13 +1088,29 @@ def _parse_error(pkt):
     raise TFTPError("TFTP ERROR %d: %s" % (errcode, msg))
 
 
-def _mk_sock(proxy, timeout):
+def _mk_sock(proxy, timeout, family=socket.AF_INET):
     """
     proxy: dict or None
       If dict, expected keys:
         host, port, username(optional), password(optional)
+    family: socket.AF_INET or socket.AF_INET6 (best-effort)
     """
-    s = socks.socksocket(socket.AF_INET, socket.SOCK_DGRAM)
+    af6 = getattr(socket, "AF_INET6", None)
+    fam = family if (family in (socket.AF_INET, af6)) else socket.AF_INET
+
+    if socks is None:
+        if proxy:
+            raise RuntimeError("SOCKS proxy requested but the 'socks' (PySocks) module is not installed.")
+        s = socket.socket(fam, socket.SOCK_DGRAM)
+    else:
+        s = socks.socksocket(fam, socket.SOCK_DGRAM)
+
+    try:
+        if fam == af6:
+            _set_ipv6_dualstack(s)
+    except Exception:
+        pass
+
     s.settimeout(timeout)
 
     if proxy:
@@ -882,7 +1128,14 @@ def _mk_sock(proxy, timeout):
 def tftp_upload(server_host, remote_filename, fileobj,
                 server_port=69, mode="octet",
                 proxy=None, timeout=5.0, retries=5):
-    sock = _mk_sock(proxy, timeout)
+    fam = socket.AF_INET
+    try:
+        infos = _gai_list(server_host, int(server_port), socket.SOCK_DGRAM, flags=0)
+        if infos:
+            fam = infos[0][0]
+    except Exception:
+        pass
+    sock = _mk_sock(proxy, timeout, family=fam)
 
     try:
         wrq = _make_wrq(remote_filename, mode=_to_bytes(mode))
@@ -949,7 +1202,14 @@ def tftp_upload(server_host, remote_filename, fileobj,
 def tftp_download(server_host, remote_filename,
                   server_port=69, mode="octet",
                   proxy=None, timeout=5.0, retries=5):
-    sock = _mk_sock(proxy, timeout)
+    fam = socket.AF_INET
+    try:
+        infos = _gai_list(server_host, int(server_port), socket.SOCK_DGRAM, flags=0)
+        if infos:
+            fam = infos[0][0]
+    except Exception:
+        pass
+    sock = _mk_sock(proxy, timeout, family=fam)
     out = MkTempFile()
 
     rrq = _make_rrq(remote_filename, mode=_to_bytes(mode))
@@ -3340,18 +3600,14 @@ def recv_to_fileobj(fileobj, host, port, proto="tcp", path_text=None, **kwargs):
                     except Exception:
                         pass
             else:
-                srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                try:
-                    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                except Exception:
-                    pass
-                srv.bind((host or "", port))
-                srv.listen(1)
+                srv = _tcp_listen_socket(host, int(port), backlog=1, reuse=True)
+                if srv is None:
+                    return False
 
                 chosen_port = srv.getsockname()[1]
                 if kwargs.get("print_url"):
                     path = path_text or "/"
-                    bind_host = host or "0.0.0.0"
+                    bind_host = host or ("::" if srv.family == getattr(socket, "AF_INET6", None) else "0.0.0.0")
                     for u in _listen_urls("tcp", bind_host, chosen_port, path, ""):
                         _emit("Listening: %s" % u, logger=logger, level=logging.INFO, stream="stdout")
                     try:
@@ -3673,15 +3929,24 @@ def send_from_fileobj(fileobj, host, port, proto="tcp", path_text=None, **kwargs
                 sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 connect_target = unix_path
             else:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                # TCP: defer socket creation to _tcp_connect_socket (IPv4/IPv6 via getaddrinfo)
+                sock = None
                 connect_target = (host, int(port))
 
+        # timeout handling
+        to = kwargs.get("timeout", None)
         try:
-            to = kwargs.get("timeout", None)
-            if to is not None and float(to) > 0:
-                sock.settimeout(float(to))
+            to = float(to) if to is not None else None
         except Exception:
-            pass
+            to = None
+        if to is not None and to <= 0:
+            to = None
+
+        if sock is not None and to is not None:
+            try:
+                sock.settimeout(float(to))
+            except Exception:
+                pass
 
         if "wait" not in kwargs and "connect_wait" not in kwargs:
             kwargs["connect_wait"] = True
@@ -3693,31 +3958,39 @@ def send_from_fileobj(fileobj, host, port, proto="tcp", path_text=None, **kwargs
             except Exception:
                 wait_timeout = None
 
-        start_t = time.time()
-        while True:
-            try:
-                sock.connect(connect_target)
-                break
-            except Exception:
-                if not wait:
-                    try:
-                        sock.close()
-                    except Exception:
-                        pass
-                    return False
-                if wait_timeout is not None and wait_timeout >= 0 and (time.time() - start_t) >= wait_timeout:
-                    try:
-                        sock.close()
-                    except Exception:
-                        pass
-                    return False
+        if sock is None:
+            sock = _tcp_connect_socket(host, int(port), timeout=to, wait=wait, wait_timeout=wait_timeout,
+                                       verbose=kwargs.get("verbose"), logger=logger)
+            if sock is None:
+                return False
+        else:
+            start_t = time.time()
+            while True:
                 try:
-                    _net_log(kwargs.get("verbose"), f"{'BT' if is_bt else 'TCP'}: waiting for receiver, retrying...",
-                             logger=logger)
-                    time.sleep(0.1)
+                    sock.connect(connect_target)
+                    break
                 except Exception:
-                    pass
-                continue
+                    if not wait:
+                        try:
+                            sock.close()
+                        except Exception:
+                            pass
+                        return False
+                    if wait_timeout is not None and wait_timeout >= 0 and (time.time() - start_t) >= wait_timeout:
+                        try:
+                            sock.close()
+                        except Exception:
+                            pass
+                        return False
+                    try:
+                        _net_log(kwargs.get("verbose"), f"{'BT' if is_bt else 'TCP'}: waiting for receiver, retrying...",
+                                 logger=logger)
+                        time.sleep(0.1)
+                    except Exception:
+                        pass
+                    continue
+
+
 
         if kwargs.get("verbose"):
             _net_log(True, f"SEND {'BT' if is_bt else 'TCP'} framing={framing} want_sha={bool(kwargs.get('sha256') or kwargs.get('sha') or kwargs.get('want_sha'))}",
@@ -4335,20 +4608,13 @@ def _unix_dgram_raw_recv(fileobj, unix_server_path, **kwargs):
 def _udp_raw_recv(fileobj, host, port, **kwargs):
     logger = _logger_from_kwargs(kwargs)
     addr = (host or "", int(port))
-
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        # Bind to all interfaces unless user explicitly gave a concrete local bind
-        bind_host = host if host not in (None, "", "127.0.0.1") else ""
-        sock.bind((bind_host, int(port)))
-    except Exception:
-        try:
-            sock.close()
-        except Exception:
-            pass
+    # Bind to all interfaces unless user explicitly gave a concrete local bind
+    bind_host = host if host not in (None, "", "127.0.0.1", "::1") else ""
+    sock = _udp_bind_socket(bind_host, int(port))
+    if sock is None:
         return False
 
-    # Waiting behavior
+# Waiting behavior
     wait = bool(kwargs.get("wait", True) or kwargs.get("connect_wait", False))
     wait_timeout = kwargs.get("wait_timeout", None)
     try:
@@ -4550,8 +4816,7 @@ def _udp_raw_recv(fileobj, host, port, **kwargs):
             pass
 
 def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
-    addr = (host, int(port))
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock, addr = _udp_socket_and_addr(host, port)
 
     base_timeout = float(kwargs.get("timeout", 1.0))
     min_to = float(kwargs.get("min_timeout", 0.05))
@@ -4830,11 +5095,14 @@ def _udp_seq_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
         return (True, stats)
     return True
 def _udp_seq_recv(fileobj, host, port, **kwargs):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind((host or "", int(port)))
+    logger = _logger_from_kwargs(kwargs)
+    sock = _udp_bind_socket(host or "", int(port))
+    if sock is None:
+        return False
 
     if kwargs.get("print_url"):
-        _emit("Listening: udp://%s:%d/" % (host or "0.0.0.0", sock.getsockname()[1]), logger=logger, level=logging.INFO, stream="stdout")
+        bh = host or ("::" if sock.family == getattr(socket, "AF_INET6", None) else "0.0.0.0")
+        _emit("Listening: udp://%s:%d/" % (_url_host(bh), sock.getsockname()[1]), logger=logger, level=logging.INFO, stream="stdout")
         try:
             sys.stdout.flush()
         except Exception:
@@ -5146,8 +5414,7 @@ def _cc_on_loss(cc, cwnd, cwnd_f, max_cwnd):
     return cwnd, float(cwnd)
 
 def _udp_quic_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
-    addr = (host, int(port))
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock, addr = _udp_socket_and_addr(host, port)
 
     base_timeout = float(kwargs.get("timeout", 1.0))
     min_to = float(kwargs.get("min_timeout", 0.05))
@@ -5518,11 +5785,14 @@ def _udp_quic_send(fileobj, host, port, resume=False, path_text=None, **kwargs):
     return True
 
 def _udp_quic_recv(fileobj, host, port, **kwargs):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind((host or "", int(port)))
+    logger = _logger_from_kwargs(kwargs)
+    sock = _udp_bind_socket(host or "", int(port))
+    if sock is None:
+        return False
 
     if kwargs.get("print_url"):
-        _emit("Listening: udp://%s:%d/" % (host or "0.0.0.0", sock.getsockname()[1]), logger=logger, level=logging.INFO, stream="stdout")
+        bh = host or ("::" if sock.family == getattr(socket, "AF_INET6", None) else "0.0.0.0")
+        _emit("Listening: udp://%s:%d/" % (_url_host(bh), sock.getsockname()[1]), logger=logger, level=logging.INFO, stream="stdout")
         try:
             sys.stdout.flush()
         except Exception:
